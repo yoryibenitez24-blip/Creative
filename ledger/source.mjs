@@ -6,7 +6,7 @@
 // States: missing | partial | implemented-unverified | verified | blocked
 // Scopes: core | psd | develop | library | ai | output | color | raw | workflow | platform | legacy
 
-export const LEDGER_VERSION = '0.1.4';
+export const LEDGER_VERSION = '0.2.0';
 export const LEDGER_DATE = '2026-11-04';
 export const REFERENCES = {
   photoshop: 'Adobe Photoshop desktop 27.6 (April 2026 release), the newest release notes found on 2026-11-04; a later 2026 build may exist and must be re-audited',
@@ -648,7 +648,7 @@ AREAS.push(
 
 // Current state. Rows absent here are `missing`.
 // evidence: test name or file proving it. note: limitations.
-const T_ENGINE = 'tests/engine.test.js', T_E2E = 'tests/e2e/slice.e2e.mjs (docs/evidence/m1-e2e-results.json)', T_MODEL = 'src/model.test.js', T_IMPORT = 'tests/import.test.js';
+const T_MASKS = 'tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json)', T_ENGINE = 'tests/engine.test.js', T_E2E = 'tests/e2e/slice.e2e.mjs (docs/evidence/m1-e2e-results.json)', T_MODEL = 'src/model.test.js', T_IMPORT = 'tests/import.test.js';
 export const STATUS = {
   'M0-LAYOUT': ['verified', 'npm run build + node --test (docs/MILESTONE_REPORT.md)'],
   'M0-BASE-TESTS': ['verified', 'npm test'],
@@ -736,6 +736,15 @@ export const STATUS = {
   'BRUSH-DOC-SPACE': ['verified', T_ENGINE + ' + ' + T_E2E + ' (0 differing pixels 100% vs 200%)'],
   'BRUSH-CURSOR': ['implemented-unverified', 'SVG outline cursor'],
 
+  'MASK-RASTER': ['verified', T_MASKS + '; ' + T_ENGINE + ' mask tests', 'Document-space 8-bit mask per layer, any layer type; outside the mask rectangle uses the fill value'],
+  'MASK-PAINT': ['verified', T_MASKS + ' "paint on the mask"', 'Brush/eraser/fill/clear target the mask via the mask chip, Edit mask, or Ctrl+\\'],
+  'MASK-FROM-SEL': ['partial', T_MASKS + ' "reveal selection"', 'Selection → mask (reveal/hide) works; loading a mask as a selection is missing'],
+  'MASK-LINK': ['verified', T_MASKS + ' "linked mask moves with the layer"; ' + T_ENGINE],
+  'MASK-DENSITY': ['verified', T_MASKS + ' density step; ' + T_ENGINE],
+  'MASK-FEATHER': ['verified', T_MASKS + ' feather step; ' + T_ENGINE, 'Gaussian sigma = feather/2. Preview recomputed on the main thread (see milestone report)'],
+  'MASK-INVERT': ['verified', T_MASKS + ' invert step'],
+  'MASK-DISABLE': ['verified', T_MASKS + ' disable/enable step', 'Shift-click on the mask chip also toggles (no automated test)'],
+  'MASK-APPLY': ['verified', T_MASKS + ' apply step (max delta 0 vs live mask)', 'Paint layers only; other layer types need Rasterize (missing)'],
   'LAYER-OPACITY': ['implemented-unverified', 'Baseline'], 'LAYER-VISIBILITY': ['implemented-unverified', 'Baseline'],
   'LAYER-LOCK-POS': ['partial', 'Single lock flag', 'No separate pixel/transparency locks'],
   'LAYER-RENAME': ['implemented-unverified', 'Baseline'], 'LAYER-REORDER': ['implemented-unverified', 'Baseline'], 'LAYER-DUPLICATE': ['implemented-unverified', 'Ctrl+J; paint copies share asset ids'], 'LAYER-DELETE': ['implemented-unverified', 'Baseline'],

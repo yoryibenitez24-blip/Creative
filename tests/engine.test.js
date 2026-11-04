@@ -169,7 +169,7 @@ test('schema: v1 documents migrate to v2 without losing unknown data', () => {
   assert.deepEqual(d.layers[0].futureField, { keep: true });
   assert.deepEqual(d.psdGroups, v1.psdGroups);
   assert.deepEqual(d.groups.map(g => g.id).sort(), ['g1', 'g2']);
-  assert.deepEqual(d.migrations, [{ from: 1, to: 2 }]);
+  assert.deepEqual(d.migrations, [{ from: 1, to: 2 }, { from: 2, to: 3 }]);
   assert.equal(d.color.profile, 'sRGB IEC61966-2.1');
   assert.equal(migrateDocument(d), d, 'migrating current version is a no-op');
 });
@@ -211,4 +211,71 @@ test('assets: content addressing deduplicates and round-trips through the envelo
 test('assets: a failing backend write rejects, so callers never commit unsaved pixels', async () => {
   const store = new AssetStore({ ...memoryBackend(), put: async () => { throw Error('QuotaExceededError'); } });
   await assert.rejects(store.put(new Blob([new Uint8Array([9])])), /Quota/);
+});
+
+// ---------- layer masks ----------
+import { newMask, validateMask, effective, maskBufferFromSelection, invertMaskBuffer, rawMaskAt, sampleMask, applyMask, moveLayer, luminance } from '../src/engine/mask.js';
+
+test('mask: validation and defaults', () => {
+  const m = newMask(100, 50, 255);
+  assert.ok(validateMask(m)); assert.ok(validateMask(undefined));
+  assert.equal(m.fill, 255); assert.equal(m.density, 1); assert.ok(m.enabled && m.linked);
+  for (const bad of [{ ...m, fill: 128 }, { ...m, density: 2 }, { ...m, w: 1.5 }, { ...m, assetId: 'x' }, { ...m, feather: -1 }]) assert.ok(!validateMask(bad));
+  assert.throws(() => validateDocument({ name: 'd', w: 10, h: 10, bg: '#fff', layers: [{ id: 'a', type: 'rect', x: 0, y: 0, w: 5, h: 5, rotation: 0, opacity: 1, mask: { ...m, fill: 3 } }] }), /mask/);
+});
+
+test('mask: density formula: 0 disables, 1 is the raw mask', () => {
+  assert.equal(effective(0, 1), 0); assert.equal(effective(0, 0), 255); assert.equal(effective(0, 0.5), 127.5); assert.equal(effective(200, 0.5), 227.5);
+});
+
+test('mask: from selection (reveal and hide), invert, outside uses fill', () => {
+  const sel = computeMask({ ops: [{ op: 'replace', shape: { type: 'rect', x: 0, y: 0, w: 5, h: 4 } }] }, 10, 4);
+  const reveal = maskBufferFromSelection(sel, 10, 4), hide = maskBufferFromSelection(sel, 10, 4, true);
+  const m = { ...newMask(10, 4, 0) };
+  assert.equal(rawMaskAt(m, reveal, 2, 1), 255); assert.equal(rawMaskAt(m, reveal, 7, 1), 0); assert.equal(rawMaskAt(m, reveal, 50, 1), 0);
+  assert.equal(rawMaskAt(m, hide, 2, 1), 0);
+  invertMaskBuffer(reveal);
+  assert.equal(rawMaskAt(m, reveal, 2, 1), 0); assert.equal(reveal.data[3], 255);
+});
+
+test('mask: apply multiplies layer alpha, honours layer offset, density and fill outside', () => {
+  const buf = createBuffer(10, 1);
+  fillArea(buf, { color: [9, 9, 9], mode: 'paint', opacity: 1 });
+  const sel = computeMask({ ops: [{ op: 'replace', shape: { type: 'rect', x: 0, y: 0, w: 8, h: 1 } }] }, 10, 1);
+  const mask = { ...newMask(10, 1, 0), density: 0.5 };
+  applyMask(buf, 2, 0, mask, maskBufferFromSelection(sel, 10, 1)); // layer px x → doc x+2
+  const a = x => buf.data[x * 4 + 3];
+  assert.equal(a(0), 255); assert.equal(a(5), 255); // doc 2..7 inside
+  assert.equal(a(6), 128); assert.equal(a(9), 128); // doc 8..11 hidden at 50% density (doc 10, 11 outside mask → fill 0)
+  const off = createBuffer(2, 1); fillArea(off, { color: [1, 1, 1], mode: 'paint', opacity: 1 });
+  applyMask(off, 0, 0, { ...newMask(2, 1, 0), enabled: false }, null);
+  assert.equal(off.data[3], 255, 'disabled mask has no effect');
+});
+
+test('mask: feather is symmetric around the edge and respects fill outside the mask rectangle', () => {
+  const W = 60, H = 60;
+  const sel = computeMask({ ops: [{ op: 'replace', shape: { type: 'rect', x: -100, y: -100, w: 130, h: 300 } }] }, W, H);
+  const m = { ...newMask(W, H, 0), feather: 8 };
+  const full = sampleMask(m, maskBufferFromSelection(sel, W, H), 0, 30, W, 1);
+  assert.ok(Math.abs(full[29] + full[30] - 255) < 2, `${full[29]} + ${full[30]}`);
+  assert.ok(full[15] > 254 && full[55] < 1);
+  // reveal-all mask with no pixels stays fully revealed after feather (no darkened border)
+  const all = sampleMask({ ...newMask(20, 20, 255), feather: 10 }, null, 0, 0, 20, 20);
+  assert.ok(all.every(v => Math.abs(v - 255) < 1e-3));
+});
+
+test('mask: linked masks move with the layer, unlinked ones stay', () => {
+  const l = { id: 'a', x: 10, y: 10, mask: { ...newMask(5, 5), x: 3, y: 4 } };
+  assert.deepEqual([moveLayer(l, 15, 7).mask.x, moveLayer(l, 15, 7).mask.y], [8, 1]);
+  assert.equal(moveLayer({ ...l, mask: { ...l.mask, linked: false } }, 15, 7).mask.x, 3);
+  assert.equal(moveLayer({ id: 'b', x: 0, y: 0 }, 1, 1).mask, undefined);
+  assert.equal(luminance([255, 255, 255]), 255); assert.equal(luminance([0, 0, 0]), 0);
+});
+
+test('schema: v2 documents migrate to v3; mask assets are referenced', () => {
+  const v2 = migrateDocument(structuredClone(v1));
+  const id = 'sha256-' + 'b'.repeat(64);
+  const d = { ...v2, layers: [{ ...v2.layers[0], mask: { ...newMask(10, 10), assetId: id } }] };
+  assert.deepEqual(referencedAssets(d), [id]);
+  assert.equal(migrateDocument({ ...v1, schemaVersion: 2 }).schemaVersion, 3);
 });

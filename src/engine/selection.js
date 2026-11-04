@@ -137,7 +137,17 @@ function boxBlurV(src, dst, W, H, r) {
   }
 }
 
-function boxRadius(radius) { const sigma = radius / 2; return Math.max(1, Math.round((Math.sqrt(12 * sigma * sigma / 3 + 1) - 1) / 2)); }
+// Three box passes whose combined variance matches sigma² (mixing two odd box widths,
+// after W. Jarosz / P. Kovesi). sigma = radius / 2. Returns the three box radii.
+export function boxRadii(radius) {
+  const sigma = radius / 2, n = 3;
+  let wl = Math.floor(Math.sqrt(12 * sigma * sigma / n + 1));
+  if (wl % 2 === 0) wl--;
+  wl = Math.max(1, wl);
+  const wu = wl + 2;
+  const m = Math.round((12 * sigma * sigma - n * wl * wl - 4 * n * wl - 3 * n) / (-4 * wl - 4));
+  return [0, 1, 2].map(i => ((i < m ? wl : wu) - 1) / 2);
+}
 
 function nonZeroBounds(buf, W, H) {
   let x0 = W, y0 = H, x1 = -1, y1 = -1;
@@ -155,7 +165,8 @@ function nonZeroBounds(buf, W, H) {
  */
 export function feather(buf, W, H, radius, bounds) {
   if (!(radius > 0)) return buf;
-  const r = boxRadius(radius);
+  const radii = boxRadii(radius);
+  const r = Math.max(...radii);
   const b = bounds || nonZeroBounds(buf, W, H);
   if (!b) return buf;
   const pad = 3 * r + 1;
@@ -165,7 +176,7 @@ export function feather(buf, W, H, radius, bounds) {
   // region touches the document edge, where it matches full-canvas edge clamping.
   const sub = new Float32Array(w * h), tmp = new Float32Array(w * h);
   for (let y = 0; y < h; y++) sub.set(buf.subarray((y + y0) * W + x0, (y + y0) * W + x1), y * w);
-  for (let i = 0; i < 3; i++) { boxBlurH(sub, tmp, w, h, r); boxBlurV(tmp, sub, w, h, r); }
+  for (const ri of radii) if (ri > 0) { boxBlurH(sub, tmp, w, h, ri); boxBlurV(tmp, sub, w, h, ri); }
   for (let y = 0; y < h; y++) buf.set(sub.subarray(y * w, (y + 1) * w), (y + y0) * W + x0);
   return buf;
 }

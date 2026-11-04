@@ -10,11 +10,12 @@ const num = (label, value, onChange, { min, max, step = 1, suffix = '', scale = 
 
 const MODES = [['replace', 'New selection'], ['add', 'Add to selection (Shift)'], ['subtract', 'Subtract from selection (Alt)'], ['intersect', 'Intersect with selection (Shift+Alt)']];
 
-export default function ToolOptions({ tool, brush, setBrush, sel, setSel, variant, setVariant, polyActive }) {
+export default function ToolOptions({ onMask, tool, brush, setBrush, sel, setSel, variant, setVariant, polyActive }) {
   if (tool === 'brush' || tool === 'eraser') {
     const set = (k) => v => setBrush({ ...brush, [k]: v });
     return <div className="optionsBar" role="toolbar" aria-label={(tool === 'brush' ? 'Brush' : 'Eraser') + ' options'} onPointerDown={e => e.stopPropagation()}>
       <strong>{tool === 'brush' ? 'Brush' : 'Eraser'}</strong>
+      {onMask && <span className="maskTag" role="status">On layer mask · black hides, white reveals{tool === 'eraser' ? ' · eraser paints the background colour' : ''}</span>}
       {num('Size', brush.size, set('size'), { min: BRUSH_LIMITS.size[0], max: BRUSH_LIMITS.size[1], suffix: 'px' })}
       {num('Hardness', brush.hardness, set('hardness'), { min: 0, max: 1, scale: 100, suffix: '%' })}
       {num('Opacity', brush.opacity, set('opacity'), { min: 0, max: 1, scale: 100, suffix: '%' })}

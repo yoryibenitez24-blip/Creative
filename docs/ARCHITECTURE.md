@@ -22,7 +22,7 @@ Platform adapters             src/workspace.js (IndexedDB), src/editor/surfaces.
 
 Rule: `src/engine` never touches the DOM, React or IndexedDB. The browser supplies backends, so the same code runs in Node tests and later in workers.
 
-## Document model (schema v2)
+## Document model (schema v3)
 
 `src/engine/schema.js` holds the full schema history. The fields that matter here:
 
@@ -37,6 +37,7 @@ Rule: `src/engine` never touches the DOM, React or IndexedDB. The browser suppli
 | `selection` | Pixel selection descriptor (see below) or `null` |
 | `lastSelection` | Used by Reselect |
 | `migrations[]` | Log of applied migrations |
+| `layers[].mask` | Optional raster mask (v3): `{assetId|null, x, y, w, h, fill: 0|255, enabled, linked, density, feather}`. The rectangle comes from the grey PNG asset and everything outside it from `fill`. See `src/engine/mask.js`. |
 
 A raster layer is `{type:'raster', x, y, w, h, assetId}`. `w` and `h` are integer pixel dimensions. `assetId` is `sha256-<hex>` or `null` (fully transparent). Raster layers are not resampled. Move changes `x`/`y` by whole pixels. Free transform for raster layers is a ledger item (`XFORM-RASTER-RESAMPLE`).
 
@@ -58,6 +59,12 @@ Each referenced asset is stored once. On open, every asset is re-hashed and a mi
 * The browser backend is the IndexedDB database `zertake-studio`, version 2, with a new `assets` object store (`src/workspace.js`). The v1 `workspace` store is untouched by the upgrade.
 * Write order: the asset is persisted **before** the document that references it is committed. If the asset write fails (for example on quota), the stroke is rolled back on screen and the user is told. The document never references unsaved pixels.
 * Known gaps (ledger): image layers still embed data URLs (`DOC-ASSET-IMAGE`). There is no asset garbage collection (`DOC-ASSET-GC`), because two app tabs could otherwise delete each other's in-flight assets. OPFS, atomic multi-store transactions and crash journals are **(planned)**.
+
+## Layer masks
+
+* **Engine:** `src/engine/mask.js` is pure. It covers selection → mask, invert, `sampleMask` (feather, then density) and `applyMask`, plus `moveLayer`, which keeps linked masks in step.
+* **Editing:** mask pixels live on a surface `<layerId>#mask` in the same registry as paint layers. Strokes and fills reuse `raster.js` with a grey colour (foreground or background luminance), and commits reuse the asset queue.
+* **Rendering:** each layer renders as an outer `<g>` carrying opacity, blend and `mask=url(#…)`, wrapping an inner `<g>` with the transform and pointer handlers. The `<mask>` holds a fill rectangle plus an `<image>`. Chromium ignores a canvas inside a mask, hence the image. With feather or density, the image is `sampleMask()` over the document, so preview, PNG export and Apply share one implementation and match exactly.
 
 ## Selection engine
 

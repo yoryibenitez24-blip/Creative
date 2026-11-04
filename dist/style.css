@@ -14,3 +14,11 @@
 @keyframes ants{to{stroke-dashoffset:-8}}.antsDash{animation:ants .6s linear infinite}
 @media (prefers-reduced-motion:reduce){.antsDash{animation:none}}
 .preview .optionsBar{display:none}
+/* Layer masks */
+.maskChip{padding:0;border-radius:3px;outline-offset:1px;flex-shrink:0}.maskChip.target{outline:2px solid #b5a2ef}
+.maskThumb{display:block;width:22px;height:22px;border:1px solid #45454c;border-radius:2px;overflow:hidden;position:relative}.maskThumb img{width:100%;height:100%;object-fit:fill;display:block}
+.maskThumb.off::after{content:'';position:absolute;inset:0;background:linear-gradient(45deg,transparent 45%,#e5484d 45%,#e5484d 55%,transparent 55%)}
+.maskPanel .segmented{margin-bottom:8px}.maskPanel .opt{margin:6px 0}.maskPanel .opt input[type=range]{flex:1}.maskPanel .optCheck{margin:4px 0}
+.maskButtons{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.maskButtons button{padding:6px 9px;border:1px solid #3a3a41;border-radius:5px;font-size:11px}.maskButtons button:disabled{opacity:.45;cursor:not-allowed}
+.maskPanel .hint{color:#8e8e98;font-size:11px;line-height:1.4}
+.maskTag{background:#393044;color:#e2d6ff;border-radius:4px;padding:3px 7px}

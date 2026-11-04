@@ -1,4 +1,47 @@
-# Milestone report: M0 + first M1 vertical slice
+# Milestone report: M0 + M1 vertical slices
+
+## Slice 2: raster layer masks (ledger v0.2.0)
+
+**What works.** Every layer type (paint, image, shape, text) can have a document-space 8-bit mask. White reveals and black hides.
+* **Add:** reveal or hide all, or reveal or hide the current selection (the selection is consumed). Available from the inspector, Layer menu or layers-panel button.
+* **Paint on the mask:** click the mask chip, choose *Edit mask*, or press Ctrl/⌘ \ to switch the brush, eraser, fill and clear onto the mask. The options bar says so. The brush paints the foreground luminance and the eraser paints the background luminance. Selections restrict mask painting too.
+* **Properties:** enabled, linked, density 0–100% and feather 0–250 px (Gaussian, σ = feather ÷ 2). All are non-destructive and saved.
+* **Commands:** invert, delete, and apply (bakes into a paint layer's alpha). Shift-click the chip to disable. A linked mask moves with its layer, including drag, arrow keys, align and duplicate.
+* **Everything is undoable,** autosaved, written into `.zertake` (each mask asset once) and exported.
+
+**One implementation for preview, export and apply.** Chromium ignores a canvas inside an SVG `<mask>`, so masks render through an `<image>`. With feather or density set, that image is the effective mask computed by `engine/mask.js` itself. An earlier version used SVG `feGaussianBlur`, which differed from Apply by up to 9 levels near document edges. Now the live mask and the applied mask differ by **0** (`docs/evidence/m1-masks-e2e-results.json`).
+
+**Schema v3.** Masks are an additive field, but the version was bumped so an older app refuses mask documents instead of silently dropping masks on save. v1 and v2 files migrate automatically.
+
+**Bug caught by the slice-1 E2E test.** Paint layers carry an unrelated colour string, `fill`, from the generic layer helper. The new surface code briefly read it as a mask grey value and filled new paint layers black. This was fixed before commit, and the old acceptance test now guards it.
+
+**Tests.** `npm test` gives 53 passed (7 new mask/engine tests). The browser tests give 12/12 for masks and 11/11 for slice 1. The masks test checks:
+* reveal-selection;
+* mask painting and undo;
+* density 50% gives half strength (±3);
+* the feather ramp is symmetric;
+* disable/enable;
+* the linked move and its undo;
+* invert;
+* reload persistence (max delta ≤ 1);
+* the `.zertake` envelope;
+* apply equals the live mask (delta 0), and undo restores the mask.
+
+**Ledger v0.1.4 → v0.2.0.** 9 rows changed state.
+* Verified: `MASK-RASTER`, `MASK-PAINT`, `MASK-LINK`, `MASK-DENSITY`, `MASK-FEATHER`, `MASK-INVERT`, `MASK-DISABLE`, `MASK-APPLY`.
+* `MASK-FROM-SEL` is partial: selection → mask works, but loading a mask as a selection doesn't.
+* The brush and eraser tools now also depend on `MASK-PAINT`.
+
+**Measured cost** (same CI container as below). Recomputing a feathered/density mask preview takes 123 ms at 1200×1400 and 590 ms at 3840×2160, on the main thread. It runs once per change and is throttled while painting. Unfeathered masks have no per-change cost. This adds to the case for moving mask and selection work into a worker next.
+
+**Known gaps.**
+* There is no load-mask-as-selection, mask overlay view (`\`) or vector mask.
+* Masks on PSD import are not read yet. ag-psd exposes them, so this is a cheap next step.
+* Apply works on paint layers only, because Rasterize is missing.
+* A linked mask that moves off the document leaves the uncovered area at its fill value, as Photoshop does. Painting there is not possible until masks can grow.
+
+---
+
 
 Date: 2026-11-04 · Ledger v0.1.0 · Branch `claude/inspiring-curie-tsipqx`
 

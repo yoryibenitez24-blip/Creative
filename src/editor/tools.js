@@ -7,8 +7,8 @@ export const TOOLS = [
   { id: 'hand', label: 'Hand', key: 'H', ledger: ['NAV-PAN-001'] },
   { id: 'marquee', label: 'Marquee', key: 'M', ledger: ['SEL-MARQ-RECT', 'SEL-MARQ-ELLI', 'SEL-MODE-NEW', 'SEL-MODE-ADD', 'SEL-MODE-SUB', 'SEL-MODE-INT', 'SEL-FEATHER-OPT'] },
   { id: 'lasso', label: 'Lasso', key: 'L', ledger: ['SEL-LASSO-FREE', 'SEL-LASSO-POLY'] },
-  { id: 'brush', label: 'Brush', key: 'B', ledger: ['PAINT-BRUSH', 'BRUSH-SIZE', 'BRUSH-HARD', 'BRUSH-OPAC', 'BRUSH-FLOW', 'BRUSH-SPACE', 'BRUSH-SMOOTH', 'BRUSH-PRESS-SIZE', 'BRUSH-PRESS-FLOW'] },
-  { id: 'eraser', label: 'Eraser', key: 'E', ledger: ['PAINT-ERASER'] },
+  { id: 'brush', label: 'Brush', key: 'B', ledger: ['PAINT-BRUSH', 'BRUSH-SIZE', 'BRUSH-HARD', 'BRUSH-OPAC', 'BRUSH-FLOW', 'BRUSH-SPACE', 'BRUSH-SMOOTH', 'BRUSH-PRESS-SIZE', 'BRUSH-PRESS-FLOW', 'MASK-PAINT'] },
+  { id: 'eraser', label: 'Eraser', key: 'E', ledger: ['PAINT-ERASER', 'MASK-PAINT'] },
 ];
 
 export const SHAPE_TOOLS = { marquee: ['rect', 'ellipse'], lasso: ['free', 'polygon'] };

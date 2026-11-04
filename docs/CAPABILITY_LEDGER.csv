@@ -1,4 +1,4 @@
-# Zertake capability ledger v0.1.4 (2026-11-04). References: Photoshop = Adobe Photoshop desktop 27.6 (April 2026 release), the newest release notes found on 2026-11-04; a later 2026 build may exist and must be re-audited; Lightroom Classic = Adobe Lightroom Classic 15.5 (August 2026 release notes, updated 2026-08-04).
+# Zertake capability ledger v0.2.0 (2026-11-04). References: Photoshop = Adobe Photoshop desktop 27.6 (April 2026 release), the newest release notes found on 2026-11-04; a later 2026 build may exist and must be re-audited; Lightroom Classic = Adobe Lightroom Classic 15.5 (August 2026 release notes, updated 2026-08-04).
 id,area,scope,milestone,reference,feature,expected,state,dependency,acceptance,evidence,note
 M0-LAYOUT,Milestone 0 audit & foundation,platform,0,Zertake,Buildable source layout,"src/, tests/, dist/ layout matches package.json; npm run build succeeds",verified,,Automated test or committed document proves it,npm run build + node --test (docs/MILESTONE_REPORT.md),
 M0-BASE-TESTS,Milestone 0 audit & foundation,platform,0,Zertake,Baseline test suite runs,"node --test runs model, PSD import and engine tests green",verified,,Automated test or committed document proves it,npm test,
@@ -325,16 +325,16 @@ BLEND-SATURATION,Blend modes,core,1,Photoshop 27.6,Saturation,non-separable,part
 BLEND-COLOR,Blend modes,core,1,Photoshop 27.6,Color,non-separable,partial,,Per-pixel unit test against formula,Imported PSD layers only,
 BLEND-LUMINOSITY,Blend modes,core,1,Photoshop 27.6,Luminosity,non-separable,partial,,Per-pixel unit test against formula,Imported PSD layers only,
 BLEND-UI-COMPLETE,Blend modes,core,1,Photoshop 27.6,All modes in the blend menu,Menu lists every supported mode with docs on precision,missing,,Per-pixel unit test against formula,,
-MASK-RASTER,Masks & channels,core,1,Photoshop 27.6,Raster layer masks,Paintable 8-bit mask per layer,missing,,Mask algebra unit test + export check,,
+MASK-RASTER,Masks & channels,core,1,Photoshop 27.6,Raster layer masks,Paintable 8-bit mask per layer,verified,,Mask algebra unit test + export check,tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json); tests/engine.test.js mask tests,"Document-space 8-bit mask per layer, any layer type; outside the mask rectangle uses the fill value"
 MASK-VECTOR,Masks & channels,core,1,Photoshop 27.6,Vector masks,Path-based masks,missing,,Mask algebra unit test + export check,,
-MASK-LINK,Masks & channels,core,1,Photoshop 27.6,Mask link/unlink,Move mask with or without layer,missing,,Mask algebra unit test + export check,,
-MASK-DENSITY,Masks & channels,core,1,Photoshop 27.6,Mask density,Properties density,missing,,Mask algebra unit test + export check,,
-MASK-FEATHER,Masks & channels,core,1,Photoshop 27.6,Mask feather,Non-destructive feather,missing,,Mask algebra unit test + export check,,
-MASK-INVERT,Masks & channels,core,1,Photoshop 27.6,Invert mask,Invert mask,missing,,Mask algebra unit test + export check,,
-MASK-DISABLE,Masks & channels,core,1,Photoshop 27.6,Disable mask,Shift-click toggle,missing,,Mask algebra unit test + export check,,
-MASK-APPLY,Masks & channels,core,1,Photoshop 27.6,Apply mask,Bake into pixels,missing,,Mask algebra unit test + export check,,
-MASK-PAINT,Masks & channels,core,1,Photoshop 27.6,Paint on mask,Brush/eraser target the mask,missing,,Mask algebra unit test + export check,,
-MASK-FROM-SEL,Masks & channels,core,1,Photoshop 27.6,Selection ↔ mask conversion,Add mask from selection; load mask as selection,missing,,Mask algebra unit test + export check,,
+MASK-LINK,Masks & channels,core,1,Photoshop 27.6,Mask link/unlink,Move mask with or without layer,verified,,Mask algebra unit test + export check,"tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json) ""linked mask moves with the layer""; tests/engine.test.js",
+MASK-DENSITY,Masks & channels,core,1,Photoshop 27.6,Mask density,Properties density,verified,,Mask algebra unit test + export check,tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json) density step; tests/engine.test.js,
+MASK-FEATHER,Masks & channels,core,1,Photoshop 27.6,Mask feather,Non-destructive feather,verified,,Mask algebra unit test + export check,tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json) feather step; tests/engine.test.js,Gaussian sigma = feather/2. Preview recomputed on the main thread (see milestone report)
+MASK-INVERT,Masks & channels,core,1,Photoshop 27.6,Invert mask,Invert mask,verified,,Mask algebra unit test + export check,tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json) invert step,
+MASK-DISABLE,Masks & channels,core,1,Photoshop 27.6,Disable mask,Shift-click toggle,verified,,Mask algebra unit test + export check,tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json) disable/enable step,Shift-click on the mask chip also toggles (no automated test)
+MASK-APPLY,Masks & channels,core,1,Photoshop 27.6,Apply mask,Bake into pixels,verified,,Mask algebra unit test + export check,tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json) apply step (max delta 0 vs live mask),Paint layers only; other layer types need Rasterize (missing)
+MASK-PAINT,Masks & channels,core,1,Photoshop 27.6,Paint on mask,Brush/eraser target the mask,verified,,Mask algebra unit test + export check,"tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json) ""paint on the mask""","Brush/eraser/fill/clear target the mask via the mask chip, Edit mask, or Ctrl+\"
+MASK-FROM-SEL,Masks & channels,core,1,Photoshop 27.6,Selection ↔ mask conversion,Add mask from selection; load mask as selection,partial,,Mask algebra unit test + export check,"tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json) ""reveal selection""",Selection → mask (reveal/hide) works; loading a mask as a selection is missing
 MASK-CHANNELS,Masks & channels,core,1,Photoshop 27.6,Channels panel,Composite/component channels,missing,,Mask algebra unit test + export check,,
 MASK-ALPHA,Masks & channels,core,1,Photoshop 27.6,Named alpha channels,Save/load,missing,,Mask algebra unit test + export check,,
 MASK-CALC,Masks & channels,core,1,Photoshop 27.6,Calculations,Channel math,missing,,Mask algebra unit test + export check,,

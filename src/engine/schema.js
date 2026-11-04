@@ -7,11 +7,14 @@
 //       explicit `groups` table (parent ids allow nesting), `raster` layers that
 //       reference content-addressed pixel assets, a document pixel `selection`
 //       descriptor and a `migrations` log.
+//   v3  adds optional `layer.mask` (raster layer mask, see engine/mask.js). The data change is
+//       additive, but the version is bumped so an older app refuses the file instead of
+//       silently dropping masks on save.
 //
 // Migration rule: never drop fields we do not understand. Unknown document and
 // layer fields are carried through untouched, so a later version can still read them.
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 export const LAYER_TYPES = ['rect', 'ellipse', 'text', 'image', 'raster'];
 export const PROJECT_FORMAT = 'zertake-project';
 
@@ -50,7 +53,9 @@ function v1to2(d) {
   };
 }
 
-const STEPS = { 1: v1to2 };
+const v2to3 = d => ({ ...d, schemaVersion: 3, migrations: [...(d.migrations || []), { from: 2, to: 3 }] });
+
+const STEPS = { 1: v1to2, 2: v2to3 };
 
 /** Migrate any known document version to SCHEMA_VERSION. Throws for unknown/future versions. */
 export function migrateDocument(raw) {
@@ -82,6 +87,9 @@ export function readProjectFile(json) {
 
 export function referencedAssets(doc) {
   const ids = new Set();
-  for (const l of doc.layers || []) if (l.type === 'raster' && typeof l.assetId === 'string') ids.add(l.assetId);
+  for (const l of doc.layers || []) {
+    if (l.type === 'raster' && typeof l.assetId === 'string') ids.add(l.assetId);
+    if (l.mask && typeof l.mask.assetId === 'string') ids.add(l.mask.assetId);
+  }
   return [...ids];
 }

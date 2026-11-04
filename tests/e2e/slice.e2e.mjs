@@ -190,7 +190,7 @@ await step('native project: .zertake envelope stores pixels once and reopens ide
   const [dl] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+s')]);
   const json = JSON.parse(readFileSync(await dl.path(), 'utf8'));
   assert.equal(json.format, 'zertake-project');
-  assert.equal(json.schemaVersion, 2);
+  assert.equal(json.schemaVersion, 3);
   const raster = json.document.layers.filter(l => l.type === 'raster');
   assert.equal(raster.length, 1);
   assert.deepEqual(Object.keys(json.assets), [raster[0].assetId]);
