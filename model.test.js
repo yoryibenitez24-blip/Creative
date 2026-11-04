@@ -1,0 +1,10 @@
+import{test}from'node:test';import assert from'node:assert/strict';import{validateDocument,resizeLayer}from'./model.js';
+const layer={id:'a',type:'rect',x:100,y:50,w:200,h:100,rotation:0,opacity:1,fill:'#fff'};
+test('northwest resize keeps opposite corner fixed',()=>{const r=resizeLayer(layer,0,20,10);assert.equal(r.x+r.w,300);assert.equal(r.y+r.h,150);assert.equal(r.w,180);assert.equal(layer.w,200)});
+test('locked layers remain unchanged',()=>{const l={...layer,locked:true};assert.equal(resizeLayer(l,3,40,40),l)});
+test('resize clamps dimensions and scales text',()=>{assert.equal(resizeLayer(layer,3,-500,0).w,20);assert.equal(resizeLayer({...layer,type:'text',size:40},3,200,0).size,80)});
+test('native project round trip preserves groups and editable values',()=>{const d={name:'Test',w:1920,h:1080,bg:'#fff',layers:[{...layer,group:'g'}]};assert.deepEqual(validateDocument(JSON.parse(JSON.stringify(d))),d)});
+test('invalid dimensions, duplicate ids and external images rejected',()=>{const d={name:'Test',w:1920,h:1080,bg:'#fff',layers:[layer]};assert.throws(()=>validateDocument({...d,w:0}));assert.throws(()=>validateDocument({...d,layers:[layer,layer]}));assert.throws(()=>validateDocument({...d,layers:[{...layer,type:'image',src:'https://example.com/x.png'}]}))});
+import{normalizeDocument,sanitizePatch}from'./model.js';
+test('imported layers with missing optional fields are safe to select',()=>{const d=normalizeDocument({name:'Test',w:100,h:100,bg:'#fff',layers:[{...layer,fill:undefined,name:undefined}]});assert.equal(d.layers[0].fill,'#ffffff');assert.equal(d.layers[0].fill.toUpperCase(),'#FFFFFF');assert.equal(d.layers[0].name,'Untitled layer')});
+test('numeric inspector rejects invalid transforms',()=>{assert.deepEqual(sanitizePatch({w:0,h:-5,x:NaN,rotation:Infinity,opacity:5}),{w:1,h:1,opacity:1})});
