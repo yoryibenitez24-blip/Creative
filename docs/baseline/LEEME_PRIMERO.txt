@@ -1,0 +1,11 @@
+ZERTAKE STUDIO · ENTREGA 2026-11-04
+
+1. DOCUMENTACION_VERSION.txt: instalación, arquitectura, uso, límites y verificación.
+2. PROMPT_DESARROLLO_COMPLETO.txt: prompt en inglés para continuar el producto con un agente de programación.
+3. INVENTARIO_BRECHAS.csv: 40 áreas de capacidad con estado real y trabajo pendiente.
+4. source/: copia exacta de los archivos rastreados del commit publicado.
+5. MANIFEST_SHA256.txt: hashes de integridad de cada archivo.
+
+No incluye node_modules, .git, credenciales ni tus proyectos guardados en el navegador. Para incluir tus diseños personales debes descargarlos como .zertake desde la app.
+
+El prompt es una especificación futura. No representa funciones implementadas. La documentación actual aclara las referencias históricas contradictorias del README original.

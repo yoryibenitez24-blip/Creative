@@ -14,8 +14,8 @@ const UPLOAD_PATH = { // manifest path -> path in the snapshot commit
   'source/src/FilterGallery.jsx': 'FilterGallery.jsx', 'source/src/Recovery.jsx': 'Recovery.jsx', 'source/src/main.jsx': 'main.jsx', 'source/src/model.js': 'model.js', 'source/src/model.test.js': 'model.test.js',
   'source/src/psd-worker.js': 'psd-worker (1).js', 'source/src/psd.js': 'psd.js', 'source/src/worker-import.js': 'worker-import.js', 'source/src/workspace.js': 'workspace.js', 'source/tests/import.test.js': 'import.test.js',
 };
-const DELIVERY_DOCS = { 'DOCUMENTACION_VERSION.txt': 'docs/baseline/DOCUMENTACION_VERSION.txt', 'INVENTARIO_BRECHAS.csv': 'docs/baseline/INVENTARIO_BRECHAS.csv' };
-const NOT_SUPPLIED = ['LEEME_PRIMERO.txt', 'PROMPT_DESARROLLO_COMPLETO.txt'];
+const DELIVERY_DOCS = { 'DOCUMENTACION_VERSION.txt': 'docs/baseline/DOCUMENTACION_VERSION.txt', 'INVENTARIO_BRECHAS.csv': 'docs/baseline/INVENTARIO_BRECHAS.csv', 'LEEME_PRIMERO.txt': 'docs/baseline/LEEME_PRIMERO.txt' };
+const NOT_SUPPLIED = ['PROMPT_DESARROLLO_COMPLETO.txt']; // given as the conversation prompt, not as a file
 
 const manifest = readFileSync(new URL('../docs/baseline/MANIFEST_SHA256.txt', import.meta.url), 'utf8').trim().split('\n').map(l => l.split(/\s+/)).map(([h, p]) => ({ h, p }));
 const sha = b => createHash('sha256').update(b).digest('hex');

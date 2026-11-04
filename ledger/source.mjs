@@ -660,7 +660,7 @@ export const STATUS = {
   'M0-INPUT-DOCS': ['verified', 'docs/baseline/DOCUMENTACION_VERSION.txt and INVENTARIO_BRECHAS.csv (sha256 in docs/baseline/RECONCILIATION.md)'],
   'M0-RECONCILE': ['verified', 'tests/ledger.test.js inventory mapping; docs/baseline/RECONCILIATION.md'],
   'M0-IMPORT-HARDENING': ['partial', 'Envelope assets are hash-verified; image layers must be data:image URLs; schema validation', 'No size limits for JSON/assets; originalSrc and filter parameters not validated; no hostile-file test suite'],
-  'M0-BASE-COMMIT': ['verified', 'tests/baseline.test.js: all 19 files of 5a309f5 match docs/baseline/MANIFEST_SHA256.txt (snapshot of e2360711, flattened on upload)', 'LEEME_PRIMERO.txt and PROMPT_DESARROLLO_COMPLETO.txt are listed in the manifest but were not supplied'],
+  'M0-BASE-COMMIT': ['verified', 'tests/baseline.test.js: all 19 files of 5a309f5 match docs/baseline/MANIFEST_SHA256.txt (snapshot of e2360711, flattened on upload)', 'PROMPT_DESARROLLO_COMPLETO.txt was supplied as the conversation prompt, not as a file, so its hash is unchecked'],
 
   'DOC-TABS': ['verified', T_IMPORT + ' "new tab and edits never replace previous document"; ' + T_E2E],
   'DOC-AUTOSAVE': ['verified', T_E2E + ' persistence step'],

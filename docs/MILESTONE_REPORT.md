@@ -115,7 +115,7 @@ No new runtime dependencies were added. The brush, selection, raster and asset c
 ## Decisions and blocked items
 
 1. ~~`M0-INPUT-DOCS`~~ Resolved: both files were received and reconciled.
-2. ~~`M0-BASE-COMMIT`~~ Resolved: verified against `MANIFEST_SHA256.txt`. `LEEME_PRIMERO.txt` and `PROMPT_DESARROLLO_COMPLETO.txt` appear in the manifest but were not supplied; the prompt given in the conversation is assumed to be the latter.
+2. ~~`M0-BASE-COMMIT`~~ Resolved: verified against `MANIFEST_SHA256.txt`. `LEEME_PRIMERO.txt` was supplied later and also matches. `PROMPT_DESARROLLO_COMPLETO.txt` was given as the conversation prompt rather than as a file, so its hash is unchecked.
 3. ~~`AI-PROVIDER`~~ Decided: no AI yet (scope decision D-001). The 23 model-dependent rows stay `missing` and are marked deferred. Where a non-AI route exists, it is the planned implementation: patch synthesis for Remove, user-painted depth masks for Lens Blur, and classic noise reduction.
 4. ~~`RAW-DECODE`~~ Decided: no RAW decoder license for now (scope decision D-002). 11 RAW-decoder rows stay `missing` and are marked deferred. The Develop workspace (M2) targets rendered images and layers. White balance keeps a documented rendered-image mode so RAW can be added later without redesign.
 
