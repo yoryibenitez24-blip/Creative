@@ -1,4 +1,4 @@
-# Zertake capability ledger v0.1.2 (2026-11-04). References: Photoshop = Adobe Photoshop desktop 27.6 (April 2026 release), the newest release notes found on 2026-11-04; a later 2026 build may exist and must be re-audited; Lightroom Classic = Adobe Lightroom Classic 15.5 (August 2026 release notes, updated 2026-08-04).
+# Zertake capability ledger v0.1.3 (2026-11-04). References: Photoshop = Adobe Photoshop desktop 27.6 (April 2026 release), the newest release notes found on 2026-11-04; a later 2026 build may exist and must be re-audited; Lightroom Classic = Adobe Lightroom Classic 15.5 (August 2026 release notes, updated 2026-08-04).
 id,area,scope,milestone,reference,feature,expected,state,dependency,acceptance,evidence,note
 M0-LAYOUT,Milestone 0 audit & foundation,platform,0,Zertake,Buildable source layout,"src/, tests/, dist/ layout matches package.json; npm run build succeeds",verified,,Automated test or committed document proves it,npm run build + node --test (docs/MILESTONE_REPORT.md),
 M0-BASE-TESTS,Milestone 0 audit & foundation,platform,0,Zertake,Baseline test suite runs,"node --test runs model, PSD import and engine tests green",verified,,Automated test or committed document proves it,npm test,
@@ -110,9 +110,9 @@ SEL-LASSO-MAG,Selection tools,core,1,Photoshop 27.6,Magnetic Lasso,Edge-snapping
 SEL-QUICK,Selection tools,core,1,Photoshop 27.6,Quick Selection,Brush-driven region growing on colour/texture edges,missing,,Unit geometry test + E2E with real pointer input,,
 SEL-WAND,Selection tools,core,1,Photoshop 27.6,Magic Wand,"Tolerance, contiguous, anti-alias, sample all layers",missing,,Unit geometry test + E2E with real pointer input,,
 SEL-WAND-SAMPLE,Selection tools,core,1,Photoshop 27.6,Magic Wand sample size,Point / averaged sample sizes,missing,,Unit geometry test + E2E with real pointer input,,
-SEL-OBJECT,Selection tools,core,1,Photoshop 27.6,Object Selection,Box/lasso prompt to segmentation,missing,Segmentation model,Unit geometry test + E2E with real pointer input,,
-SEL-SUBJECT,Selection tools,core,1,Photoshop 27.6,Select Subject,One-click main subject mask,missing,Segmentation model,Unit geometry test + E2E with real pointer input,,
-SEL-SKY,Selection tools,core,1,Photoshop 27.6,Select Sky,Sky segmentation,missing,Segmentation model,Unit geometry test + E2E with real pointer input,,
+SEL-OBJECT,Selection tools,core,1,Photoshop 27.6,Object Selection,Box/lasso prompt to segmentation,missing,Segmentation model,Unit geometry test + E2E with real pointer input,,Deferred: AI out of scope (D-001)
+SEL-SUBJECT,Selection tools,core,1,Photoshop 27.6,Select Subject,One-click main subject mask,missing,Segmentation model,Unit geometry test + E2E with real pointer input,,Deferred: AI out of scope (D-001)
+SEL-SKY,Selection tools,core,1,Photoshop 27.6,Select Sky,Sky segmentation,missing,Segmentation model,Unit geometry test + E2E with real pointer input,,Deferred: AI out of scope (D-001)
 SEL-MODE-NEW,Selection tools,core,1,Photoshop 27.6,Mode: new selection,Replaces the current selection,verified,,Unit geometry test + E2E with real pointer input,tests/engine.test.js algebra,
 SEL-MODE-ADD,Selection tools,core,1,Photoshop 27.6,Mode: add (Shift),Union with the current selection,verified,,Unit geometry test + E2E with real pointer input,tests/engine.test.js algebra,
 SEL-MODE-SUB,Selection tools,core,1,Photoshop 27.6,Mode: subtract (Alt),Removes from the current selection,verified,,Unit geometry test + E2E with real pointer input,tests/engine.test.js algebra,
@@ -147,7 +147,7 @@ SAM-SHIFT,Select and Mask workspace,core,3,Photoshop 27.6,Shift edge,Moves edge 
 SAM-DECONTAM,Select and Mask workspace,core,3,Photoshop 27.6,Decontaminate colours,Removes fringe colour with amount,missing,,Hair-edge fixture comparison,,
 SAM-OUTPUT,Select and Mask workspace,core,3,Photoshop 27.6,Output to selection/mask/new layer,All output targets including new layer with mask,missing,,Hair-edge fixture comparison,,
 SAM-HAIR-FIXTURES,Select and Mask workspace,core,3,Photoshop 27.6,Hair-edge test assets,Committed licensed fixtures with expected masks,missing,,Hair-edge fixture comparison,,
-SAM-BG-REMOVE,Select and Mask workspace,core,3,Photoshop 27.6,Remove background as editable mask,"Creates a layer mask, never destructive transparency only",missing,Segmentation model,Hair-edge fixture comparison,,
+SAM-BG-REMOVE,Select and Mask workspace,core,3,Photoshop 27.6,Remove background as editable mask,"Creates a layer mask, never destructive transparency only",missing,Segmentation model,Hair-edge fixture comparison,,Deferred: AI out of scope (D-001)
 MOVE-001,Move & arrange,core,1,Photoshop 27.6,Move tool,Drag selected layer(s); raster layers move by whole pixels,implemented-unverified,,E2E drag + numeric checks,Baseline move; paint layers move by whole pixels from anywhere on canvas,
 MOVE-AUTOSELECT,Move & arrange,core,1,Photoshop 27.6,Auto-select layer/group,Click selects topmost hit layer or its group,missing,,E2E drag + numeric checks,,
 MOVE-MULTI,Move & arrange,core,1,Photoshop 27.6,Multi-select layers,Shift-click in canvas and panel,implemented-unverified,,E2E drag + numeric checks,Baseline shift-click,
@@ -265,7 +265,7 @@ RETOUCH-SPOT-HEAL,Retouch,core,3,Photoshop 27.6,Spot Healing Brush,Automatic sou
 RETOUCH-PATCH,Retouch,core,3,Photoshop 27.6,Patch tool,Selection-driven healing,missing,,Fixture comparison with documented tolerance,,
 RETOUCH-CA-MOVE,Retouch,core,3,Photoshop 27.6,Content-Aware Move,Move/extend with fill,missing,,Fixture comparison with documented tolerance,,
 RETOUCH-CA-FILL,Retouch,core,3,Photoshop 27.6,Content-Aware Fill,Patch-based synthesis with sampling area and output to new layer,missing,,Fixture comparison with documented tolerance,,
-RETOUCH-REMOVE,Retouch,core,3,Photoshop 27.6,Remove tool,Declared algorithm with failure reporting,missing,Inpainting model or patch synthesis,Fixture comparison with documented tolerance,,
+RETOUCH-REMOVE,Retouch,core,3,Photoshop 27.6,Remove tool,Declared non-AI patch-synthesis algorithm with failure reporting,missing,Patch synthesis (shares CA-FILL); AI inpainting deferred,Fixture comparison with documented tolerance,,
 RETOUCH-RED-EYE,Retouch,core,3,Photoshop 27.6,Red Eye tool,"Pupil size, darken amount",missing,,Fixture comparison with documented tolerance,,
 RETOUCH-BLUR,Retouch,core,3,Photoshop 27.6,Blur tool,Local blur brush,missing,,Fixture comparison with documented tolerance,,
 RETOUCH-SHARPEN,Retouch,core,3,Photoshop 27.6,Sharpen tool,Local sharpen brush with protect detail,missing,,Fixture comparison with documented tolerance,,
@@ -431,7 +431,7 @@ FILT-PREVIEW,Filter engine & gallery,core,3,Photoshop 27.6,Live preview with spl
 FILT-CANCEL,Filter engine & gallery,core,3,Photoshop 27.6,Cancelable background processing,Workers; no full-res work in event handlers,missing,,Golden image per filter; identity and cancel tests,,
 FILT-PRESETS,Filter engine & gallery,core,3,Photoshop 27.6,"User presets (folders, favourites, import/export, intensity)","User presets (folders, favourites, import/export, intensity)",missing,,Golden image per filter; identity and cancel tests,,
 FILT-LIQUIFY,Filter engine & gallery,core,3,Photoshop 27.6,Liquify,"Forward warp, reconstruct, smooth, twirl, pucker, bloat, push, freeze/thaw",missing,,Golden image per filter; identity and cancel tests,,
-FILT-LIQUIFY-FACE,Filter engine & gallery,core,3,Photoshop 27.6,Face-aware Liquify,Face-aware Liquify,missing,Face landmark model,Golden image per filter; identity and cancel tests,,
+FILT-LIQUIFY-FACE,Filter engine & gallery,core,3,Photoshop 27.6,Face-aware Liquify,Face-aware Liquify,missing,Face landmark model,Golden image per filter; identity and cancel tests,,Deferred: AI out of scope (D-001)
 FILT-LENS-CORR,Filter engine & gallery,core,3,Photoshop 27.6,Lens Correction filter,Lens Correction filter,missing,,Golden image per filter; identity and cancel tests,,
 FILT-VANISHING,Filter engine & gallery,core,3,Photoshop 27.6,Vanishing Point,Vanishing Point,missing,,Golden image per filter; identity and cancel tests,,
 FILT-CAMERA-RAW,Filter engine & gallery,core,3,Photoshop 27.6,Camera Raw filter route via Develop,Camera Raw filter route via Develop,missing,,Golden image per filter; identity and cancel tests,,
@@ -601,7 +601,7 @@ DEV-DETAIL-SHARP-MASK,Develop — Detail,develop,2,Lightroom Classic 15.5,Sharpe
 DEV-DETAIL-NR-LUM,Develop — Detail,develop,2,Lightroom Classic 15.5,Luminance NR + detail/contrast,Not a plain blur,missing,,Fixture measurements,,
 DEV-DETAIL-NR-COLOR,Develop — Detail,develop,2,Lightroom Classic 15.5,Color NR + detail/smoothness,Color NR + detail/smoothness,missing,,Fixture measurements,,
 DEV-DETAIL-DEMOSAIC-AWARE,Develop — Detail,develop,2,Lightroom Classic 15.5,Demosaic-aware processing,Demosaic-aware processing,missing,RAW pipeline,Fixture measurements,,
-DEV-DETAIL-AI-DENOISE,Develop — Detail,develop,2,Lightroom Classic 15.5,AI denoise,AI denoise,missing,Denoise model,Fixture measurements,,
+DEV-DETAIL-AI-DENOISE,Develop — Detail,develop,2,Lightroom Classic 15.5,AI denoise,AI denoise,missing,Denoise model,Fixture measurements,,Deferred: AI out of scope (D-001)
 DEV-OPTICS-PROFILE,Develop — Optics & Geometry,develop,4,Lightroom Classic 15.5,Lens profile selection,Lens profile selection,missing,Licensed lens profile source,Fixture comparison,,
 DEV-OPTICS-DISTORTION,Develop — Optics & Geometry,develop,4,Lightroom Classic 15.5,Distortion amount,Distortion amount,missing,,Fixture comparison,,
 DEV-OPTICS-VIGNETTING,Develop — Optics & Geometry,develop,4,Lightroom Classic 15.5,Lens vignetting amount,Lens vignetting amount,missing,,Fixture comparison,,
@@ -613,7 +613,7 @@ DEV-OPTICS-TRANSFORM,Develop — Optics & Geometry,develop,4,Lightroom Classic 1
 DEV-OPTICS-CONSTRAIN,Develop — Optics & Geometry,develop,4,Lightroom Classic 15.5,Constrain crop,Constrain crop,missing,,Fixture comparison,,
 DEV-OPTICS-CROP,Develop — Optics & Geometry,develop,4,Lightroom Classic 15.5,Shared non-destructive crop/straighten/flip/rotate,Shared non-destructive crop/straighten/flip/rotate,missing,,Fixture comparison,,
 DEV-OPTICS-HEAL,Develop — Optics & Geometry,develop,4,Lightroom Classic 15.5,Develop healing/clone/remove/red-eye via retouch engine,Develop healing/clone/remove/red-eye via retouch engine,missing,,Fixture comparison,,
-DEV-OPTICS-LENS-BLUR,Develop — Optics & Geometry,develop,4,Lightroom Classic 15.5,Lens blur with depth,Real depth or user depth mask; no uniform Gaussian,missing,Depth estimation model,Fixture comparison,,
+DEV-OPTICS-LENS-BLUR,Develop — Optics & Geometry,develop,4,Lightroom Classic 15.5,Lens blur with depth,Real depth or user depth mask; no uniform Gaussian,missing,User-painted depth mask or embedded depth map (non-AI); depth estimation deferred,Fixture comparison,,
 DEV-MASK-BRUSH,Develop — Local masking,develop,2,Lightroom Classic 15.5,Brush mask (size/feather/flow/density/auto mask),Brush mask (size/feather/flow/density/auto mask),missing,,Mask algebra + E2E,,
 DEV-MASK-LINEAR,Develop — Local masking,develop,2,Lightroom Classic 15.5,Linear gradient,Linear gradient,missing,,Mask algebra + E2E,,
 DEV-MASK-RADIAL,Develop — Local masking,develop,2,Lightroom Classic 15.5,Radial gradient,Radial gradient,missing,,Mask algebra + E2E,,
@@ -623,11 +623,11 @@ DEV-MASK-DEPTH-RANGE,Develop — Local masking,develop,2,Lightroom Classic 15.5,
 DEV-MASK-OPS,Develop — Local masking,develop,2,Lightroom Classic 15.5,Add/subtract/intersect/invert,Add/subtract/intersect/invert,missing,,Mask algebra + E2E,,
 DEV-MASK-OVERLAY,Develop — Local masking,develop,2,Lightroom Classic 15.5,Mask overlay,Mask overlay,missing,,Mask algebra + E2E,,
 DEV-MASK-MANAGE,Develop — Local masking,develop,2,Lightroom Classic 15.5,Naming/duplicate/refine,Naming/duplicate/refine,missing,,Mask algebra + E2E,,
-DEV-MASK-SUBJECT,Develop — Local masking,develop,2,Lightroom Classic 15.5,Subject mask,Subject mask,missing,Segmentation model,Mask algebra + E2E,,
-DEV-MASK-SKY,Develop — Local masking,develop,2,Lightroom Classic 15.5,Sky mask,Sky mask,missing,Segmentation model,Mask algebra + E2E,,
-DEV-MASK-BACKGROUND,Develop — Local masking,develop,2,Lightroom Classic 15.5,Background mask,Background mask,missing,Segmentation model,Mask algebra + E2E,,
-DEV-MASK-OBJECT,Develop — Local masking,develop,2,Lightroom Classic 15.5,Object mask,Object mask,missing,Segmentation model,Mask algebra + E2E,,
-DEV-MASK-PEOPLE,Develop — Local masking,develop,2,Lightroom Classic 15.5,People masks (face/body parts),People masks (face/body parts),missing,Person parsing model,Mask algebra + E2E,,
+DEV-MASK-SUBJECT,Develop — Local masking,develop,2,Lightroom Classic 15.5,Subject mask,Subject mask,missing,Segmentation model,Mask algebra + E2E,,Deferred: AI out of scope (D-001)
+DEV-MASK-SKY,Develop — Local masking,develop,2,Lightroom Classic 15.5,Sky mask,Sky mask,missing,Segmentation model,Mask algebra + E2E,,Deferred: AI out of scope (D-001)
+DEV-MASK-BACKGROUND,Develop — Local masking,develop,2,Lightroom Classic 15.5,Background mask,Background mask,missing,Segmentation model,Mask algebra + E2E,,Deferred: AI out of scope (D-001)
+DEV-MASK-OBJECT,Develop — Local masking,develop,2,Lightroom Classic 15.5,Object mask,Object mask,missing,Segmentation model,Mask algebra + E2E,,Deferred: AI out of scope (D-001)
+DEV-MASK-PEOPLE,Develop — Local masking,develop,2,Lightroom Classic 15.5,People masks (face/body parts),People masks (face/body parts),missing,Person parsing model,Mask algebra + E2E,,Deferred: AI out of scope (D-001)
 DEV-MASK-LOCAL-ADJ,Develop — Local masking,develop,2,Lightroom Classic 15.5,Local adjustments (light/color/texture/clarity/dehaze/sharpness/noise),Local adjustments (light/color/texture/clarity/dehaze/sharpness/noise),missing,,Mask algebra + E2E,,
 RAW-DECODE,"RAW, HDR & camera pipeline",raw,4,Lightroom Classic 15.5,Camera RAW/DNG decoding,Licensed codec,missing,RAW decoder licensing (e.g. LibRaw LGPL/CDDL via WASM),Real camera sample decode tests,,
 RAW-CAMERA-MATRIX,"RAW, HDR & camera pipeline",raw,4,Lightroom Classic 15.5,Supported-camera matrix,Published list with samples,missing,,Real camera sample decode tests,,
@@ -648,7 +648,7 @@ RAW-HDR-EXPORT,"RAW, HDR & camera pipeline",raw,4,Lightroom Classic 15.5,HDR-com
 RAW-HDR-MERGE,"RAW, HDR & camera pipeline",raw,4,Lightroom Classic 15.5,Bracket HDR merge + deghost,Bracket HDR merge + deghost,missing,,Real camera sample decode tests,,
 RAW-PANO,"RAW, HDR & camera pipeline",raw,4,Lightroom Classic 15.5,Panorama stitching/projections/boundary warp,Panorama stitching/projections/boundary warp,missing,,Real camera sample decode tests,,
 RAW-HDR-PANO,"RAW, HDR & camera pipeline",raw,4,Lightroom Classic 15.5,HDR panorama,HDR panorama,missing,,Real camera sample decode tests,,
-RAW-SUPER-RES,"RAW, HDR & camera pipeline",raw,4,Lightroom Classic 15.5,Super resolution / enhance,Super resolution / enhance,missing,Upscaling model,Real camera sample decode tests,,
+RAW-SUPER-RES,"RAW, HDR & camera pipeline",raw,4,Lightroom Classic 15.5,Super resolution / enhance,Super resolution / enhance,missing,Upscaling model,Real camera sample decode tests,,Deferred: AI out of scope (D-001)
 LIB-IMPORT,Photo library (Lightroom-class),library,5,Lightroom Classic 15.5,Import copy/reference,Import copy/reference,missing,,Catalog integration tests,,
 LIB-FOLDERS,Photo library (Lightroom-class),library,5,Lightroom Classic 15.5,Folder management,Folder management,missing,File System Access API or desktop companion,Catalog integration tests,,
 LIB-CATALOG,Photo library (Lightroom-class),library,5,Lightroom Classic 15.5,Catalog indexing,Catalog indexing,missing,,Catalog integration tests,,
@@ -672,7 +672,7 @@ LIB-RELINK,Photo library (Lightroom-class),library,5,Lightroom Classic 15.5,Reli
 LIB-RELOCATE,Photo library (Lightroom-class),library,5,Lightroom Classic 15.5,Relocation,Relocation,missing,,Catalog integration tests,,
 LIB-BACKUP,Photo library (Lightroom-class),library,5,Lightroom Classic 15.5,Catalog backups,Catalog backups,missing,,Catalog integration tests,,
 LIB-INTEGRITY,Photo library (Lightroom-class),library,5,Lightroom Classic 15.5,Catalog integrity checks,Catalog integrity checks,missing,,Catalog integration tests,,
-LIB-FACES,Photo library (Lightroom-class),library,5,Lightroom Classic 15.5,Facial recognition,Facial recognition,missing,Privacy design + face model,Catalog integration tests,,
+LIB-FACES,Photo library (Lightroom-class),library,5,Lightroom Classic 15.5,Facial recognition,Facial recognition,missing,Privacy design + face model,Catalog integration tests,,Deferred: AI out of scope (D-001)
 LIB-MAP,Photo library (Lightroom-class),library,5,Lightroom Classic 15.5,GPS/map,GPS/map,missing,Map tiles provider + privacy,Catalog integration tests,,
 LIB-GEOCODE,Photo library (Lightroom-class),library,5,Lightroom Classic 15.5,Reverse geocoding,Reverse geocoding,missing,Geocoding provider + privacy,Catalog integration tests,,
 OUT-BATCH-RENAME,Output workflows,output,5,Lightroom Classic 15.5,Batch rename,Batch rename,missing,,Byte-level output validation,,
@@ -738,16 +738,16 @@ ADV-AUTO-BLEND,Advanced workflows,workflow,4,Photoshop 27.6,Auto-blend,Auto-blen
 ADV-FOCUS-STACK,Advanced workflows,workflow,4,Photoshop 27.6,Focus stacking,Focus stacking,missing,,Command-level tests,,
 ADV-FRAME-ANIM,Advanced workflows,workflow,4,Photoshop 27.6,Frame animation,Frame animation,missing,Codec/timing subsystem,Command-level tests,,
 ADV-VIDEO,Advanced workflows,workflow,4,Photoshop 27.6,Video timeline/export,Video timeline/export,missing,Codec/timing subsystem,Command-level tests,,
-AI-PROVIDER,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Model/provider selection & disclosure,"License, hardware, latency, privacy, cost",missing,Decision required from product owner,"Model integrated, licensed, cancellable, failure-tested",,
-AI-SEGMENT,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Subject/object segmentation,Subject/object segmentation,missing,Local segmentation model,"Model integrated, licensed, cancellable, failure-tested",,
-AI-SEMANTIC,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Semantic masks,Semantic masks,missing,Model,"Model integrated, licensed, cancellable, failure-tested",,
-AI-GEN-FILL,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Generative fill/expand,Generative fill/expand,missing,Generative model/provider (cost),"Model integrated, licensed, cancellable, failure-tested",,
-AI-REMOVE,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,AI remove,AI remove,missing,Inpainting model,"Model integrated, licensed, cancellable, failure-tested",,
-AI-HARMONIZE,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Harmonization,Harmonization,missing,Model,"Model integrated, licensed, cancellable, failure-tested",,
-AI-SKY-REPLACE,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Sky replacement,Sky replacement,missing,Model,"Model integrated, licensed, cancellable, failure-tested",,
-AI-NEURAL-STYLE,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Neural style effects,Neural style effects,missing,Model,"Model integrated, licensed, cancellable, failure-tested",,
-AI-DENOISE,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,AI denoise,AI denoise,missing,Model,"Model integrated, licensed, cancellable, failure-tested",,
-AI-SUPER-RES,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Super-resolution,Super-resolution,missing,Model,"Model integrated, licensed, cancellable, failure-tested",,
+AI-PROVIDER,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Model/provider selection & disclosure,"License, hardware, latency, privacy, cost",missing,Deferred by product owner (2026-11-04),"Model integrated, licensed, cancellable, failure-tested",,Deferred: AI out of scope (D-001)
+AI-SEGMENT,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Subject/object segmentation,Subject/object segmentation,missing,Local segmentation model,"Model integrated, licensed, cancellable, failure-tested",,Deferred: AI out of scope (D-001)
+AI-SEMANTIC,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Semantic masks,Semantic masks,missing,Model,"Model integrated, licensed, cancellable, failure-tested",,Deferred: AI out of scope (D-001)
+AI-GEN-FILL,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Generative fill/expand,Generative fill/expand,missing,Generative model/provider (cost),"Model integrated, licensed, cancellable, failure-tested",,Deferred: AI out of scope (D-001)
+AI-REMOVE,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,AI remove,AI remove,missing,Inpainting model,"Model integrated, licensed, cancellable, failure-tested",,Deferred: AI out of scope (D-001)
+AI-HARMONIZE,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Harmonization,Harmonization,missing,Model,"Model integrated, licensed, cancellable, failure-tested",,Deferred: AI out of scope (D-001)
+AI-SKY-REPLACE,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Sky replacement,Sky replacement,missing,Model,"Model integrated, licensed, cancellable, failure-tested",,Deferred: AI out of scope (D-001)
+AI-NEURAL-STYLE,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Neural style effects,Neural style effects,missing,Model,"Model integrated, licensed, cancellable, failure-tested",,Deferred: AI out of scope (D-001)
+AI-DENOISE,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,AI denoise,AI denoise,missing,Model,"Model integrated, licensed, cancellable, failure-tested",,Deferred: AI out of scope (D-001)
+AI-SUPER-RES,AI-dependent features,ai,5,Photoshop 27.6 / Lightroom,Super-resolution,Super-resolution,missing,Model,"Model integrated, licensed, cancellable, failure-tested",,Deferred: AI out of scope (D-001)
 QA-UNIT,"Performance, reliability & testing",platform,1,Zertake,Engine unit tests,"Colour math, selection geometry, brush interpolation, raster compositing, migrations",verified,,CI runs the suite,npm test,
 QA-E2E,"Performance, reliability & testing",platform,1,Zertake,Browser E2E with real input,Playwright drives pointer/keyboard; state is only read,verified,,CI runs the suite,npm run test:e2e,
 QA-GOLDEN,"Performance, reliability & testing",platform,1,Zertake,Golden-image test harness,Reference images with tolerances,missing,,CI runs the suite,,

@@ -34,7 +34,7 @@ Date: 2026-11-04 · Ledger v0.1.0 · Branch `claude/inspiring-curie-tsipqx`
 ## Test results
 
 ```
-npm test       → 44 passed, 0 failed  (model 7, PSD import 5, engine 21, ledger 7, baseline 4)
+npm test       → 45 passed, 0 failed  (model 7, PSD import 5, engine 21, ledger 8, baseline 4)
 npm run test:e2e → 11 passed, 0 failed (Chromium via Playwright 1.63, real pointer/keyboard input)
 ```
 
@@ -61,6 +61,8 @@ Measured with Node 22 on a 4-vCPU Intel Xeon at 2.1 GHz (CI container). This is 
 Selection masks are still computed on the main thread. At 8000² each selection change stalls the UI for about 3 s. Moving this to a worker is ledger row `RENDER-WORKERS` and should come before large-document work.
 
 ## Ledger diff
+
+**v0.1.2 → v0.1.3.** Scope decision D-001 (no AI yet) recorded. 23 AI-dependent rows are annotated as deferred; their states are unchanged (`missing`). `RETOUCH-REMOVE` and `DEV-OPTICS-LENS-BLUR` now name their non-AI routes.
 
 **v0.1.1 → v0.1.2.** `M0-BASE-COMMIT`: partial → verified, checked against MANIFEST_SHA256.txt.
 
@@ -112,7 +114,7 @@ No new runtime dependencies were added. The brush, selection, raster and asset c
 
 1. ~~`M0-INPUT-DOCS`~~ Resolved: both files were received and reconciled.
 2. ~~`M0-BASE-COMMIT`~~ Resolved: verified against `MANIFEST_SHA256.txt`. `LEEME_PRIMERO.txt` and `PROMPT_DESARROLLO_COMPLETO.txt` appear in the manifest but were not supplied; the prompt given in the conversation is assumed to be the latter.
-3. **`AI-PROVIDER`.** Choosing AI models or providers (segmentation, generative fill, denoise) has cost, licensing and privacy consequences. It needs your decision before M3 and M5.
+3. ~~`AI-PROVIDER`~~ Decided: no AI yet (scope decision D-001). The 23 model-dependent rows stay `missing` and are marked deferred. Where a non-AI route exists, it is the planned implementation: patch synthesis for Remove, user-painted depth masks for Lens Blur, and classic noise reduction.
 4. **`RAW-DECODE`.** RAW decoding needs a licensed decoder (for example LibRaw via WASM, LGPL/CDDL). This is a licensing decision for M4.
 
 ## Demo procedure

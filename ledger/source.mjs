@@ -6,7 +6,7 @@
 // States: missing | partial | implemented-unverified | verified | blocked
 // Scopes: core | psd | develop | library | ai | output | color | raw | workflow | platform | legacy
 
-export const LEDGER_VERSION = '0.1.2';
+export const LEDGER_VERSION = '0.1.3';
 export const LEDGER_DATE = '2026-11-04';
 export const REFERENCES = {
   photoshop: 'Adobe Photoshop desktop 27.6 (April 2026 release), the newest release notes found on 2026-11-04; a later 2026 build may exist and must be re-audited',
@@ -313,7 +313,7 @@ export const AREAS = [
   ['PATCH', 'Patch tool', 'Selection-driven healing'],
   ['CA-MOVE', 'Content-Aware Move', 'Move/extend with fill'],
   ['CA-FILL', 'Content-Aware Fill', 'Patch-based synthesis with sampling area and output to new layer'],
-  ['REMOVE', 'Remove tool', 'Declared algorithm with failure reporting', 'Inpainting model or patch synthesis'],
+  ['REMOVE', 'Remove tool', 'Declared non-AI patch-synthesis algorithm with failure reporting', 'Patch synthesis (shares CA-FILL); AI inpainting deferred'],
   ['RED-EYE', 'Red Eye tool', 'Pupil size, darken amount'],
   ['BLUR', 'Blur tool', 'Local blur brush'],
   ['SHARPEN', 'Sharpen tool', 'Local sharpen brush with protect detail'],
@@ -568,7 +568,7 @@ AREAS.push(
   ['UPRIGHT', 'Upright auto/level/vertical/full/guided', ''], ['TRANSFORM', 'Vertical/horizontal/rotate/aspect/scale/offsets', ''], ['CONSTRAIN', 'Constrain crop', ''],
   ['CROP', 'Shared non-destructive crop/straighten/flip/rotate', ''],
   ['HEAL', 'Develop healing/clone/remove/red-eye via retouch engine', ''],
-  ['LENS-BLUR', 'Lens blur with depth', 'Real depth or user depth mask; no uniform Gaussian', 'Depth estimation model'],
+  ['LENS-BLUR', 'Lens blur with depth', 'Real depth or user depth mask; no uniform Gaussian', 'User-painted depth mask or embedded depth map (non-AI); depth estimation deferred'],
 ]],
 ['DEV-MASK', 'Develop — Local masking', 'develop', 2, 'Lightroom Classic 15.5', 'Mask algebra + E2E', [
   ['BRUSH', 'Brush mask (size/feather/flow/density/auto mask)', ''], ['LINEAR', 'Linear gradient', ''], ['RADIAL', 'Radial gradient', ''], ['COLOR-RANGE', 'Color range', ''], ['LUM-RANGE', 'Luminance range', ''], ['DEPTH-RANGE', 'Depth range', '', 'Depth data'],
@@ -626,7 +626,7 @@ AREAS.push(
   ['FRAME-ANIM', 'Frame animation', '', 'Codec/timing subsystem'], ['VIDEO', 'Video timeline/export', '', 'Codec/timing subsystem'],
 ]],
 ['AI', 'AI-dependent features', 'ai', 5, 'Photoshop 27.6 / Lightroom', 'Model integrated, licensed, cancellable, failure-tested', [
-  ['PROVIDER', 'Model/provider selection & disclosure', 'License, hardware, latency, privacy, cost', 'Decision required from product owner'],
+  ['PROVIDER', 'Model/provider selection & disclosure', 'License, hardware, latency, privacy, cost', 'Deferred by product owner (2026-11-04)'],
   ['SEGMENT', 'Subject/object segmentation', '', 'Local segmentation model'], ['SEMANTIC', 'Semantic masks', '', 'Model'], ['GEN-FILL', 'Generative fill/expand', '', 'Generative model/provider (cost)'], ['REMOVE', 'AI remove', '', 'Inpainting model'], ['HARMONIZE', 'Harmonization', '', 'Model'], ['SKY-REPLACE', 'Sky replacement', '', 'Model'], ['NEURAL-STYLE', 'Neural style effects', '', 'Model'], ['DENOISE', 'AI denoise', '', 'Model'], ['SUPER-RES', 'Super-resolution', '', 'Model'],
 ]],
 ['QA', 'Performance, reliability & testing', 'platform', 1, 'Zertake', 'CI runs the suite', [
@@ -775,13 +775,23 @@ export const STATUS = {
 
 export const STATES = ['missing', 'partial', 'implemented-unverified', 'verified', 'blocked'];
 
+// Scope decisions by the product owner. A deferred row stays `missing` (never `blocked`):
+// nothing is waiting on it, and no UI may expose it until the decision is reversed.
+export const DECISIONS = [
+  { id: 'D-001', date: '2026-11-04', decision: 'No AI features yet. All model-dependent rows are deferred; non-AI alternatives are preferred where they exist (patch synthesis, user depth masks, classic denoise).' },
+];
+const AI_DEFERRED = 'Deferred: AI out of scope (D-001)';
+export const isAiDependent = (r) => r.scope === 'ai' || /\bmodel\b/i.test(r.dependency) && !/non-AI/i.test(r.dependency);
+
 export function buildRows() {
   const rows = [];
   for (const [prefix, area, scope, milestone, reference, acceptance, items] of AREAS) {
     for (const [suffix, feature, behaviour, dependency = ''] of items) {
       const id = prefix + '-' + suffix;
       const [state = 'missing', evidence = '', note = ''] = STATUS[id] || [];
-      rows.push({ id, area, scope, milestone, reference, feature, expected: behaviour || feature, state, dependency, acceptance, evidence, note });
+      const row = { id, area, scope, milestone, reference, feature, expected: behaviour || feature, state, dependency, acceptance, evidence, note };
+      if (isAiDependent(row)) row.note = [AI_DEFERRED, note].filter(Boolean).join('; ');
+      rows.push(row);
     }
   }
   return rows;
@@ -795,5 +805,5 @@ export function summary(rows) {
   const by = (key) => { const m = {}; for (const r of rows) { m[r[key]] ??= Object.fromEntries(STATES.map(s => [s, 0])); m[r[key]][r.state]++; } return m; };
   const total = Object.fromEntries(STATES.map(s => [s, rows.filter(r => r.state === s).length]));
   const table = (m, label) => [`| ${label} | ${STATES.join(' | ')} | total |`, `|---|${STATES.map(() => '---:').join('|')}|---:|`, ...Object.entries(m).map(([k, v]) => `| ${k} | ${STATES.map(s => v[s]).join(' | ')} | ${STATES.reduce((a, s) => a + v[s], 0)} |`)].join('\n');
-  return `# Capability ledger summary\n\nLedger v${LEDGER_VERSION}, ${LEDGER_DATE}. Generated by \`npm run ledger\` from \`ledger/source.mjs\`. Do not edit by hand.\n\nReferences: Photoshop: ${REFERENCES.photoshop}. Lightroom Classic: ${REFERENCES.lightroomClassic}. Docs accessed ${REFERENCES.docsAccessed}.\n\n**${rows.length} rows** · ${STATES.map(s => `${s}: ${total[s]}`).join(' · ')}\n\nZertake is **not** at Photoshop or Lightroom parity. ${total.verified} of ${rows.length} rows (${(100 * total.verified / rows.length).toFixed(1)}%) are verified.\n\n## By scope\n\n${table(by('scope'), 'scope')}\n\n## By milestone\n\n${table(by('milestone'), 'milestone')}\n`;
+  return `# Capability ledger summary\n\nLedger v${LEDGER_VERSION}, ${LEDGER_DATE}. Generated by \`npm run ledger\` from \`ledger/source.mjs\`. Do not edit by hand.\n\nReferences: Photoshop: ${REFERENCES.photoshop}. Lightroom Classic: ${REFERENCES.lightroomClassic}. Docs accessed ${REFERENCES.docsAccessed}.\n\n**${rows.length} rows** · ${STATES.map(s => `${s}: ${total[s]}`).join(' · ')}\n\nZertake is **not** at Photoshop or Lightroom parity. ${total.verified} of ${rows.length} rows (${(100 * total.verified / rows.length).toFixed(1)}%) are verified.\n\n## Scope decisions\n\n${DECISIONS.map(d => `- **${d.id}** (${d.date}): ${d.decision} ${rows.filter(isAiDependent).length} rows are deferred under this decision (note column).`).join('\n')}\n\n## By scope\n\n${table(by('scope'), 'scope')}\n\n## By milestone\n\n${table(by('milestone'), 'milestone')}\n`;
 }

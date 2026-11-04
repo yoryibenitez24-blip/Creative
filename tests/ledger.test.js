@@ -61,3 +61,12 @@ test('ledger: every delivered inventory row maps to existing ledger rows', () =>
   for (const key of Object.keys(INVENTORY_MAP)) assert.ok(keys.has(key), 'stale mapping ' + key);
   assert.equal(readFileSync(new URL('../docs/baseline/RECONCILIATION.md', import.meta.url), 'utf8'), reconciliation(), 'run npm run ledger');
 });
+
+import { isAiDependent } from '../ledger/source.mjs';
+test('ledger: AI-dependent rows are deferred, not implemented, and no enabled tool uses them', () => {
+  const ai = rows.filter(isAiDependent);
+  assert.ok(ai.length >= 20);
+  for (const r of ai) { assert.equal(r.state, 'missing', r.id); assert.match(r.note, /D-001/, r.id); }
+  const used = new Set(TOOLS.flatMap(t => t.ledger));
+  for (const r of ai) assert.ok(!used.has(r.id), r.id + ' is AI-dependent but used by an enabled tool');
+});
