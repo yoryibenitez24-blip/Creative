@@ -1,5 +1,9 @@
 export function addDocument(state,doc,id){return{...state,activeId:id,documents:[...state.documents,{id,doc}]}}
 export function updateDocument(state,id,doc){return{...state,documents:state.documents.map(d=>d.id===id?{...d,doc}:d)}}
-function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('zertake-studio',1);r.onupgradeneeded=()=>r.result.createObjectStore('workspace');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+// DB v2 adds the content-addressed 'assets' store (id -> Blob). v1 data in 'workspace' is untouched.
+function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('zertake-studio',2);r.onupgradeneeded=()=>{const names=r.result.objectStoreNames;if(!names.contains('workspace'))r.result.createObjectStore('workspace');if(!names.contains('assets'))r.result.createObjectStore('assets')};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 export async function readWorkspace(){const d=await db();return new Promise((resolve,reject)=>{const tx=d.transaction('workspace');const r=tx.objectStore('workspace').get('current');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);tx.oncomplete=()=>d.close()})}
 export async function writeWorkspace(state){const d=await db();return new Promise((resolve,reject)=>{const tx=d.transaction('workspace','readwrite');tx.objectStore('workspace').put(state,'current');tx.oncomplete=()=>{d.close();resolve()};tx.onerror=()=>{d.close();reject(tx.error)}})}
+
+function assetRequest(mode,fn){return db().then(d=>new Promise((resolve,reject)=>{const tx=d.transaction('assets',mode);const req=fn(tx.objectStore('assets'));let value;if(req)req.onsuccess=()=>{value=req.result};tx.oncomplete=()=>{d.close();resolve(value)};tx.onerror=tx.onabort=()=>{d.close();reject(tx.error||Error('Asset storage failed'))}}))}
+export const idbAssetBackend={get:id=>assetRequest('readonly',s=>s.get(id)),put:(id,blob)=>assetRequest('readwrite',s=>s.put(blob,id)),keys:()=>assetRequest('readonly',s=>s.getAllKeys()),delete:id=>assetRequest('readwrite',s=>s.delete(id))};

@@ -1,0 +1,121 @@
+# Milestone report: M0 + first M1 vertical slice
+
+Date: 2026-11-04 · Ledger v0.1.0 · Branch `claude/inspiring-curie-tsipqx`
+
+## Summary
+
+* **Milestone 0 is done, with two items blocked on input from you.** The audit is complete, the repository layout is fixed and the baseline tests run. The 743-row capability ledger exists, obsolete text is removed, schema v2 has a migration, and the architecture plan is written. The blocked items are listed below.
+* **The first Milestone 1 vertical slice is verified.** It covers paint layers, the brush and eraser, rectangular/elliptical marquee and freehand/polygonal lasso with new/add/subtract/intersect and feather, the selection commands, fill/clear, and the content-addressed asset store. All of it runs through UI, engine, undo/redo, autosave, native save/open and PNG export.
+* **Zertake is not at Photoshop or Lightroom parity.** 52 of 743 ledger rows (7.0%) are verified. Develop, RAW, masks, adjustment layers, styles, PSD export and the library are all still `missing`.
+
+## Audit findings (baseline `5a309f5`)
+
+| Finding | Action |
+|---|---|
+| Sources, tests and bundles were flattened at the repository root, while `package.json` and the tests expect `src/`, `tests/`, `dist/`. `npm run build` could not run as committed. | Restored the layout (commit `318d3de`) |
+| A file named `download` held `.gitignore` contents. `psd-worker (1).js` was the worker source. | Renamed to `.gitignore` and `src/psd-worker.js` |
+| Baseline commit `e2360711…` does not exist in this repository | Recorded as blocked (`M0-BASE-COMMIT`) |
+| `DOCUMENTACION_VERSION.txt` and `INVENTARIO_BRECHAS.csv` are not in the repository | Recorded as blocked (`M0-INPUT-DOCS`) |
+| Error strings told users to "Open it in the full editor"; the README documented the removed Photopea route | Replaced with accurate limit messages; README rewritten; a test guards against regressions |
+| Ctrl+Shift+Z redo never fired, because `e.key` is `"Z"` when Shift is held | Fixed (key compared lower-case) |
+| Clicking a layer without moving it added an empty undo step | Fixed (history entry only when the document changed) |
+| Clicking the zoom buttons cleared the layer selection, because the event reached the canvas | Fixed (zoom controls stop propagation) |
+| 12 baseline tests | All pass |
+
+## Shortcut changes (now Photoshop-aligned)
+
+| Shortcut | Before | Now |
+|---|---|---|
+| Ctrl/⌘ D | Duplicate layer | Deselect |
+| Ctrl/⌘ J | none | Duplicate layer |
+| Ctrl/⌘ A | Select all layers | Select All pixels (all layers is Ctrl/⌘ Alt A) |
+| Delete | Delete layer | Clears selected pixels on a paint layer while a selection exists; otherwise deletes the layer |
+
+## Test results
+
+```
+npm test       → 39 passed, 0 failed  (model 7, PSD import 5, engine 21, ledger 6)
+npm run test:e2e → 11 passed, 0 failed (Chromium via Playwright 1.63, real pointer/keyboard input)
+```
+
+Acceptance examples covered:
+
+| # | Acceptance example | Result |
+|---|---|---|
+| 1 | The same stroke at different zoom levels gives identical document geometry, and undo removes exactly that stroke | 100% vs 200%: **0 pixels differ by more than 2** (max alpha delta 1). Undo leaves 0 painted pixels and keeps the layer. Redo restores identical pixels. |
+| 2 | A feathered selection restricts brush/fill output, and the export has the same alpha boundary | The feathered edge is partial (alpha 40–220). Outside the selection stays 0. The exported PNG matches on-canvas alpha over the background with a **max channel delta of 1**. |
+| 6 (partial) | Save and reopen preserve every asset | Reload from IndexedDB and `.zertake` save/reopen both produce identical pixels. The Develop parts of this example belong to M2. |
+
+Evidence: `docs/evidence/m1-e2e-results.json`, `m1-feathered-selection.png`, `m1-export.png`, `m1-roundtrip.zertake`.
+
+## Performance measurements (not budgets)
+
+Measured with Node 22 on a 4-vCPU Intel Xeon at 2.1 GHz (CI container). This is not an agreed target device.
+
+| Operation | 1200×1400 | 3840×2160 | 8000×8000 |
+|---|---:|---:|---:|
+| Selection mask (ellipse, 10 px feather) | 55 ms | 234 ms | 2060 ms |
+| Marching-ants outline | 24 ms | 100 ms | 829 ms |
+| 337 dabs of 100 px (one long 4K stroke, total) | | 231 ms | |
+
+Selection masks are still computed on the main thread. At 8000² each selection change stalls the UI for about 3 s. Moving this to a worker is ledger row `RENDER-WORKERS` and should come before large-document work.
+
+## Ledger diff
+
+This is the first ledger (v0.1.0), so there is no previous version to diff against. Baseline states come from the code audit. Rows this milestone moved to `verified` or `implemented-unverified`:
+
+* **M0:** `M0-LAYOUT`, `M0-BASE-TESTS`, `M0-LEDGER`, `M0-OBSOLETE-TEXT`, `M0-SCHEMA-V2`, `M0-MIGRATE-V1`, `M0-ARCH-PLAN`, `LEG-PHOTOPEA`
+* **Documents/commands:** `DOC-ASSET-CAS`, `DOC-NATIVE-ENV`, `DOC-AUTOSAVE`, `CMD-UNDO`, `CMD-UNDO-STROKE`, `CMD-UNDO-SEL`, `RENDER-RASTER-SURF`, `FILE-NATIVE-OPEN`, `FILE-PNG-EXPORT`
+* **Selection:** `SEL-MARQ-RECT`, `SEL-MARQ-ELLI`*, `SEL-LASSO-FREE`, `SEL-LASSO-POLY`*, `SEL-MODE-NEW/ADD/SUB/INT`, `SEL-FEATHER-OPT`, `SEL-ALL`*, `SEL-DESELECT`, `SEL-RESELECT`, `SEL-INVERSE`, `SEL-FEATHER-CMD`*, `SEL-ANTS`
+* **Paint:** `PAINT-BRUSH`, `PAINT-ERASER`, `PAINT-FILL-FG`, `PAINT-FILL-BG`*, `PAINT-CLEAR`, `PAINT-NEW-PAINT-LAYER`*, `PAINT-AUTO-LAYER`, `BRUSH-SIZE/HARD/OPAC/FLOW/SPACE/SMOOTH/PRESS-SIZE/PRESS-FLOW/DOC-SPACE`, `BRUSH-CURSOR`*
+* **UI:** `NAV-OPTIONS-BAR`, `NAV-SWATCH-FGBG`*, `NAV-ZOOM-BTN`, `NAV-ACTUAL`
+
+\* means `implemented-unverified`: it works but has no automated test yet.
+
+## Migrations
+
+* **Documents v1 → v2** (`src/engine/schema.js`). This runs automatically on load, on opening a file and on PSD import. Unknown fields are preserved. Documents from a future schema are refused with a message.
+* **IndexedDB `zertake-studio` v1 → v2.** Adds the `assets` store and leaves `workspace` untouched.
+* **Native file.** `.zertake` is now an envelope (`format: "zertake-project"`) with hash-verified assets. Bare v1 JSON still opens.
+
+## Dependency and license inventory
+
+| Package | Version | License | Use |
+|---|---|---|---|
+| react / react-dom | 19.1.0 | MIT | UI |
+| lucide-react | 0.468.0 | ISC | Icons |
+| ag-psd | 34.1.0 | MIT | PSD parsing (import only) |
+| esbuild (dev) | 0.25.0 | MIT | Bundling |
+| @napi-rs/canvas (dev) | 1.1.0 | MIT | Node canvas for tests |
+| playwright (test tooling, not a dependency) | 1.63.0 | Apache-2.0 | E2E tests, preinstalled in the environment |
+
+No new runtime dependencies were added. The brush, selection, raster and asset code is original.
+
+## Known gaps in this slice
+
+* No brush presets, tips, jitter, pressure curve, tilt or symmetry (`BRUSH-*` rows still `missing`).
+* There are no paint-layer transforms beyond whole-pixel move, and no transparency or pixel locks.
+* There is no Quick Mask, magnetic lasso, magic wand, quick selection or Select and Mask.
+* Selection masks are computed on the main thread (see the measurements above).
+* Image layers still embed data URLs. There is no asset garbage collection, so storage grows until browser data is cleared.
+* Paint layers keep their size when the canvas is resized.
+* Pen pressure is unit-tested but has not been tested on a real stylus. Only Chromium has been tested.
+
+## Blocked: needs your decision or input
+
+1. **`M0-INPUT-DOCS`.** Please provide `DOCUMENTACION_VERSION.txt` and `INVENTARIO_BRECHAS.csv` so the gap inventory can be reconciled with the ledger.
+2. **`M0-BASE-COMMIT`.** Commit `e2360711…` is not in this repository. Work continued from `5a309f5` ("v1"). Please confirm this is the right baseline.
+3. **`AI-PROVIDER`.** Choosing AI models or providers (segmentation, generative fill, denoise) has cost, licensing and privacy consequences. It needs your decision before M3 and M5.
+4. **`RAW-DECODE`.** RAW decoding needs a licensed decoder (for example LibRaw via WASM, LGPL/CDDL). This is a licensing decision for M4.
+
+## Demo procedure
+
+1. Run `npm install && npm run build && npm run serve`, then open http://127.0.0.1:4173.
+2. Click **+** (New design), choose 1080 × 1080, then **Create design**.
+3. Press **B** and drag on the canvas. A *Paint layer 1* is created and the stroke appears. Press Ctrl+Z to undo the stroke only.
+4. Change Size and Hardness in the options bar, zoom to 200% and paint again. The stroke width stays the same in document pixels.
+5. Press **M**, set Feather to 20 and drag a rectangle. Hold **Shift** and drag an overlapping rectangle to add to it. Press **B** and paint across the edge: the paint stays inside the selection with a soft edge.
+6. Press **Alt+Backspace** to fill the selection, **Ctrl+Shift+I** to invert, then **Delete** to clear outside. Press **Ctrl+D** to deselect and **Ctrl+Shift+D** to reselect.
+7. Press **L** and draw a freehand selection. Press **Shift+L** and click points for a polygonal selection, then press Enter to close it.
+8. Reload the page: the document and pixels are restored. Press **Ctrl+S** to download a `.zertake` file, then open it from the folder icon. It opens in a new tab with identical pixels.
+9. Click **Export**, then **Download PNG**: the paint layers appear at full resolution.
