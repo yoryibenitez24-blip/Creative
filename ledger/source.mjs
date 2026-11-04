@@ -6,7 +6,7 @@
 // States: missing | partial | implemented-unverified | verified | blocked
 // Scopes: core | psd | develop | library | ai | output | color | raw | workflow | platform | legacy
 
-export const LEDGER_VERSION = '0.1.1';
+export const LEDGER_VERSION = '0.1.2';
 export const LEDGER_DATE = '2026-11-04';
 export const REFERENCES = {
   photoshop: 'Adobe Photoshop desktop 27.6 (April 2026 release), the newest release notes found on 2026-11-04; a later 2026 build may exist and must be re-audited',
@@ -660,7 +660,7 @@ export const STATUS = {
   'M0-INPUT-DOCS': ['verified', 'docs/baseline/DOCUMENTACION_VERSION.txt and INVENTARIO_BRECHAS.csv (sha256 in docs/baseline/RECONCILIATION.md)'],
   'M0-RECONCILE': ['verified', 'tests/ledger.test.js inventory mapping; docs/baseline/RECONCILIATION.md'],
   'M0-IMPORT-HARDENING': ['partial', 'Envelope assets are hash-verified; image layers must be data:image URLs; schema validation', 'No size limits for JSON/assets; originalSrc and filter parameters not validated; no hostile-file test suite'],
-  'M0-BASE-COMMIT': ['partial', 'DOCUMENTACION_VERSION.txt: the delivered source/ is the tracked tree of e2360711 without .git; 5a309f5 is that snapshot (flattened on upload)', 'File-by-file verification needs MANIFEST_SHA256.txt, which was not provided'],
+  'M0-BASE-COMMIT': ['verified', 'tests/baseline.test.js: all 19 files of 5a309f5 match docs/baseline/MANIFEST_SHA256.txt (snapshot of e2360711, flattened on upload)', 'LEEME_PRIMERO.txt and PROMPT_DESARROLLO_COMPLETO.txt are listed in the manifest but were not supplied'],
 
   'DOC-TABS': ['verified', T_IMPORT + ' "new tab and edits never replace previous document"; ' + T_E2E],
   'DOC-AUTOSAVE': ['verified', T_E2E + ' persistence step'],

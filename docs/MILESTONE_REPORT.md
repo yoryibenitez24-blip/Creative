@@ -4,9 +4,9 @@ Date: 2026-11-04 · Ledger v0.1.0 · Branch `claude/inspiring-curie-tsipqx`
 
 ## Summary
 
-* **Milestone 0 is done.** The audit is complete, the repository layout is fixed and the baseline tests run. The capability ledger (763 rows) exists and is reconciled with your gap inventory. Obsolete text is removed, schema v2 has a migration, and the architecture plan is written. One verification step is still open: the file-level baseline check needs `MANIFEST_SHA256.txt`.
+* **Milestone 0 is done.** The audit is complete, the repository layout is fixed and the baseline tests run. The capability ledger (763 rows) exists and is reconciled with your gap inventory. Obsolete text is removed, schema v2 has a migration, and the architecture plan is written. The baseline is verified: every file of the imported snapshot matches the delivered `MANIFEST_SHA256.txt`.
 * **The first Milestone 1 vertical slice is verified.** It covers paint layers, the brush and eraser, rectangular/elliptical marquee and freehand/polygonal lasso with new/add/subtract/intersect and feather, the selection commands, fill/clear, and the content-addressed asset store. All of it runs through UI, engine, undo/redo, autosave, native save/open and PNG export.
-* **Zertake is not at Photoshop or Lightroom parity.** 54 of 763 ledger rows (7.1%) are verified. Develop, RAW, masks, adjustment layers, styles, PSD export and the library are all still `missing`.
+* **Zertake is not at Photoshop or Lightroom parity.** 55 of 763 ledger rows (7.2%) are verified. Develop, RAW, masks, adjustment layers, styles, PSD export and the library are all still `missing`.
 
 ## Audit findings (baseline `5a309f5`)
 
@@ -14,7 +14,7 @@ Date: 2026-11-04 · Ledger v0.1.0 · Branch `claude/inspiring-curie-tsipqx`
 |---|---|
 | Sources, tests and bundles were flattened at the repository root, while `package.json` and the tests expect `src/`, `tests/`, `dist/`. `npm run build` could not run as committed. | Restored the layout (commit `318d3de`) |
 | A file named `download` held `.gitignore` contents. `psd-worker (1).js` was the worker source. | Renamed to `.gitignore` and `src/psd-worker.js` |
-| Baseline commit `e2360711…` does not exist in this repository. `DOCUMENTACION_VERSION.txt` says the delivery is that commit's tracked files without `.git`, so `5a309f5` is that snapshot, flattened on upload. | `M0-BASE-COMMIT` is `partial`: a file-by-file check needs `MANIFEST_SHA256.txt` |
+| Baseline commit `e2360711…` does not exist in this repository. `DOCUMENTACION_VERSION.txt` says the delivery is that commit's tracked files without `.git`, so `5a309f5` is that snapshot, flattened on upload. | Verified: all 19 snapshot files match `MANIFEST_SHA256.txt` byte for byte (`tests/baseline.test.js`). `hosting.json` was restored to its manifest path `.openai/hosting.json`, unmodified. |
 | `DOCUMENTACION_VERSION.txt` and `INVENTARIO_BRECHAS.csv` were supplied after the first pass | Stored unchanged in `docs/baseline/`; every inventory row is mapped to ledger rows in [`docs/baseline/RECONCILIATION.md`](baseline/RECONCILIATION.md), enforced by a test |
 | Error strings told users to "Open it in the full editor"; the README documented the removed Photopea route | Replaced with accurate limit messages; README rewritten; a test guards against regressions |
 | Ctrl+Shift+Z redo never fired, because `e.key` is `"Z"` when Shift is held | Fixed (key compared lower-case) |
@@ -34,7 +34,7 @@ Date: 2026-11-04 · Ledger v0.1.0 · Branch `claude/inspiring-curie-tsipqx`
 ## Test results
 
 ```
-npm test       → 40 passed, 0 failed  (model 7, PSD import 5, engine 21, ledger 7)
+npm test       → 44 passed, 0 failed  (model 7, PSD import 5, engine 21, ledger 7, baseline 4)
 npm run test:e2e → 11 passed, 0 failed (Chromium via Playwright 1.63, real pointer/keyboard input)
 ```
 
@@ -61,6 +61,8 @@ Measured with Node 22 on a 4-vCPU Intel Xeon at 2.1 GHz (CI container). This is 
 Selection masks are still computed on the main thread. At 8000² each selection change stalls the UI for about 3 s. Moving this to a worker is ledger row `RENDER-WORKERS` and should come before large-document work.
 
 ## Ledger diff
+
+**v0.1.1 → v0.1.2.** `M0-BASE-COMMIT`: partial → verified, checked against MANIFEST_SHA256.txt.
 
 **v0.1.0 → v0.1.1 (inventory reconciliation).** 20 rows were added and 3 changed state.
 * Added `M0-RECONCILE` (verified), `M0-IMPORT-HARDENING` (partial), `M0-BASE-PATH` (missing) and `M0-DEAD-CSS` (missing). These come from §2 and §9 of DOCUMENTACION_VERSION.
@@ -109,7 +111,7 @@ No new runtime dependencies were added. The brush, selection, raster and asset c
 ## Blocked: needs your decision or input
 
 1. ~~`M0-INPUT-DOCS`~~ Resolved: both files were received and reconciled.
-2. **`M0-BASE-COMMIT`.** Please send `MANIFEST_SHA256.txt` so every file in `5a309f5` can be checked against the delivered snapshot of `e2360711`.
+2. ~~`M0-BASE-COMMIT`~~ Resolved: verified against `MANIFEST_SHA256.txt`. `LEEME_PRIMERO.txt` and `PROMPT_DESARROLLO_COMPLETO.txt` appear in the manifest but were not supplied; the prompt given in the conversation is assumed to be the latter.
 3. **`AI-PROVIDER`.** Choosing AI models or providers (segmentation, generative fill, denoise) has cost, licensing and privacy consequences. It needs your decision before M3 and M5.
 4. **`RAW-DECODE`.** RAW decoding needs a licensed decoder (for example LibRaw via WASM, LGPL/CDDL). This is a licensing decision for M4.
 
