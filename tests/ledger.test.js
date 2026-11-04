@@ -45,3 +45,19 @@ test('ledger: no obsolete external-editor text in shipped source or docs', () =>
     assert.ok(!/photopea/i.test(s), f + ' mentions Photopea');
   }
 });
+
+import { INVENTORY_MAP, readInventory, reconciliation } from '../ledger/inventory.mjs';
+test('ledger: every delivered inventory row maps to existing ledger rows', () => {
+  const inv = readInventory();
+  assert.equal(inv.length, 40);
+  const keys = new Set();
+  for (const r of inv) {
+    const key = r['Area'] + '|' + r['Capacidad'];
+    keys.add(key);
+    const m = INVENTORY_MAP[key];
+    assert.ok(m && m.ids.length, 'inventory row not mapped: ' + key);
+    for (const id of m.ids) assert.ok(byId.has(id), `${key} maps to unknown ledger row ${id}`);
+  }
+  for (const key of Object.keys(INVENTORY_MAP)) assert.ok(keys.has(key), 'stale mapping ' + key);
+  assert.equal(readFileSync(new URL('../docs/baseline/RECONCILIATION.md', import.meta.url), 'utf8'), reconciliation(), 'run npm run ledger');
+});

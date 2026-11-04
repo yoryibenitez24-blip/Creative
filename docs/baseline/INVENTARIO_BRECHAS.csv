@@ -1,0 +1,41 @@
+﻿Area,Capacidad,Estado actual,Limite actual,Trabajo requerido
+Documentos,Pestañas y guardado local,Implementado,Historial solo por sesión,Persistencia transaccional y cierre con aviso
+Capas,"Rectángulo, elipse, texto e imagen",Implementado básico,SVG y data URLs,Motor raster/vector modular
+Capas,Grupos,Parcial,Metadatos y opacidad heredada por hijo,Árbol real y composición aislada
+Capas,Blend modes,Parcial,Lista de inspector limitada y CSS,Motor con todos los modos y tests
+Capas,Máscaras raster/vector y clipping,Pendiente,PSD informa omisión,Máscaras editables y compositor
+Capas,Ajustes y estilos,Pendiente,Efectos PSD no reproducidos,"Ajustes, estilos, Blend If y Smart Filters"
+Pintura,"Pincel, lápiz, borradores y mixer",Pendiente,No hay motor de strokes,"Presión, dinámica, selección y undo"
+Selección,"Marquee, lazos y varita",Pendiente,Selección actual solo de capas,Máscaras de selección y refinamiento
+Retoque,"Clone, heal, patch, remove",Pendiente,No implementado,Algoritmos nativos con capas de retoque
+Transformación,"Mover, tamaño, rotación",Parcial,Controles básicos,"Perspectiva, warp, puppet, recorte"
+Texto,Tipografía editable,Parcial,Lista corta y estilo básico,"Shaping, runs, fuentes, párrafos y paths"
+Vectores,"Pluma, curvas y formas avanzadas",Pendiente,Solo rectángulo y elipse,"Bezier, booleanos y máscaras"
+Filtros,Galería propia,Parcial,18 recetas sin miniaturas,Stack creativo y miniaturas reales
+Develop,Exposición y controles tonales,Parcial,Aproximación de 8 bits,Pipeline colorimétrico validado
+Develop,"Temperatura, tint, vibrance, saturation",Parcial,Ajuste de RGB renderizado,Balance RAW y perfiles
+Develop,Texture,Pendiente,No existe,Detalle medio con preservación de bordes
+Develop,Clarity,Pendiente,No existe,Contraste local de medios tonos
+Develop,Dehaze,Pendiente,No existe,Modelo de velo con control de color
+Develop,Grain,Parcial,"Solo Amount, ruido simple","Amount, Size, Roughness y semilla estable"
+Develop,Vignette,Parcial,Solo intensidad,"Midpoint, roundness, feather y highlights"
+Develop,Curvas y Levels,Pendiente,No existen,Curvas RGB/canales y paramétricas
+Develop,"HSL, Point Color, B&W mixer",Pendiente,B&W actual usa desaturación,Bandas y rangos editables
+Develop,Color grading y calibration,Pendiente,No existen,"Ruedas, balance y primarias"
+Develop,Sharpening y denoise,Pendiente,No existen,"Radio, detalle, masking y reducción cromática"
+Develop,Óptica y geometría,Pendiente,No existen,"Perfiles, defringe y upright"
+Develop,Máscaras locales,Pendiente,No existen,"Brush, gradientes, rangos y combinaciones"
+Develop,Lens blur,Pendiente,No existe,"Profundidad, bokeh y refinamiento"
+Archivos,PSD import,Parcial,Raster previews y pérdidas reportadas,"Fidelidad de texto, efectos, máscaras y objetos"
+Archivos,PSD export y PSB,Pendiente,No existen,Codec y round-trip verificable
+Archivos,"PNG, JPEG, SVG export",Implementado básico,Sin opciones de color avanzadas,"Metadatos, perfiles y pruebas de efectos"
+Archivos,RAW/DNG,Pendiente,No hay decoder,"Demosaic, perfiles y matriz de cámaras"
+Color,"16/32 bit, ICC, CMYK, Lab, HDR",Pendiente,Pipeline simple de navegador,Gestión de color y formatos
+Catálogo,"Library, metadatos y colecciones",Pendiente,Solo documentos locales,Catálogo de fotos y batch
+Output,"Print, books, slideshow, web galleries",Pendiente,No existen,Workflows completos de salida
+Automatización,"Actions, macros y plugins",Pendiente,No existen,API de comandos y batch
+Timeline,Animación y vídeo,Pendiente,No existen,"Tiempo, frames y codecs"
+IA,Selección semántica y generación,Pendiente,Sin modelos ni proveedores,"Licencias, costes y procesamiento real"
+Infraestructura,"Cloud, cuentas y colaboración",Pendiente,Alojamiento privado no equivale a cuentas propias,Backend y permisos
+Robustez,Workers y recuperación,Parcial,Worker solo PSD y error boundary React,"Render cancelable, memoria y recovery"
+Documentación,Mensajes y README,Deuda,Referencias antiguas a full editor,Eliminar referencias históricas engañosas

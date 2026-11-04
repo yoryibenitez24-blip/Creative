@@ -1,6 +1,6 @@
 # Zertake Studio
 
-A browser-local creative editor written in React 19 JSX, with a native engine in `src/engine`. It is being built in stages toward a Photoshop-class editor and a Lightroom-class Develop workspace. **It is not at parity with either product.** The versioned capability ledger in [`docs/CAPABILITY_LEDGER.csv`](docs/CAPABILITY_LEDGER.csv) is the source of truth for what works ([summary](docs/LEDGER_SUMMARY.md)).
+A browser-local creative editor written in React 19 JSX, with a native engine in `src/engine`. It is being built in stages toward a Photoshop-class editor and a Lightroom-class Develop workspace. **It is not at parity with either product.** The delivered baseline documentation and gap inventory are in [`docs/baseline/`](docs/baseline/) with a [reconciliation](docs/baseline/RECONCILIATION.md). The versioned capability ledger in [`docs/CAPABILITY_LEDGER.csv`](docs/CAPABILITY_LEDGER.csv) is the source of truth for what works ([summary](docs/LEDGER_SUMMARY.md)).
 
 ## Setup
 

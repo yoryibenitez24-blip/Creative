@@ -6,7 +6,7 @@
 // States: missing | partial | implemented-unverified | verified | blocked
 // Scopes: core | psd | develop | library | ai | output | color | raw | workflow | platform | legacy
 
-export const LEDGER_VERSION = '0.1.0';
+export const LEDGER_VERSION = '0.1.1';
 export const LEDGER_DATE = '2026-11-04';
 export const REFERENCES = {
   photoshop: 'Adobe Photoshop desktop 27.6 (April 2026 release), the newest release notes found on 2026-11-04; a later 2026 build may exist and must be re-audited',
@@ -27,6 +27,10 @@ export const AREAS = [
   ['ARCH-PLAN', 'Architecture plan', 'docs/ARCHITECTURE.md documents engine interfaces, render graph plan, storage, workers/GPU strategy'],
   ['INPUT-DOCS', 'Requested baseline documents present', 'DOCUMENTACION_VERSION.txt and INVENTARIO_BRECHAS.csv read before editing', 'User must supply the files; they are not in the repository'],
   ['BASE-COMMIT', 'Baseline commit e2360711 available', 'Work starts from the named source commit', 'Commit e2360711 is not in this repository; the work used 5a309f5 (v1)'],
+  ['RECONCILE', 'Inventory reconciliation', 'Every INVENTARIO_BRECHAS.csv row maps to ledger rows; differences explained in docs/baseline/RECONCILIATION.md'],
+  ['DEAD-CSS', 'Remove unused legacy styles', 'dist/style.css contains no selectors without a consumer (DOCUMENTACION_VERSION §9)'],
+  ['IMPORT-HARDENING', 'Hostile project import hardening', 'Size limits for JSON and assets, strict originalSrc and filter-parameter validation, hostile-file tests (§9)'],
+  ['BASE-PATH', 'Hosting under a sub-path', 'index.html and worker URLs resolve relative to the page, not absolute /app.js (§2)'],
 ]],
 ['DOC', 'Document engine & persistence', 'core', 1, 'Photoshop 27.6', 'Unit test + reload E2E', [
   ['TABS', 'Independent document tabs', 'Each tab keeps its own document, selection and undo history'],
@@ -278,6 +282,24 @@ export const AREAS = [
   ['DITHER', 'Dither', 'Reduces banding'],
   ['REVERSE', 'Reverse', 'Swap direction'],
   ['LIVE', 'Editable gradient handles', 'Gradient kept as editable data on a fill layer'],
+]],
+['FILT-LEG', 'Legacy Filter gallery controls (to be superseded by Develop)', 'core', 2, 'Zertake', 'Superseded by the matching DEV-* row; until then keep behaviour stable', [
+  ['EXPOSURE', 'Legacy Exposure slider', '8-bit gain on rendered RGB; not linear light'],
+  ['CONTRAST', 'Legacy Contrast slider', 'Pivot at 128 in 8-bit space'],
+  ['HIGHLIGHTS', 'Legacy Highlights slider', 'Global luminance-weighted lift; not local-tone aware'],
+  ['SHADOWS', 'Legacy Shadows slider', 'Global luminance-weighted lift; not local-tone aware'],
+  ['WHITES', 'Legacy Whites slider', 'Global lum^4 lift'],
+  ['BLACKS', 'Legacy Blacks slider', 'Global (1-lum)^4 lift'],
+  ['TEMPERATURE', 'Legacy Temperature slider', 'R/B offset on rendered RGB; not RAW white balance'],
+  ['TINT', 'Legacy Tint slider', 'G offset on rendered RGB'],
+  ['VIBRANCE', 'Legacy Vibrance slider', 'Saturation weighted by chroma'],
+  ['SATURATION', 'Legacy Saturation slider', 'Linear chroma scale; B&W presets use this (desaturation, not a colour mixer)'],
+  ['FADE', 'Legacy Fade slider', 'Blend toward mid-grey; is not Texture'],
+  ['VIGNETTE', 'Legacy Vignette slider', 'Intensity only; no midpoint/roundness/feather/highlights'],
+  ['GRAIN', 'Legacy Grain slider', 'Intensity-only hash noise; patterns change with preview/export resolution'],
+  ['PRESETS', '18 original presets', 'Combinations of the 13 legacy sliders; not Adobe presets; no thumbnails or active highlight'],
+  ['NONDESTRUCT', 'originalSrc + adjustments retained', 'Reopen recomputes from the original; Apply bakes src (24 MP cap, main thread)'],
+  ['CANCEL-UPLOAD', 'Cancel after uploading from the gallery panel', 'Cancel should not leave the just-uploaded layer behind (today it remains; undo removes it)'],
 ]],
 ['RETOUCH', 'Retouch', 'core', 3, 'Photoshop 27.6', 'Fixture comparison with documented tolerance', [
   ['CLONE', 'Clone Stamp', 'Alt-click source; brush clones'],
@@ -635,8 +657,10 @@ export const STATUS = {
   'M0-SCHEMA-V2': ['verified', T_ENGINE + ' schema tests'],
   'M0-MIGRATE-V1': ['verified', T_ENGINE + ' "v1 documents migrate…", "future versions are refused"'],
   'M0-ARCH-PLAN': ['verified', 'docs/ARCHITECTURE.md'],
-  'M0-INPUT-DOCS': ['blocked', 'Files not present in repository', 'Provide DOCUMENTACION_VERSION.txt and INVENTARIO_BRECHAS.csv to reconcile with this ledger'],
-  'M0-BASE-COMMIT': ['blocked', 'git cat-file fails for e2360711', 'Repository history starts at 5a309f5; confirm this is the intended baseline'],
+  'M0-INPUT-DOCS': ['verified', 'docs/baseline/DOCUMENTACION_VERSION.txt and INVENTARIO_BRECHAS.csv (sha256 in docs/baseline/RECONCILIATION.md)'],
+  'M0-RECONCILE': ['verified', 'tests/ledger.test.js inventory mapping; docs/baseline/RECONCILIATION.md'],
+  'M0-IMPORT-HARDENING': ['partial', 'Envelope assets are hash-verified; image layers must be data:image URLs; schema validation', 'No size limits for JSON/assets; originalSrc and filter parameters not validated; no hostile-file test suite'],
+  'M0-BASE-COMMIT': ['partial', 'DOCUMENTACION_VERSION.txt: the delivered source/ is the tracked tree of e2360711 without .git; 5a309f5 is that snapshot (flattened on upload)', 'File-by-file verification needs MANIFEST_SHA256.txt, which was not provided'],
 
   'DOC-TABS': ['verified', T_IMPORT + ' "new tab and edits never replace previous document"; ' + T_E2E],
   'DOC-AUTOSAVE': ['verified', T_E2E + ' persistence step'],
@@ -723,6 +747,22 @@ export const STATUS = {
   'TEXT-FONT-LOAD': ['partial', 'Four system font stacks'],
   'VEC-RECT': ['implemented-unverified', 'Baseline'], 'VEC-ROUNDRECT': ['partial', 'Single corner radius'], 'VEC-ELLIPSE': ['implemented-unverified', 'Baseline'],
   'FILT-LEGACY-PANEL': ['partial', 'src/FilterGallery.jsx', 'Destructive bake, main-thread, 24 MP cap; not Develop'],
+  'FILT-LEG-EXPOSURE': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-CONTRAST': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-HIGHLIGHTS': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-SHADOWS': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-WHITES': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-BLACKS': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-TEMPERATURE': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-TINT': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-VIBRANCE': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-SATURATION': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-FADE': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-VIGNETTE': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-GRAIN': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-PRESETS': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-NONDESTRUCT': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],
+  'FILT-LEG-CANCEL-UPLOAD': ['partial', 'DOCUMENTACION_VERSION §5', 'Uploaded layer stays after Cancel; undo removes it'],
   'DEV-LEGACY-PROCESS': ['partial', 'Filter gallery labelled "Filter gallery", not Develop'],
   'DEV-EFFECTS-LEGACY-GRAIN': ['partial', 'Intensity-only sin-hash noise', 'Replace with DEV-EFFECTS-GRAIN-*'],
   'PSD-IMPORT-RASTER': ['verified', T_IMPORT], 'PSD-IMPORT-BLEND': ['implemented-unverified', 'src/psd.js blendMap'], 'PSD-IMPORT-GROUPS': ['partial', T_IMPORT, 'Group compositing differs'], 'PSD-IMPORT-TEXT': ['partial', 'Raster + conversion'], 'PSD-IMPORT-REPORT': ['verified', T_IMPORT + ' "unsupported mask is explicitly reported"'], 'PSD-IMPORT-WORKER': ['implemented-unverified', 'src/psd-worker.js + worker-import.js'],

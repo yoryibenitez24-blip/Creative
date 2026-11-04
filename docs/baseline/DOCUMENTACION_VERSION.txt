@@ -1,0 +1,129 @@
+ZERTAKE STUDIO · DOCUMENTACIÓN DE ENTREGA
+Fecha: 4 de noviembre de 2026
+Versión de entrega: snapshot 2026-11-04, gallery-access
+package.json: 1.0.0
+Commit de origen: e2360711c4aeec9e86fb5fbda13360c8d812b641
+Sitio: https://zertake-studio-yoryi.shrewdion1.chatgpt.site
+
+1. QUÉ RECIBES
+
+source/ contiene los archivos rastreados de la versión publicada, sin .git, node_modules, credenciales ni datos personales del navegador. Incluye src/, tests/, dist/, package.json y package-lock.json. El manifiesto .openai/hosting.json pertenece al sitio existente. No lo reutilices para crear otro sitio con la misma identidad.
+
+Este documento describe el estado actual. PROMPT_DESARROLLO_COMPLETO.txt describe requisitos futuros, no funciones terminadas. INVENTARIO_BRECHAS.csv separa capacidades actuales, parciales y pendientes. MANIFEST_SHA256.txt permite verificar los archivos.
+
+El README dentro de source/ se conserva tal como estaba en el commit. Su sección sobre el iframe Photopea es histórica y contradictoria con el estado actual. No existe una integración Photopea activa en esta entrega. Esta documentación de entrega prevalece para describir la versión.
+
+2. EJECUCIÓN LOCAL
+
+Requisitos: Node.js con npm, navegador moderno y servidor HTTP. Usar Node 22 LTS como punto de partida y comprobar compatibilidad en tu entorno. La versión no fija engines ni trae scripts dev o start.
+
+Desde source/:
+  npm ci
+  npm run build
+  node --test src/model.test.js tests/import.test.js
+
+Servir el contenido de dist/ en la raíz del servidor. Ejemplo con Python instalado:
+  python -m http.server 8080 --directory dist
+
+Abrir http://localhost:8080. No abrir index.html con file://. Las rutas /app.js, /style.css y /psd-worker.js son absolutas. Para hospedar bajo /editor/ hay que adaptar esas rutas.
+
+La carpeta dist/ ya incluye la compilación publicada. Permite probar sin recompilar. npm ci requiere acceso al registro de paquetes. No se incluyen dependencias instaladas.
+
+3. ARQUITECTURA ACTUAL
+
+React 19.1.0 y React DOM 19.1.0. JSX compilado con esbuild 0.25.0. lucide-react 0.468.0 para iconos. ag-psd declarado como ^34.1.0 para leer PSD. package-lock.json fija el árbol instalado. @napi-rs/canvas participa en las pruebas de PSD en Node.
+
+src/main.jsx: Workspace, editor por documento, interfaz, transformaciones, importación, exportación, historial y acceso a filtros. Archivo compacto y con múltiples responsabilidades.
+src/model.js: validación, normalización, redimensionado y límites de valores numéricos.
+src/workspace.js: documentos e IndexedDB.
+src/psd.js: conversión de estructura PSD al modelo interno y advertencias.
+src/psd-worker.js: lectura y rasterización PSD en worker con OffscreenCanvas.
+src/worker-import.js: comunicación con worker, cancelación y timeout.
+src/FilterGallery.jsx: presets, procesamiento por píxel y panel de ajustes.
+src/Recovery.jsx: límite de errores React por documento y recuperación.
+dist/style.css: estilos editados directamente, no existe copia separada en src/.
+tests/import.test.js y src/model.test.js: pruebas de datos e importación.
+
+El lienzo principal usa SVG. Las capas de imagen contienen data URLs. La galería procesa píxeles mediante Canvas 2D. No existe un motor de composición por tiles, WebGPU, RAW ni edición general de píxeles mediante pinceles.
+
+4. FUNCIONES DISPONIBLES
+
+Documentos: crear y abrir diseños en pestañas independientes, seleccionar pestañas, conservar historial durante la sesión, guardar documentos y pestaña activa localmente. Un documento tiene un artboard.
+
+Capas: texto básico, rectángulo, elipse e imagen. Selección simple y múltiple, movimiento, tamaño, rotación, duplicar, borrar, ordenar, bloquear, ocultar, opacidad y agrupación básica por metadatos. La agrupación no equivale a un árbol de carpetas con composición aislada.
+
+Texto: contenido, tamaño, familia de una lista corta, peso, alineación y tracking. No hay motor tipográfico profesional ni fidelidad de texto PSD.
+
+Vista: zoom, ajustar a pantalla, pan, cuadrícula y modo de previsualización. Beginner y Advanced cambian la exposición de controles, no el motor.
+
+Archivo: importar imágenes compatibles con el navegador, PSD limitado y proyectos .zertake/.json. Guardar proyecto JSON. Exportar PNG, JPEG y SVG. No exporta PSD/PSB, TIFF ni RAW.
+
+Recuperación: error boundary por documento, descarga de respaldo y reintento. No cubre todos los errores asíncronos ni garantiza recuperación ante cierre del proceso del navegador. El incidente original de pantalla gris no fue reproducido con el archivo del usuario.
+
+5. GALERÍA PROPIA DE FILTROS
+
+Pulsar Filter gallery, botón morado del encabezado. Si hay una imagen desbloqueada seleccionada abre su edición. En otro caso muestra un panel para subir una foto o elegir una capa de imagen.
+
+Flujo: elegir imagen, elegir look o mover controles, comparar con Show original, Apply adjustments. Cancel cierra sin aplicar los ajustes. Si se subió una foto desde el panel inicial, esa capa ya fue añadida al documento y Cancel no elimina la capa.
+
+Controles actuales, 13:
+Exposure, Contrast, Highlights, Shadows, Whites, Blacks, Temperature, Tint, Vibrance, Saturation, Fade, Vignette y Grain.
+
+Presets originales, 18:
+Original, Portrait, Landscape, Vivid, Soft matte, Warm film, Cool film, Cinema, Golden hour, Muted, B&W, B&W soft, B&W dramatic, Vintage, Night, Bright editorial, Desert y Clean.
+
+No son presets oficiales de Adobe. Son combinaciones de los controles actuales.
+
+Se conserva originalSrc y adjustments en la capa. src se reemplaza por un PNG procesado al aplicar. Reabrir recalcula desde originalSrc, evitando acumulación sobre la última imagen procesada. Undo revierte la operación aplicada. Los parámetros se guardan dentro del proyecto.
+
+La vista previa se limita aproximadamente a 1000 × 700 píxeles, conservando proporción. Apply procesa el tamaño original, con límite de 24 megapíxeles. Actualmente trabaja en el hilo principal y podría bloquear temporalmente la interfaz en imágenes grandes.
+
+Limitaciones del motor: procesamiento de 8 bits, aproximaciones propias de tonos y balance, sin espacio de trabajo lineal ni gestión ICC. Grain es ruido procedural simple, con un único control. No tiene tamaño ni rugosidad. La resolución de preview y export puede cambiar su patrón visual. Vignette tiene solo intensidad. Texture, Clarity, Dehaze, curvas, HSL, máscaras locales, RAW, reducción de ruido y enfoque no existen todavía. Fade no equivale a Texture.
+
+6. IMPORTACIÓN PSD
+
+Entrada desde File, botón de carpeta o arrastrar archivo al área de trabajo. Lee localmente y muestra revisión antes de abrir en otra pestaña. El worker aplica cancelación y timeout de 60 segundos.
+
+Límites implementados: PSD versión 1, archivo hasta 100 MiB, 8000 píxeles por dimensión y estimación de hasta 60 millones de píxeles decodificados. La estimación no es un límite exacto de RAM. PSB no está soportado.
+
+Conserva las capas con píxeles disponibles, nombre, posición, orden, visibilidad, opacidad y modos de fusión reconocidos. La representación depende del navegador. Algunas opciones importadas no aparecen en la lista corta del inspector.
+
+Los grupos se registran como metadatos. Su opacidad se aplica a cada hijo, lo que cambia el resultado de capas superpuestas respecto a composición de grupo real.
+
+Texto PSD: se conserva como imagen y metadatos. Hay conversión explícita a texto básico usando Arial. Fuentes, estilos múltiples, tracking y layout pueden cambiar.
+
+Objetos inteligentes y vectores: usan su imagen raster disponible. No son objetos inteligentes editables ni trazados recuperados.
+
+Máscaras raster/vectoriales, clipping, efectos y ajustes no se reproducen. La revisión informa limitaciones. Capas sin píxeles se omiten con aviso. Un PSD sin capas usa su compuesto existente, señalado como composite-only.
+
+No existe round-trip fiel con Photoshop. No hay PSD export. Abrir un PSD no garantiza apariencia idéntica.
+
+7. DATOS Y GUARDADO
+
+Guardado local en IndexedDB. No hay cuentas propias, sincronización entre equipos, backend de proyectos ni colaboración. La autenticación del sitio publicado pertenece al alojamiento y no es una cuenta implementada en la app.
+
+El historial undo/redo no persiste tras recargar. Los documentos sí intentan persistir. Borrar datos del navegador elimina el guardado local. Los proyectos .zertake son JSON con imágenes incrustadas. No son archivos PSD. Se debe descargar una copia antes de borrar datos o mover de equipo.
+
+Las imágenes y originales en data URLs consumen memoria y cuota. El historial guarda estados y eleva el consumo. Aún falta migrar a blobs, almacenamiento de assets y snapshots diferenciales.
+
+8. VERIFICACIÓN REALIZADA
+
+La compilación finalizó sin errores. Las 12 pruebas existentes se ejecutaron de nuevo y pasaron durante la preparación de esta entrega. Cubren redimensionado, bloqueo, serialización, validación, normalización, PSD real generado en pruebas, orden y grupos ocultos, advertencias, PSD inválido y documentos independientes.
+
+QA de navegador reciente: apertura de galería sin selección, selección de capa de PSD, preset Warm film, cambio visible, Apply y reapertura conservando Temperature 25, Fade 12 y Grain 18.
+
+No hubo validación exhaustiva de cada slider, exportación tras cada efecto, dispositivos táctiles, tableta, Safari/Firefox, RAW ni archivos PSD complejos de producción. La URL privada mostró acceso con inicio de sesión en la sesión de prueba, por lo que esa QA se hizo en la previsualización local de la misma compilación. La publicación fue confirmada por el servicio de alojamiento.
+
+9. DEUDA TÉCNICA Y PROBLEMAS CONOCIDOS
+
+README histórico menciona Photopea. Mensajes de error de los dos módulos de worker aún sugieren un “full editor” que ya no existe. Hay estilos antiguos sin uso. Corregir textos y limpiar código antes de la siguiente versión.
+
+No hay enfoque atrapado dentro de todos los modales ni cobertura completa de accesibilidad. La galería no dispone de miniaturas de presets ni selección activa destacada. Pantallas pequeñas requieren revisión.
+
+Hay operaciones por píxel en el hilo principal. El grano simple produce patrones y no satisface calidad de revelado profesional. No hay indicadores de clipping ni histograma. El estado del modelo no tiene esquema versionado de proyecto.
+
+El tamaño de archivo, el control originalSrc y los parámetros de filtros requieren validación más estricta al importar JSON ajeno. Añadir límites globales de assets, esquemas y pruebas de archivos hostiles.
+
+10. SIGUIENTE ENTREGA RECOMENDADA
+
+Primero: limpieza de referencias antiguas, pruebas de guardado/exportación y separación del motor de edición. Después: pincel/borrador, selecciones y máscaras funcionales. Luego: módulo Develop con Texture/Clarity/Dehaze reales, grano Amount/Size/Roughness, curvas y HSL. El prompt adjunto define el alcance completo y las puertas de calidad posteriores.

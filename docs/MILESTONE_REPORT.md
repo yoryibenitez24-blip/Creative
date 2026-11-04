@@ -4,9 +4,9 @@ Date: 2026-11-04 · Ledger v0.1.0 · Branch `claude/inspiring-curie-tsipqx`
 
 ## Summary
 
-* **Milestone 0 is done, with two items blocked on input from you.** The audit is complete, the repository layout is fixed and the baseline tests run. The 743-row capability ledger exists, obsolete text is removed, schema v2 has a migration, and the architecture plan is written. The blocked items are listed below.
+* **Milestone 0 is done.** The audit is complete, the repository layout is fixed and the baseline tests run. The capability ledger (763 rows) exists and is reconciled with your gap inventory. Obsolete text is removed, schema v2 has a migration, and the architecture plan is written. One verification step is still open: the file-level baseline check needs `MANIFEST_SHA256.txt`.
 * **The first Milestone 1 vertical slice is verified.** It covers paint layers, the brush and eraser, rectangular/elliptical marquee and freehand/polygonal lasso with new/add/subtract/intersect and feather, the selection commands, fill/clear, and the content-addressed asset store. All of it runs through UI, engine, undo/redo, autosave, native save/open and PNG export.
-* **Zertake is not at Photoshop or Lightroom parity.** 52 of 743 ledger rows (7.0%) are verified. Develop, RAW, masks, adjustment layers, styles, PSD export and the library are all still `missing`.
+* **Zertake is not at Photoshop or Lightroom parity.** 54 of 763 ledger rows (7.1%) are verified. Develop, RAW, masks, adjustment layers, styles, PSD export and the library are all still `missing`.
 
 ## Audit findings (baseline `5a309f5`)
 
@@ -14,8 +14,8 @@ Date: 2026-11-04 · Ledger v0.1.0 · Branch `claude/inspiring-curie-tsipqx`
 |---|---|
 | Sources, tests and bundles were flattened at the repository root, while `package.json` and the tests expect `src/`, `tests/`, `dist/`. `npm run build` could not run as committed. | Restored the layout (commit `318d3de`) |
 | A file named `download` held `.gitignore` contents. `psd-worker (1).js` was the worker source. | Renamed to `.gitignore` and `src/psd-worker.js` |
-| Baseline commit `e2360711…` does not exist in this repository | Recorded as blocked (`M0-BASE-COMMIT`) |
-| `DOCUMENTACION_VERSION.txt` and `INVENTARIO_BRECHAS.csv` are not in the repository | Recorded as blocked (`M0-INPUT-DOCS`) |
+| Baseline commit `e2360711…` does not exist in this repository. `DOCUMENTACION_VERSION.txt` says the delivery is that commit's tracked files without `.git`, so `5a309f5` is that snapshot, flattened on upload. | `M0-BASE-COMMIT` is `partial`: a file-by-file check needs `MANIFEST_SHA256.txt` |
+| `DOCUMENTACION_VERSION.txt` and `INVENTARIO_BRECHAS.csv` were supplied after the first pass | Stored unchanged in `docs/baseline/`; every inventory row is mapped to ledger rows in [`docs/baseline/RECONCILIATION.md`](baseline/RECONCILIATION.md), enforced by a test |
 | Error strings told users to "Open it in the full editor"; the README documented the removed Photopea route | Replaced with accurate limit messages; README rewritten; a test guards against regressions |
 | Ctrl+Shift+Z redo never fired, because `e.key` is `"Z"` when Shift is held | Fixed (key compared lower-case) |
 | Clicking a layer without moving it added an empty undo step | Fixed (history entry only when the document changed) |
@@ -34,7 +34,7 @@ Date: 2026-11-04 · Ledger v0.1.0 · Branch `claude/inspiring-curie-tsipqx`
 ## Test results
 
 ```
-npm test       → 39 passed, 0 failed  (model 7, PSD import 5, engine 21, ledger 6)
+npm test       → 40 passed, 0 failed  (model 7, PSD import 5, engine 21, ledger 7)
 npm run test:e2e → 11 passed, 0 failed (Chromium via Playwright 1.63, real pointer/keyboard input)
 ```
 
@@ -62,7 +62,12 @@ Selection masks are still computed on the main thread. At 8000² each selection 
 
 ## Ledger diff
 
-This is the first ledger (v0.1.0), so there is no previous version to diff against. Baseline states come from the code audit. Rows this milestone moved to `verified` or `implemented-unverified`:
+**v0.1.0 → v0.1.1 (inventory reconciliation).** 20 rows were added and 3 changed state.
+* Added `M0-RECONCILE` (verified), `M0-IMPORT-HARDENING` (partial), `M0-BASE-PATH` (missing) and `M0-DEAD-CSS` (missing). These come from §2 and §9 of DOCUMENTACION_VERSION.
+* Added 16 `FILT-LEG-*` rows (partial), one per legacy Filter gallery slider plus presets, non-destructive source and Cancel-after-upload. The ledger keeps these separate from `DEV-*` on purpose. The inventory counts the legacy sliders as partial Develop, but the Develop rows stay `missing` until a validated linear-light pipeline exists. Each such difference is explained in RECONCILIATION.md.
+* `M0-INPUT-DOCS`: blocked → verified. `M0-BASE-COMMIT`: blocked → partial.
+
+**v0.1.0** is the first ledger, so there is no earlier version to diff against. Baseline states come from the code audit. Rows this milestone moved to `verified` or `implemented-unverified`:
 
 * **M0:** `M0-LAYOUT`, `M0-BASE-TESTS`, `M0-LEDGER`, `M0-OBSOLETE-TEXT`, `M0-SCHEMA-V2`, `M0-MIGRATE-V1`, `M0-ARCH-PLAN`, `LEG-PHOTOPEA`
 * **Documents/commands:** `DOC-ASSET-CAS`, `DOC-NATIVE-ENV`, `DOC-AUTOSAVE`, `CMD-UNDO`, `CMD-UNDO-STROKE`, `CMD-UNDO-SEL`, `RENDER-RASTER-SURF`, `FILE-NATIVE-OPEN`, `FILE-PNG-EXPORT`
@@ -103,8 +108,8 @@ No new runtime dependencies were added. The brush, selection, raster and asset c
 
 ## Blocked: needs your decision or input
 
-1. **`M0-INPUT-DOCS`.** Please provide `DOCUMENTACION_VERSION.txt` and `INVENTARIO_BRECHAS.csv` so the gap inventory can be reconciled with the ledger.
-2. **`M0-BASE-COMMIT`.** Commit `e2360711…` is not in this repository. Work continued from `5a309f5` ("v1"). Please confirm this is the right baseline.
+1. ~~`M0-INPUT-DOCS`~~ Resolved: both files were received and reconciled.
+2. **`M0-BASE-COMMIT`.** Please send `MANIFEST_SHA256.txt` so every file in `5a309f5` can be checked against the delivered snapshot of `e2360711`.
 3. **`AI-PROVIDER`.** Choosing AI models or providers (segmentation, generative fill, denoise) has cost, licensing and privacy consequences. It needs your decision before M3 and M5.
 4. **`RAW-DECODE`.** RAW decoding needs a licensed decoder (for example LibRaw via WASM, LGPL/CDDL). This is a licensing decision for M4.
 
