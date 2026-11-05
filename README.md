@@ -1,24 +1,56 @@
 # Zertake Studio
-React JSX browser-local creative editor. Run `npm install` then `npm run build`. Serve `dist/` with any static server.
 
-## Workspace
-New designs, imported native projects and PSDs open in separate document tabs. Each mounted editor retains its own selection and undo/redo history while switching tabs. All open documents and the active tab persist in IndexedDB. Previous single-document localStorage data is migrated on first use. Undo history lasts for the current page session. Autosave status reports failures instead of claiming success. Projects can also be downloaded as .zertake JSON.
+A browser-local creative editor written in React 19 JSX, with a native engine in `src/engine`. It is being built in stages toward a Photoshop-class editor and a Lightroom-class Develop workspace. **It is not at parity with either product.** The delivered baseline documentation and gap inventory are in [`docs/baseline/`](docs/baseline/) with a [reconciliation](docs/baseline/RECONCILIATION.md). The versioned capability ledger in [`docs/CAPABILITY_LEDGER.csv`](docs/CAPABILITY_LEDGER.csv) is the source of truth for what works ([summary](docs/LEDGER_SUMMARY.md)).
 
-## PSD import
-Use File > Open / import, the folder beside the tabs, or drop a PSD on the canvas. ag-psd 34.1.0 parses the file locally. The import review shows dimensions, supported layer count and per-layer compatibility issues. Confirming opens the layers in a new document without replacing existing work.
+## Setup
 
-Raster layer pixels, names, positions, order, visibility, opacity and supported blend modes are imported. Group membership/names are retained as metadata and selection groups, with inherited visibility and opacity applied to children. Group compositing may differ. Photoshop text is initially rendered pixels with preserved metadata and an explicit, undoable conversion to basic editable text using a local font. Smart objects/vector content use their existing raster previews. Unsupported masks, clipping, adjustments, effects and missing pixel layers are reported before import. No silent whole-document flattening. Layerless source PSDs are explicitly identified as composite-only.
+```bash
+npm install
+npm run dev          # development: http://localhost:5173, rebuilds on save and reloads the page
+npm start            # build, then serve the production bundle on http://127.0.0.1:4173
+npm run build        # bundles src/ → dist/app.js and dist/psd-worker.js
+npm run serve        # http://127.0.0.1:4173 (or serve dist/ with any static server)
+npm test             # unit, PSD import and ledger tests (Node ≥ 20)
+npm run test:e2e     # browser acceptance tests (needs Playwright + Chromium)
+npm run ledger       # regenerate docs/CAPABILITY_LEDGER.csv and docs/LEDGER_SUMMARY.md
+```
 
-Current limits: PSD only (not PSB), up to 100 MB and 8000 pixels per dimension. No PSD export, Photoshop effect/mask fidelity, AI, cloud collaboration or raster painting. One artboard per document. Large files may exceed browser memory or storage. Clearing browser data removes locally saved work.
+`dist/index.html` and `dist/style.css` are hand-maintained source files. `dist/app.js` and `dist/psd-worker.js` are build output.
 
-## Verification
-`node --test src/model.test.js tests/import.test.js`
-Tests exercise real PSD serialization/parsing, layer order/offset/opacity/hidden groups, unsupported feature reports, malformed files, independent documents, native serialization and transform behavior. Browser QA covered creating and switching tabs, independent undo, file-picker PSD import, and restoring tabs after reload. General browser compatibility and arbitrary complex Photoshop documents require further testing.
+## What works today
 
-## Recovery and full PSD workspace
-The Full PSD editor button explicitly launches third-party Photopea in an iframe, with its complete UI and branding. The original PSD can be sent as an ArrayBuffer through its documented messaging API, only after the user chooses that route. Messages are checked against both the Photopea origin and frame window. Native and Photopea workspaces are separate, and the iframe remains mounted on return to native editing. Download advanced edits through Photopea's File > Save as PSD before reloading. Photopea needs external connectivity; exact Adobe feature parity and arbitrary font/effect fidelity are not promised.
+* **Documents.** Independent tabs, each with its own selection and undo history. Autosave to IndexedDB reports failures. Pixel data lives in a content-addressed asset store (SHA-256). Native `.zertake` v2 files hold each asset once and are hash-verified on open. Old v1 projects migrate automatically.
+* **Selection.** Rectangular and elliptical marquee, freehand and polygonal lasso. Modes: new, add (Shift), subtract (Alt), intersect (Shift+Alt). Per-tool feather. Select All, Deselect, Reselect, Inverse and Feather…, with animated marching ants.
+* **Painting.** Brush and eraser on paint layers. Controls: size, hardness, opacity, flow, spacing, smoothing, and pen pressure mapped to size and/or flow. Strokes are sampled in document space, so they come out the same at every zoom level. Paint respects the selection. Fill with foreground or background and Clear selected pixels are also available. Each stroke is one undo step.
+* **Layer masks.** Every layer type can have a mask: add from all or from the selection, paint it with the brush or eraser (Ctrl/⌘ \\ or click the mask chip), and set enabled, linked, density and feather. Invert, delete and apply are available. Preview, export and Apply share one implementation.
+* **Composition.** Rectangles, ellipses, text, images, move/resize, numeric transform, opacity, 7 blend modes in the menu, lock/visibility, grid, and PNG/JPEG/SVG export at full resolution. Paint layers are embedded as PNG in SVG exports.
+* **PSD import.** Native, in a worker with cancel, a timeout and size limits. Raster layers, names, positions, order, visibility, opacity and supported blend modes are imported. The compatibility report lists masks, effects, clipping, adjustments, smart objects and vectors, which are **not** reproduced. Group compositing may differ. Text arrives as pixels, with an explicit, undoable conversion to editable text.
+* **Filter gallery.** 18 original looks and 13 pixel sliders on image layers. The original pixels are kept. This is a legacy creative panel, **not** a Lightroom-style Develop module. Texture, Clarity, Dehaze, curves, HSL and photographic grain are Milestone 2 items.
 
-Native PSD imports run in a dedicated worker with cancellation, timeout, dimension/file-size and decoded-memory limits. Rendering errors are isolated per document with a backup-download recovery screen. Imported optional layer fields are normalized and numeric transforms are bounded. The exact intermittent gray-screen incident reported by the user has not been reproduced with their original file.
+Main shortcuts:
 
+| Shortcut | Action |
+|---|---|
+| V, H | Move, Hand |
+| M, Shift+M | Marquee, toggle rectangular/elliptical |
+| L, Shift+L | Lasso, toggle freehand/polygonal |
+| B, E | Brush, Eraser |
+| `[` `]` | Brush size |
+| X, D | Swap / reset colours |
+| Ctrl/⌘ A | Select All |
+| Ctrl/⌘ D, Ctrl/⌘ ⇧ D | Deselect, Reselect |
+| Ctrl/⌘ ⇧ I | Inverse |
+| Alt ⌫, Ctrl ⌫ | Fill with foreground / background |
+| Delete | Clear selected pixels on a paint layer, otherwise delete the layer |
+| Ctrl/⌘ J | Duplicate layer |
+| Ctrl/⌘ ⇧ N | New paint layer |
+| Ctrl/⌘ `\` | Switch editing between layer and mask |
+| Ctrl/⌘ Alt A | Select all layers |
 
-Current update: Photopea integration removed. PSD import stays native with the previously documented compatibility limits. Native Filter gallery offers 18 original presets and 13 pixel adjustments on unlocked image layers. Original source and settings persist in project data. This is not the complete Lightroom or Photoshop toolset.
+## Known limits
+
+PSD only (no PSB), up to 100 MB and 8000 px per side. There is no PSD export. All work is 8-bit sRGB with no ICC handling. Groups are flat, and group opacity is applied per child. There are no vector masks, adjustment layers, layer styles, RAW, Develop or photo library yet. Selection masks are computed on the main thread. Clearing browser data deletes locally saved work, so download `.zertake` projects to keep them. See the ledger for the full list and [`docs/MILESTONE_REPORT.md`](docs/MILESTONE_REPORT.md) for the current milestone.
+
+## Architecture
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).

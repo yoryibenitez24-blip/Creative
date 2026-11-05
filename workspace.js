@@ -1,5 +1,0 @@
-export function addDocument(state,doc,id){return{...state,activeId:id,documents:[...state.documents,{id,doc}]}}
-export function updateDocument(state,id,doc){return{...state,documents:state.documents.map(d=>d.id===id?{...d,doc}:d)}}
-function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('zertake-studio',1);r.onupgradeneeded=()=>r.result.createObjectStore('workspace');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
-export async function readWorkspace(){const d=await db();return new Promise((resolve,reject)=>{const tx=d.transaction('workspace');const r=tx.objectStore('workspace').get('current');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);tx.oncomplete=()=>d.close()})}
-export async function writeWorkspace(state){const d=await db();return new Promise((resolve,reject)=>{const tx=d.transaction('workspace','readwrite');tx.objectStore('workspace').put(state,'current');tx.oncomplete=()=>{d.close();resolve()};tx.onerror=()=>{d.close();reject(tx.error)}})}

@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "esbuild src/main.jsx --bundle --minify --outfile=dist/app.js --loader:.jsx=jsx && esbuild src/psd-worker.js --bundle --minify --outfile=dist/psd-worker.js"
+    "dev": "node scripts/dev.mjs",
+    "start": "npm run build && npm run serve",
+    "build": "esbuild src/main.jsx --bundle --minify --outfile=dist/app.js --loader:.jsx=jsx && esbuild src/psd-worker.js --bundle --minify --outfile=dist/psd-worker.js",
+    "test": "node --test src/model.test.js tests/import.test.js tests/engine.test.js tests/ledger.test.js tests/baseline.test.js",
+    "test:e2e": "npm run build && node tests/e2e/slice.e2e.mjs && node tests/e2e/masks.e2e.mjs",
+    "ledger": "node ledger/build.mjs",
+    "serve": "node tests/e2e/serve.mjs 4173"
   },
   "dependencies": {
     "ag-psd": "^34.1.0",
@@ -14,5 +20,8 @@
   "devDependencies": {
     "@napi-rs/canvas": "^1.1.0",
     "esbuild": "0.25.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

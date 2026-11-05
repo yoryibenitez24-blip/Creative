@@ -1,0 +1,115 @@
+{
+  "date": "2026-11-04T23:02:31.080Z",
+  "browser": "chromium (Playwright)",
+  "results": [
+    {
+      "name": "setup: black paint layer filling a 400×300 document",
+      "ok": true
+    },
+    {
+      "name": "reveal selection: mask from a marquee hides the rest, selection is consumed",
+      "ok": true
+    },
+    {
+      "name": "paint on the mask: black hides, undo restores exactly",
+      "ok": true
+    },
+    {
+      "name": "density 50% reveals hidden areas at half strength",
+      "ok": true
+    },
+    {
+      "name": "feather 10 px softens the mask edge symmetrically",
+      "ok": true
+    },
+    {
+      "name": "disable / enable the mask",
+      "ok": true
+    },
+    {
+      "name": "linked mask moves with the layer; undo restores both",
+      "ok": true
+    },
+    {
+      "name": "invert mask swaps revealed and hidden areas",
+      "ok": true
+    },
+    {
+      "name": "mask and its properties persist across reload and in the .zertake file",
+      "ok": true
+    },
+    {
+      "name": "apply vs live mask (feather 6, density 80%)",
+      "ok": true,
+      "maxRedDelta": 0,
+      "pixelsOver2": 0,
+      "samples": [
+        [
+          100,
+          0,
+          0
+        ],
+        [
+          190,
+          0,
+          0
+        ],
+        [
+          195,
+          12,
+          12
+        ],
+        [
+          200,
+          110,
+          110
+        ],
+        [
+          205,
+          190,
+          190
+        ],
+        [
+          210,
+          195,
+          195
+        ],
+        [
+          300,
+          195,
+          195
+        ]
+      ],
+      "topEdge": [
+        [
+          0,
+          85,
+          85
+        ],
+        [
+          2,
+          40,
+          40
+        ],
+        [
+          5,
+          5,
+          5
+        ],
+        [
+          10,
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "apply mask bakes into pixels with the same result as the live mask",
+      "ok": true
+    },
+    {
+      "name": "no uncaught page errors",
+      "ok": true
+    }
+  ]
+}
