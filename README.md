@@ -6,6 +6,8 @@ A browser-local creative editor written in React 19 JSX, with a native engine in
 
 ```bash
 npm install
+npm run dev          # development: http://localhost:5173, rebuilds on save and reloads the page
+npm start            # build, then serve the production bundle on http://127.0.0.1:4173
 npm run build        # bundles src/ → dist/app.js and dist/psd-worker.js
 npm run serve        # http://127.0.0.1:4173 (or serve dist/ with any static server)
 npm test             # unit, PSD import and ledger tests (Node ≥ 20)
