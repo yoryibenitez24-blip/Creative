@@ -47,7 +47,7 @@ const linePts = (x0, y0, x1, y1, n = 24) => Array.from({ length: n + 1 }, (_, i)
 async function alpha() {
   return page.evaluate(sel => { const c = document.querySelector(sel + ' canvas.rasterSurface'); if (!c) return null; const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; const a = new Array(c.width * c.height); for (let i = 0; i < a.length; i++) a[i] = d[i * 4 + 3]; return a; }, APP);
 }
-const settle = () => page.waitForFunction(sel => document.querySelector(sel + ' .saveStatus')?.textContent.includes('Saved locally'), APP, { timeout: 10000 }).then(() => page.waitForTimeout(150));
+const settle = () => page.waitForTimeout(120).then(() => page.waitForFunction(sel => { const a = document.querySelector(sel); return a && a.dataset.work === '0' && !document.querySelector('.opDialog') && a.querySelector('.saveStatus')?.textContent.includes('Saved locally'); }, APP, { timeout: 20000 })).then(() => page.waitForTimeout(150));
 async function setOption(label, value) { const i = app().getByLabel(label + ' value', { exact: true }); await i.fill(String(value)); await i.blur(); }
 async function setZoom(target) {
   await app().locator('.zoomControls button', { hasText: '%' }).click(); // 100%
@@ -138,7 +138,7 @@ await step('A2: feathered marquee restricts the brush; fill and export keep the 
   await page.screenshot({ path: join(evidence, 'm1-feathered-selection.png') });
   // Export PNG and compare the composite against the layer alpha over the background
   await app().locator('button.export').click();
-  const [dl] = await Promise.all([page.waitForEvent('download'), app().getByRole('button', { name: /Download PNG/ }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download'), app().getByRole('button', { name: /Download PNG/ }).click()]); await page.waitForFunction(() => !document.querySelector('.modalBackdrop'));
   const png = readFileSync(await dl.path());
   writeFileSync(join(evidence, 'm1-export.png'), png);
   const img = await loadImage(png);

@@ -269,7 +269,7 @@ RETOUCH-REMOVE,Retouch,core,3,Photoshop 27.6,Remove tool,Declared non-AI patch-s
 RETOUCH-RED-EYE,Retouch,core,3,Photoshop 27.6,Red Eye tool,"Pupil size, darken amount",missing,,Fixture comparison with documented tolerance,,
 RETOUCH-BLUR,Retouch,core,3,Photoshop 27.6,Blur tool,Local blur brush,verified,,Fixture comparison with documented tolerance,tests/tools.test.js,
 RETOUCH-SHARPEN,Retouch,core,3,Photoshop 27.6,Sharpen tool,Local sharpen brush with protect detail,verified,,Fixture comparison with documented tolerance,tests/tools.test.js,
-RETOUCH-SMUDGE,Retouch,core,3,Photoshop 27.6,Smudge tool,Smears pixels; finger painting,verified,,Fixture comparison with documented tolerance,tests/tools.test.js,
+RETOUCH-SMUDGE,Retouch,core,3,Photoshop 27.6,Smudge tool,Smears pixels; finger painting,verified,,Fixture comparison with documented tolerance,tests/tools.test.js; tests/e2e/toolset.e2e.mjs (docs/evidence/m1-toolset-e2e-results.json) smudge,
 RETOUCH-DODGE,Retouch,core,3,Photoshop 27.6,Dodge,"Range (shadows/midtones/highlights), exposure, protect tones",verified,,Fixture comparison with documented tolerance,tests/tools.test.js; tests/e2e/toolset.e2e.mjs (docs/evidence/m1-toolset-e2e-results.json) dodge,
 RETOUCH-BURN,Retouch,core,3,Photoshop 27.6,Burn,"Range, exposure, protect tones",verified,,Fixture comparison with documented tolerance,tests/tools.test.js,
 RETOUCH-SPONGE,Retouch,core,3,Photoshop 27.6,Sponge,Saturate/desaturate with vibrance,verified,,Fixture comparison with documented tolerance,tests/tools.test.js,

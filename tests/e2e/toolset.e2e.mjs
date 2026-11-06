@@ -19,7 +19,7 @@ const server = await serve(0);
 const browser = await chromium.launch();
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, acceptDownloads: true });
 const page = await context.newPage();
-const errors = []; page.on('pageerror', e => errors.push(e.message));
+const errors = []; page.on('pageerror', e => { if (!errors.length) console.log('PAGE ERROR', (e.stack || e.message).split('\n').slice(0, 6).join('\n')); errors.push(e.message); });
 const results = [];
 const step = async (name, fn) => { try { await fn(); results.push({ name, ok: true }); console.log('ok   ' + name); } catch (e) { results.push({ name, ok: false, error: e.message }); console.log('FAIL ' + name + '\n     ' + e.message.split('\n')[0]); } };
 
@@ -36,11 +36,11 @@ async function drag(points, mod) {
   await page.mouse.up(); if (mod) await page.keyboard.up(mod);
 }
 const click = async (x, y, mod) => { const p = await scr(x, y); if (mod) await page.keyboard.down(mod); await page.mouse.click(p.x, p.y); if (mod) await page.keyboard.up(mod); };
-const settle = () => page.waitForFunction(sel => document.querySelector(sel + ' .saveStatus')?.textContent.includes('Saved locally'), APP, { timeout: 15000 }).then(() => page.waitForTimeout(250));
+const settle = () => page.waitForTimeout(120).then(() => page.waitForFunction(sel => { const a = document.querySelector(sel); return a && a.dataset.work === '0' && !document.querySelector('.opDialog') && a.querySelector('.saveStatus')?.textContent.includes('Saved locally'); }, APP, { timeout: 20000 })).then(() => page.waitForTimeout(150));
 const setNum = async (label, v) => { const i = page.getByLabel(label, { exact: true }); await i.fill(String(v)); await i.blur(); };
 async function exportPx(name) {
   await app().locator('button.export').click();
-  const [dl] = await Promise.all([page.waitForEvent('download'), app().getByRole('button', { name: /Download PNG/ }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download'), app().getByRole('button', { name: /Download PNG/ }).click()]); await page.waitForFunction(() => !document.querySelector('.modalBackdrop'));
   const png = readFileSync(await dl.path()); if (name) writeFileSync(join(evidence, name), png);
   const img = await loadImage(png); const c = createCanvas(img.width, img.height); const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
   const d = ctx.getImageData(0, 0, img.width, img.height).data;
@@ -66,7 +66,7 @@ await step('setup: white paint layer with a black left half', async () => {
 });
 
 await step('magic wand selects the contiguous white half', async () => {
-  await page.keyboard.press('w'); await click(200, 100); await settle();
+  await page.keyboard.press('w'); await click(200, 100); await settle(); await page.waitForSelector(APP + ' path.antsDash');
   assert.ok((await app().locator('path.antsDash').getAttribute('d')).length > 10);
   await page.keyboard.press('Control+d');
 });
@@ -79,10 +79,9 @@ await step('paint bucket fills the white region with the foreground colour', asy
 });
 
 await step('eyedropper sets the foreground (click) and background (Alt-click)', async () => {
-  await page.keyboard.press('i'); await click(100, 100);
-  assert.equal(await app().getByLabel('Foreground color').inputValue(), '#000000');
-  await click(250, 100, 'Alt');
-  assert.equal(await app().getByLabel('Background color').inputValue(), '#ff0000');
+  const colourIs = (label, v) => page.waitForFunction(([sel, l, want]) => document.querySelector(`${sel} input[aria-label="${l}"]`)?.value === want, [APP, label, v], { timeout: 5000 });
+  await page.keyboard.press('i'); await click(100, 100); await settle(); await colourIs('Foreground color', '#000000');
+  await click(250, 100, 'Alt'); await colourIs('Background color', '#ff0000');
 });
 
 let blurred;
@@ -99,7 +98,7 @@ await step('History panel jumps to an earlier state and back', async () => {
   await app().getByRole('button', { name: 'History', exact: true }).click();
   const items = app().locator('.historyItem');
   assert.match(await items.last().innerText(), /Gaussian Blur/);
-  await items.filter({ hasText: 'Paint Bucket' }).click(); await settle();
+  await items.filter({ hasText: 'Paint Bucket' }).last().click(); await settle();
   assert.deepEqual((await exportPx()).at(148, 100), [0, 0, 0], 'before the blur');
   await items.last().click(); await settle();
   assert.ok((await exportPx()).at(148, 100)[0] > 30, 'blur restored');
@@ -164,7 +163,7 @@ await step('Rasterize a shape layer and Merge Down keep the composite identical'
   assert.ok(worst <= 2, 'merge changed pixels by ' + worst);
   await undo(); await undo(); await undo();
   const back = await exportPx(); assert.deepEqual(back.at(150, 100), before.at(150, 100));
-  await app().locator('.layerList .layer').first().click();
+  await app().locator('.layerList .layer .layerThumb').first().click();
 });
 
 await step('Clone Stamp: Alt-click a source, paint copies it', async () => {
@@ -183,6 +182,16 @@ await step('Dodge (shadows) lightens black; spot healing removes a blemish', asy
   assert.ok((await exportPx()).at(230, 100)[0] < 60, 'blemish painted');
   await page.keyboard.press('j'); await setNum('Size value', 24); await drag([[226, 100], [234, 100]]); await settle(); await page.waitForTimeout(300);
   const h = (await exportPx('m1-toolset-heal.png')).at(230, 100); assert.ok(h[0] > 200 && h[1] < 60, 'healed to red: ' + h);
+});
+
+await step('Smudge drags black into the red half; undo restores', async () => {
+  await tool('Blur / Sharpen / Smudge'); await app().getByRole('button', { name: 'Smudge', exact: true }).click();
+  await setNum('Size value', 20); await setNum('Strength value', 90);
+  const before = (await exportPx()).at(158, 40);
+  await drag([[135, 40], [150, 40], [165, 40]]); await settle();
+  const after = (await exportPx()).at(158, 40);
+  assert.ok(before[0] > 200, 'starts red: ' + before); assert.ok(after[0] < before[0] - 40, 'smudged: ' + after + ' from ' + before);
+  await undo(); assert.deepEqual((await exportPx()).at(158, 40), before);
 });
 
 await step('navigation: zoom tool click doubles the zoom, Alt-click halves it; Space-drag pans', async () => {

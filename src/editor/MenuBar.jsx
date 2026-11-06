@@ -6,7 +6,7 @@ function Items({ items, close }) {
     if (it === '-') return <div key={'sep' + i} className="menuSep" role="separator" />;
     if (!Array.isArray(it)) return <div key={it.label} className="subWrap"><button role="menuitem" aria-haspopup="menu" aria-label={it.label}>{it.label}<small aria-hidden="true">▸</small></button><div className="dropdown submenu" role="menu">{<Items items={it.children} close={close} />}</div></div>;
     const [label, fn, k, opt = {}] = it;
-    return <button role="menuitem" key={label} disabled={opt.disabled} onClick={() => { close(); fn(); }}>{label}<small>{k}</small></button>;
+    return <button role="menuitem" aria-label={label} key={label} disabled={opt.disabled} onClick={() => { close(); fn(); }}>{label}<small aria-hidden="true">{k}</small></button>;
   });
 }
 

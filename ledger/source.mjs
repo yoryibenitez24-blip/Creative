@@ -838,7 +838,7 @@ export const STATUS = {
   'RETOUCH-SPONGE': ['verified', T_TOOLS],
   'RETOUCH-BLUR': ['verified', T_TOOLS],
   'RETOUCH-SHARPEN': ['verified', T_TOOLS],
-  'RETOUCH-SMUDGE': ['verified', T_TOOLS],
+  'RETOUCH-SMUDGE': ['verified', T_TOOLS + '; ' + T_TOOLSET + ' smudge'],
   'LAYER-RASTERIZE': ['verified', T_TOOLSET + ' rasterize (composite unchanged ≤ 2 levels)'],
   'LAYER-MERGE': ['verified', T_TOOLSET + ' Merge Down', 'Merge Visible has no automated test'],
   'LAYER-FLATTEN': ['implemented-unverified', 'Layer › Flatten Image'],

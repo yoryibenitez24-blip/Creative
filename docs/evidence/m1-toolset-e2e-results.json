@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-06T08:58:18.720Z",
+  "date": "2026-11-06T09:12:49.651Z",
   "browser": "chromium (Playwright)",
   "results": [
     {
@@ -12,63 +12,55 @@
     },
     {
       "name": "paint bucket fills the white region with the foreground colour",
-      "ok": false,
-      "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('div.app[style*=\"display: flex\"]').getByRole('button', { name: 'Paint Bucket', exact: true })\u001b[22m\n"
+      "ok": true
     },
     {
       "name": "eyedropper sets the foreground (click) and background (Alt-click)",
-      "ok": false,
-      "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ '#ff0000'\n- '#000000'\n"
+      "ok": true
     },
     {
       "name": "Filter › Blur › Gaussian Blur softens the edge with live preview and one undo step",
-      "ok": false,
-      "error": "locator.hover: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('div.app[style*=\"display: flex\"]').getByRole('menuitem', { name: 'Blur', exact: true })\u001b[22m\n"
+      "ok": true
     },
     {
       "name": "History panel jumps to an earlier state and back",
-      "ok": false,
-      "error": "The input did not match the regular expression /Gaussian Blur/. Input:\n\n'9\\nSelection'\n"
+      "ok": true
     },
     {
       "name": "Image › Adjustments: Invert (⌘I), Levels (⌘L) and Curves cancel",
-      "ok": false,
-      "error": "Cannot read properties of undefined (reading 'at')"
+      "ok": true
     },
     {
       "name": "Image Size resamples to 150×100 (constrained), undo restores",
-      "ok": false,
-      "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('div.app[style*=\"display: flex\"]').getByRole('menuitem', { name: 'Image Size…', exact: true })\u001b[22m\n"
+      "ok": true
     },
     {
       "name": "Image Rotation 90° clockwise moves the black half to the top",
-      "ok": false,
-      "error": "locator.hover: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('div.app[style*=\"display: flex\"]').getByRole('menuitem', { name: 'Image Rotation', exact: true })\u001b[22m\n"
+      "ok": true
     },
     {
       "name": "Canvas Size with a centre anchor adds space without deleting pixels",
-      "ok": false,
-      "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('div.app[style*=\"display: flex\"]').getByRole('menuitem', { name: 'Canvas Size…', exact: true })\u001b[22m\n"
+      "ok": true
     },
     {
       "name": "Crop tool: drag a box, Enter crops; undo restores",
-      "ok": false,
-      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n+   300,\n+   200\n-   100,\n-   100\n  ]\n"
+      "ok": true
     },
     {
       "name": "Rasterize a shape layer and Merge Down keep the composite identical",
-      "ok": false,
-      "error": "Expected values to be strictly equal:\n\n0 !== -1\n"
+      "ok": true
     },
     {
       "name": "Clone Stamp: Alt-click a source, paint copies it",
-      "ok": false,
-      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n+   255,\n+   255,\n+   255\n-   0,\n-   0,\n-   0\n  ]\n"
+      "ok": true
     },
     {
       "name": "Dodge (shadows) lightens black; spot healing removes a blemish",
-      "ok": false,
-      "error": "blemish painted"
+      "ok": true
+    },
+    {
+      "name": "Smudge drags black into the red half; undo restores",
+      "ok": true
     },
     {
       "name": "navigation: zoom tool click doubles the zoom, Alt-click halves it; Space-drag pans",
