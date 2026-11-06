@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 
 // Photoshop-style angle wheel: 0° points right, positive angles turn counter-clockwise.
 // Drag (or click) anywhere on the wheel; Shift snaps to 15°; arrow keys nudge (Shift ×10).
-export default function AngleDial({ label, value, onChange, min = -180, max = 180, size = 30 }) {
+export default function AngleDial({ label, value, onChange, min = -180, max = 180, size = 24 }) {
   const ref = useRef(null);
   const wrap = a => { while (a > max) a -= 360; while (a < min) a += 360; return Math.round(a); };
   const fromEvent = e => {
