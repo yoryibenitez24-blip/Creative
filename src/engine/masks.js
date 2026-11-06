@@ -30,7 +30,7 @@
 // does not recompute them (in the worker and on the main thread alike).
 
 import { guided, boxBlur1, gauss1, lumOf, wbMul, minFilter, clamp01, smooth } from './develop.js';
-import { hslToRgb } from './color.js';
+import { hslToRgb, rgbToHsl } from './color.js';
 
 export const MASK_TYPES = [
   ['subject', 'Subject'], ['sky', 'Sky'], ['background', 'Background'], ['brush', 'Brush'],
@@ -41,7 +41,7 @@ export const typeLabel = t => (MASK_TYPES.find(m => m[0] === t) || [t, t])[1];
 export const LOCAL_DEFAULTS = Object.freeze({
   exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0,
   temp: 0, tint: 0, hue: 0, saturation: 0,
-  texture: 0, clarity: 0, dehaze: 0, sharpness: 0, noise: 0,
+  texture: 0, clarity: 0, dehaze: 0, defringe: 0, sharpness: 0, noise: 0,
   color: Object.freeze({ hue: 0, saturation: 0 }),
 });
 export const BRUSH_DEFAULTS = Object.freeze({ size: 0.08, feather: 50, flow: 100, density: 100 });
@@ -458,7 +458,7 @@ export function applyLocal(R, G, B, w, h, alpha, adjust, ctx = {}) {
   if (a.clarity) pad = Math.max(pad, clarR * 2.2);
   if (a.texture) pad = Math.max(pad, 12 * Math.max(0.6, sc) * 3);
   if (a.dehaze) pad = Math.max(pad, dhR * 10);
-  if (a.sharpness || a.noise) pad = Math.max(pad, 12 * Math.max(0.6, sc));
+  if (a.sharpness || a.noise || a.defringe) pad = Math.max(pad, 12 * Math.max(0.6, sc));
   pad = Math.ceil(pad) + 2;
   const x0 = Math.max(0, bx0 - pad), y0 = Math.max(0, by0 - pad), x1 = Math.min(w - 1, bx1 + pad), y1 = Math.min(h - 1, by1 + pad), cw = x1 - x0 + 1, ch = y1 - y0 + 1, N = cw * ch;
   const r = new Float32Array(N), g = new Float32Array(N), b = new Float32Array(N);
@@ -500,7 +500,7 @@ export function applyLocal(R, G, B, w, h, alpha, adjust, ctx = {}) {
     }
   }
   // --- colour and detail on encoded values ---
-  const col = a.color, colorOn = a.saturation || a.hue || col.saturation, detailOn = a.sharpness || a.noise;
+  const col = a.color, colorOn = a.saturation || a.hue || col.saturation, detailOn = a.sharpness || a.noise || a.defringe;
   if (colorOn || detailOn) {
     for (let i = 0; i < N; i++) { r[i] = fenc(r[i]); g[i] = fenc(g[i]); b[i] = fenc(b[i]); }
     if (colorOn) {
@@ -538,6 +538,19 @@ export function applyLocal(R, G, B, w, h, alpha, adjust, ctx = {}) {
         Yn = out;
       }
       for (let i = 0; i < N; i++) { const y = Yn[i]; b[i] = y + Cb[i]; r[i] = y + Cr[i]; g[i] = (y - 0.2126 * r[i] - 0.0722 * b[i]) / 0.7152; }
+      if (a.defringe > 0) {
+        // desaturate purple (hue 260..330) and green (hue 75..160) fringes next to strong edges
+        const k = a.defringe / 100, edge = new Float32Array(N);
+        for (let y = 1; y < ch - 1; y++) for (let x = 1; x < cw - 1; x++) { const i = y * cw + x; edge[i] = Math.hypot(Yc[i + 1] - Yc[i - 1], Yc[i + cw] - Yc[i - cw]); }
+        const near = boxBlur1(edge, cw, ch, Math.max(1, Math.round(3 * sc)));
+        for (let i = 0; i < N; i++) {
+          const e = smooth(0.015, 0.06, near[i]); if (!e) continue;
+          const [hh, ss] = rgbToHsl(clamp01(r[i]) * 255, clamp01(g[i]) * 255, clamp01(b[i]) * 255); if (ss < 0.1) continue;
+          const band = Math.max(smooth(250, 270, hh) * (1 - smooth(320, 340, hh)), smooth(65, 85, hh) * (1 - smooth(150, 170, hh))); if (!band) continue;
+          const f = Math.min(1, k * e * band * 1.2), y = lumOf(r[i], g[i], b[i]);
+          r[i] += (y - r[i]) * f; g[i] += (y - g[i]) * f; b[i] += (y - b[i]) * f;
+        }
+      }
     }
     for (let i = 0; i < N; i++) { r[i] = fdec(r[i]); g[i] = fdec(g[i]); b[i] = fdec(b[i]); }
   }

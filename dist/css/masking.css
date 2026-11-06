@@ -1,0 +1,86 @@
+/* Masking (src/editor/MaskingPanel.jsx): Camera Raw Filter and Library · Develop. Follows modern.css:
+   white highlights, pill segmented controls, the crsSlider sliders. */
+.mkModeBar { display: flex; justify-content: center; padding: 8px 10px 4px; flex-shrink: 0; }
+.mkModeBar .segmented { width: 100%; }
+.mkModeBar .segmented button { flex: 1; }
+.mkModeBar .segmented button .mkDot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #ff3b30; margin-left: 6px; vertical-align: middle; }
+
+.mkPanel { padding: 4px 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.mkHead { display: flex; align-items: center; gap: 6px; }
+.mkHead strong { flex: 1; font-size: 12px; letter-spacing: .02em; color: var(--z-text, #ececf1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mkNote { margin: 2px 0; font-size: 11px; color: var(--z-dim, #8d8d96); line-height: 1.4; }
+.mkStatus { font-size: 11px; color: #f2f2f5; background: #2a2a2f; border-radius: 6px; padding: 6px 8px; }
+
+.mkMenuWrap { position: relative; display: inline-flex; }
+.mkMenuBtn { background: var(--z-field, #232326); border: 1px solid #34343a; color: var(--z-text, #ececf1); border-radius: 7px; padding: 4px 9px; font-size: 11.5px; }
+.mkMenuBtn:hover, .mkMenuBtn[aria-expanded="true"] { background: #f2f2f5; color: #111; }
+.mkCreate .mkMenuBtn { font-weight: 600; }
+.mkMenu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 40; min-width: 170px; background: #1d1d20; border: 1px solid #36363c; border-radius: 9px; padding: 4px; box-shadow: 0 12px 30px rgba(0,0,0,.55); display: flex; flex-direction: column; }
+.mkMenu button { text-align: left; background: transparent; border: 0; color: #dedee4; border-radius: 6px; padding: 6px 10px; font-size: 12px; }
+.mkMenu button:hover:not(:disabled) { background: #f2f2f5; color: #111; }
+.mkMenu button:disabled { opacity: .4; }
+
+.mkList { display: flex; flex-direction: column; gap: 4px; }
+.mkRow, .mkComp { display: flex; align-items: center; gap: 2px; border-radius: 8px; padding: 2px; background: #1c1c1f; border: 1px solid transparent; }
+.mkRow.on, .mkComp.on { border-color: #f2f2f5; background: #26262a; }
+.mkRow.off .mkName { color: var(--z-faint, #5d5d66); text-decoration: line-through; }
+.mkSel { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; background: transparent; border: 0; color: var(--z-text, #ececf1); padding: 4px 6px; text-align: left; font-size: 12px; }
+.mkName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mkThumb { width: 36px; height: 24px; object-fit: cover; border-radius: 4px; background: #111; flex-shrink: 0; }
+.mkChip { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.mkRename { flex: 1; min-width: 0; background: var(--z-field, #232326); border: 1px solid #f2f2f5; border-radius: 6px; color: var(--z-text, #ececf1); padding: 4px 6px; font-size: 12px; }
+.mkIcon { background: transparent; border: 0; color: #a9a9b3; width: 26px; height: 26px; border-radius: 6px; padding: 0; display: grid; place-items: center; font-size: 13px; }
+.mkIcon:hover { background: #333338; color: #fff; }
+.mkIcon.on { color: #fff; background: #3a3a40; }
+.mkIcon.dim { color: #55555c; }
+.mkOp { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: #f2f2f5; color: #111; flex-shrink: 0; }
+.mkOp.subtract { background: #ff6b5e; color: #111; }
+.mkOp.intersect { background: #8e8e98; }
+
+.mkOverlayRow { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.mkOverlayRow .optCheck { flex: 1; }
+.mkOverlayRow input[type=color] { width: 24px; height: 24px; padding: 0; border: 1px solid #44444a; border-radius: 50%; background: none; overflow: hidden; }
+.mkOverlayRow input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+.mkOverlayRow input[type=color]::-webkit-color-swatch { border: 0; border-radius: 50%; }
+.mkOverlayRow input[type=range] { width: 80px; }
+
+.mkComps { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--z-line, #2a2a2e); padding-top: 8px; }
+.mkEditor { padding: 6px 4px 2px; display: flex; flex-direction: column; gap: 4px; }
+.mkRowBtns { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.mkRowBtns > button { background: var(--z-field, #232326); border: 1px solid #34343a; color: var(--z-text, #ececf1); border-radius: 7px; padding: 4px 10px; font-size: 11.5px; }
+.mkRowBtns > button.on, .mkRowBtns > button[aria-pressed="true"] { background: #f2f2f5; color: #111; font-weight: 600; }
+.mkRowBtns > button:disabled { opacity: .4; }
+.mkLink { background: none; border: 0; color: var(--z-dim, #8d8d96); font-size: 11px; text-decoration: underline; padding: 0; }
+.mkSamples { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-height: 24px; }
+.mkSample { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #f2f2f5; padding: 0; }
+.mkLumStrip { position: relative; height: 14px; border-radius: 7px; background: linear-gradient(90deg, #000, #fff); margin: 4px 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.1); }
+.mkLumSel { position: absolute; top: -3px; bottom: -3px; border: 1px solid rgba(255,59,48,.6); border-radius: 5px; }
+.mkLumCore { position: absolute; top: 0; bottom: 0; border: 2px solid #ff3b30; border-radius: 4px; }
+
+.mkAdjust { border-top: 1px solid var(--z-line, #2a2a2e); padding-top: 6px; }
+.mkAdjust .crsPanel .crsTitle { text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+.mkTint { padding-top: 4px; }
+.mkTint .crsRow { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #b9b9c2; }
+.mkSwatch { width: 18px; height: 18px; border-radius: 50%; border: 1px solid #55555c; background-image: linear-gradient(45deg, #333 25%, transparent 25%, transparent 75%, #333 75%); }
+.mkTintField { position: relative; height: 56px; border-radius: 8px; margin: 6px 0; cursor: crosshair; touch-action: none;
+  background: linear-gradient(to bottom, rgba(128,128,128,0), #808080), linear-gradient(90deg, red, yellow, lime, cyan, blue, magenta, red); }
+.mkTintField i { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.5); pointer-events: none; }
+
+/* on-canvas layer */
+.mkLayer { position: absolute; pointer-events: none; z-index: 3; touch-action: none; }
+.mkLayer.active { pointer-events: auto; cursor: crosshair; }
+.mkLayer.brush { cursor: none; }
+.mkOverlay { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: auto; }
+.mkSvg { position: absolute; left: 0; top: 0; overflow: visible; }
+.mkLine { fill: none; stroke: #fff; stroke-width: 1.5; filter: drop-shadow(0 0 1px rgba(0,0,0,.9)); pointer-events: none; }
+.mkLine.dash { stroke-dasharray: 6 5; }
+.mkLine.thin { stroke-width: 1; }
+.mkHandle { fill: #fff; stroke: #111; stroke-width: 1.5; pointer-events: all; cursor: grab; }
+.mkHandle.center { fill: #111; stroke: #fff; stroke-width: 2; cursor: move; }
+.mkHandle.rot { fill: #f2f2f5; cursor: alias; }
+.mkHandle.feather { fill: #8e8e98; }
+.mkDot { fill: #fff; stroke: #111; }
+.mkStroke { fill: none; stroke: rgba(255,59,48,.45); stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.mkStroke.erase { stroke: rgba(255,255,255,.35); }
+.mkCursor { fill: none; stroke: #fff; stroke-width: 1.2; filter: drop-shadow(0 0 1px #000); pointer-events: none; }
+.mkCursor.inner { stroke-dasharray: 3 3; stroke-width: 1; }

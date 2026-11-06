@@ -11,6 +11,7 @@ import {
   previewCacheKey, cachePut, fitLongEdge, planExport, settingsHash, LABELS,
 } from '../engine/catalog.js';
 import { DevelopPanelStack, ProfileControls, RgbHistogram, sampleForPick, pickHint, PANELS_OPEN_DEFAULT } from './DevelopPanels.jsx';
+import { useMasking, MaskingPanel, MaskCanvasLayer, MaskModeBar } from './MaskingPanel.jsx';
 
 // Library + Develop workspace (Lightroom-style). A photo catalog with non-destructive develop
 // settings: originals are stored once in the AssetStore and never modified; settings, history,
@@ -259,13 +260,15 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
     clearTimeout(commitTimer.current); const p = pending.current; pending.current = null;
     if (p) setCat(c => getPhoto(c, p.id) ? setDevelop(c, p.id, p.settings, label || p.label) : c);
   };
-  const change = (next, label) => {
+  // `now` (default: when a label is given) commits the history step immediately; mask edits pass
+  // now = false so a drag of one control still collapses into one step under its own label.
+  const change = (next, label, now = !!label) => {
     const id = sel.active; if (!id) return;
     const lbl = label || describeChange(sRef.current, next);
     if (pending.current && (pending.current.id !== id || pending.current.label !== lbl)) flush();
     sRef.current = next; setS(next);
     pending.current = { id, settings: next, label: lbl };
-    if (label) flush(); else { clearTimeout(commitTimer.current); commitTimer.current = setTimeout(() => flush(), 700); }
+    if (now) flush(); else { clearTimeout(commitTimer.current); commitTimer.current = setTimeout(() => flush(), 700); }
   };
   const set = patch => change({ ...sRef.current, ...patch });
   const setIn = (k, patch) => change({ ...sRef.current, [k]: { ...sRef.current[k], ...patch } });
@@ -281,6 +284,7 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
   const [src, setSrc] = useState(null), [preview, setPreview] = useState(null), [hist, setHist] = useState(null), [rendering, setRendering] = useState(false);
   const [ba, setBa] = useState('after'), [pick, setPick] = useState(null), [open, setOpen] = useState(() => ({ ...PANELS_OPEN_DEFAULT }));
   const afterCanvas = useRef(), beforeCanvas = useRef(), previewTimer = useRef(0);
+  const mk = useMasking({ masks: s.masks, setMasks: (masks, label) => change({ ...sRef.current, masks }, label || 'Masks', false), getSource: () => src?.buf, resetKey: active?.id });
   useEffect(() => {
     if (module !== 'develop' || !active) { return; }
     if (src && src.assetId === active.assetId) return;
@@ -375,6 +379,7 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
   const keyRef = useRef(); keyRef.current = (e, fromInput) => {
     if (dialog) { if (e.key === 'Escape') { setDialog(null); e.preventDefault(); } return; }
     if (fromInput) return;
+    if (module === 'develop' && mk.onKey(e)) { e.preventDefault(); return; }
     const k = e.key, mod = e.ctrlKey || e.metaKey, t = targets();
     let handled = true;
     if (mod && (k === 'a' || k === 'A') && !e.shiftKey) setSel(x => ({ ids: visible.map(p => p.id), active: x.active || visible[0]?.id || null, anchor: x.anchor }));
@@ -528,8 +533,9 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
     <div className="crsEdit"><strong>Edit</strong><div>
       <button disabled={!src} onClick={() => src && change({ ...sRef.current, ...autoTone(src.buf) }, 'Auto Tone')}>Auto</button>
       <button aria-pressed={mono} className={mono ? 'on' : ''} onClick={() => set({ profile: mono ? 'color' : 'monochrome' })}>B&amp;W</button></div></div>
-    <ProfileControls s={s} set={set} />
-    <div className="crsScroll"><DevelopPanelStack s={s} set={set} setIn={setIn} open={open} toggle={id => setOpen(o => ({ ...o, [id]: !o[id] }))} hist={hist} pick={pick} setPick={setPick} getSource={() => src?.buf} /></div>
+    <MaskModeBar mk={mk} />
+    {!mk.on && <ProfileControls s={s} set={set} />}
+    <div className="crsScroll">{mk.on ? (active ? <MaskingPanel mk={mk} /> : null) : <DevelopPanelStack s={s} set={set} setIn={setIn} open={open} toggle={id => setOpen(o => ({ ...o, [id]: !o[id] }))} hist={hist} pick={pick} setPick={setPick} getSource={() => src?.buf} />}</div>
     <footer className="crsFooter dvwDevFoot">
       <button disabled={!prevId || !active || prevId === active.id || !getPhoto(cat, prevId)} title="Apply all settings of the previously selected photo" onClick={() => { const pv = getPhoto(catRef.current, prevId); if (pv) change(structuredClone(pv.develop), 'Previous Settings'); }}>Previous</button>
       <button disabled={!active} onClick={() => change(developDefaults(), 'Reset Settings')}>Reset</button>
@@ -549,7 +555,8 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
       {!active ? <div className="dvwEmpty">Select a photo in the Library.</div> : <>
         {ba === 'split' && <figure key="before"><canvas ref={beforeCanvas} aria-label="Before preview" /><figcaption>Before</figcaption></figure>}
         <figure key="after" onClick={sampleAt}><canvas ref={afterCanvas} aria-label="Develop preview" />{ba === 'split' && <figcaption>After</figcaption>}{ba === 'before' && <figcaption>Before</figcaption>}</figure>
-        {pick && <div className="crsHint">{pickHint(pick)}</div>}</>}
+        {pick && <div className="crsHint">{pickHint(pick)}</div>}
+        {mk.on && ba !== 'split' && <MaskCanvasLayer key={active.id} mk={mk} canvasRef={afterCanvas} />}</>}
     </div>
   </div>;
 

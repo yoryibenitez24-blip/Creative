@@ -4,6 +4,7 @@ import { histogram } from '../engine/adjust.js';
 import { resample } from '../engine/geometry.js';
 import { createOpsClient } from './opsClient.js';
 import { DevelopPanelStack, ProfileControls, sampleForPick, pickHint, PANELS_OPEN_DEFAULT } from './DevelopPanels.jsx';
+import { useMasking, MaskingPanel, MaskCanvasLayer, MaskModeBar } from './MaskingPanel.jsx';
 
 // Filter › Camera Raw Filter: full-screen develop workspace with the Light, Color, Effects, Curve,
 // Color Mixer, Color Grading, Detail, Optics, Lens Blur and Calibration panels. The preview is a
@@ -21,6 +22,8 @@ export default function CameraRaw({ source, initial, run, onCancel, onApply, off
   const set = patch => setS(v => ({ ...v, ...patch }));
   const setIn = (k, patch) => setS(v => ({ ...v, [k]: { ...v[k], ...patch } }));
   const toggle = id => setOpen(o => ({ ...o, [id]: !o[id] }));
+  // Masking (MaskingPanel.jsx): masks live in s.masks, so OK applies them with the other settings.
+  const mk = useMasking({ masks: s.masks, setMasks: masks => setS(v => ({ ...v, masks })), getSource: () => small.current?.buf, windowKeys: true });
 
   // Preview pipeline. Two proxies: `small` (≤1100 px, the quality preview) and `tiny` (≤480 px) that
   // is rendered while a slider is moving so the image follows the hand. Jobs never cancel each other:
@@ -83,13 +86,14 @@ export default function CameraRaw({ source, initial, run, onCancel, onApply, off
     <div className="crsTop"><strong>Camera Raw Filter</strong><span className="crsStatus" role="status">{err || (busy ? 'Rendering preview…' : 'Preview ready')}</span>
       <div className="crsTopRight"><label className="optCheck"><input type="checkbox" checked={before} onChange={e => setBefore(e.target.checked)} />Before (Y)</label><label className="optCheck"><input type="checkbox" checked={clipWarn} onChange={e => setClipWarn(e.target.checked)} />Clipping warnings</label></div></div>
     <div className="crsMain">
-      <div className={'crsView' + (pick ? ' picking' : '')} onClick={sampleAt}><canvas ref={canvas} aria-label="Camera Raw preview" />{pick && <div className="crsHint">{pickHint(pick)}</div>}</div>
+      <div className={'crsView' + (pick ? ' picking' : '')} onClick={sampleAt}><canvas ref={canvas} aria-label="Camera Raw preview" />{pick && <div className="crsHint">{pickHint(pick)}</div>}{mk.on && <MaskCanvasLayer mk={mk} canvasRef={canvas} />}</div>
       <aside className="crsSide">
         <svg className="crsHist" viewBox="0 0 255 100" preserveAspectRatio="none" aria-label="Histogram">{['r', 'g', 'b'].map(c => <path key={c} d={histPath(c)} fill={c === 'r' ? '#ff4a4a66' : c === 'g' ? '#4aff6a66' : '#4a7dff66'} />)}</svg>
         <div className="crsEdit"><strong>Edit</strong><div><button onClick={auto}>Auto</button><button aria-pressed={mono} className={mono ? 'on' : ''} onClick={() => set({ profile: mono ? 'color' : 'monochrome' })}>B&amp;W</button><button disabled title="HDR editing needs an HDR display and a high-bit pipeline, which Zertake does not have yet">HDR</button><button onClick={reset} title="Reset all settings">Reset</button></div></div>
-        <ProfileControls s={s} set={set} />
+        <MaskModeBar mk={mk} />
+        {!mk.on && <ProfileControls s={s} set={set} />}
         <div className="crsScroll">
-          <DevelopPanelStack s={s} set={set} setIn={setIn} open={open} toggle={toggle} hist={hist} pick={pick} setPick={setPick} getSource={() => small.current?.buf} />
+          {mk.on ? <MaskingPanel mk={mk} /> : <DevelopPanelStack s={s} set={set} setIn={setIn} open={open} toggle={toggle} hist={hist} pick={pick} setPick={setPick} getSource={() => small.current?.buf} />}
         </div>
         <footer className="crsFooter"><button onClick={onCancel}>Cancel</button><button className="primary" onClick={() => onApply(s)}>OK</button></footer>
       </aside>
