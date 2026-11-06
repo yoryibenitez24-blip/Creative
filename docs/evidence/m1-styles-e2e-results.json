@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-06T09:51:39.564Z",
+  "date": "2026-11-06T09:54:48.841Z",
   "browser": "chromium (Playwright)",
   "results": [
     {
@@ -36,6 +36,10 @@
     },
     {
       "name": "Fill layer (Solid Color) and adjustment layers (Invert, Levels) affect layers below; undo removes them",
+      "ok": true
+    },
+    {
+      "name": "Export › PSD writes editable layers in Photoshop order with masks and effects",
       "ok": true
     },
     {

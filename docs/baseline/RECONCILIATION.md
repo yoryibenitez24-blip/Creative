@@ -34,7 +34,7 @@ Inputs (kept unchanged in `docs/baseline/`): INVENTARIO_BRECHAS.csv sha256 `9e40
 | Develop | Máscaras locales | Pendiente | missing 6: DEV-MASK-BRUSH, DEV-MASK-LINEAR, DEV-MASK-RADIAL, DEV-MASK-COLOR-RANGE, DEV-MASK-LUM-RANGE, DEV-MASK-OPS |  |
 | Develop | Lens blur | Pendiente | verified 1: DEV-OPTICS-LENS-BLUR |  |
 | Archivos | PSD import | Parcial | missing 3, partial 1, verified 2: PSD-IMPORT-RASTER, PSD-IMPORT-REPORT, PSD-IMPORT-TEXT, PSD-IMPORT-FX, PSD-IMPORT-MASKS, PSD-IMPORT-SO |  |
-| Archivos | PSD export y PSB | Pendiente | missing 2: PSD-EXPORT, PSD-PSB |  |
+| Archivos | PSD export y PSB | Pendiente | missing 1, verified 1: PSD-EXPORT, PSD-PSB |  |
 | Archivos | PNG, JPEG, SVG export | Implementado básico | missing 2, implemented-unverified 2, verified 1: FILE-PNG-EXPORT, FILE-JPEG-EXPORT, FILE-SVG-EXPORT, FILE-EXPORT-OPTS, COLOR-ICC-EMBED |  |
 | Archivos | RAW/DNG | Pendiente | missing 4: RAW-DECODE, RAW-DEMOSAIC, RAW-COLOR-MATRIX, RAW-CAMERA-MATRIX |  |
 | Color | 16/32 bit, ICC, CMYK, Lab, HDR | Pendiente | missing 6: COLOR-16BIT, COLOR-32BIT, COLOR-ICC-IMPORT, COLOR-MODE-CMYK, COLOR-MODE-LAB, RAW-HDR-DISPLAY |  |

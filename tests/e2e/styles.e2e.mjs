@@ -7,6 +7,9 @@ import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { serve } from './serve.mjs';
+import { readPsd, initializeCanvas } from 'ag-psd';
+import { ImageData as NImageData } from '@napi-rs/canvas';
+initializeCanvas(createCanvas, undefined, (w, h) => new NImageData(w, h));
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
@@ -150,6 +153,24 @@ await step('Fill layer (Solid Color) and adjustment layers (Invert, Levels) affe
   const lv = await exportPx(); near(lv.at(40, 40), [204, 190, 158], 3, 'levels (input black 200) remaps the background');
   await page.keyboard.press('Control+z'); await settle(); await page.keyboard.press('Control+z'); await settle();
   near((await exportPx()).at(40, 40), BG, 2, 'adjustment removed');
+});
+
+await step('Export › PSD writes editable layers in Photoshop order with masks and effects', async () => {
+  await rowOf('Paint layer 1').locator('.layerThumb').click();
+  await app().getByRole('button', { name: 'Layer', exact: true }).click(); await menuItem('Layer Style').hover(); await menuItem('Drop Shadow…').click();
+  await page.getByLabel('Drop Shadow', { exact: true }).check(); await page.getByRole('button', { name: 'OK', exact: true }).click(); await settle();
+  await app().locator('button.export').click(); await app().locator('select').filter({ has: page.locator('option[value="psd"]') }).selectOption('psd');
+  const [dl] = await Promise.all([page.waitForEvent('download'), app().getByRole('button', { name: /Download PSD/ }).click()]);
+  const buf = readFileSync(await dl.path()); writeFileSync(join(evidence, 'm1-export.psd'), buf);
+  const psd = readPsd(new Uint8Array(buf), { useImageData: true });
+  const panel = (await app().locator('.layerList .layer input[aria-label="Layer name"]').evaluateAll(els => els.map(e => e.value))).reverse();
+  assert.deepEqual(psd.children.map(c => c.name), panel, 'same layers, bottom-first');
+  assert.deepEqual([psd.width, psd.height], [W, H]);
+  const l = psd.children.find(c => c.name === 'Paint layer 1');
+  assert.ok(l.effects?.dropShadow?.[0], 'drop shadow kept as an editable effect');
+  assert.ok(l.imageData.data.some((v, i) => i % 4 === 3 && v === 255), 'layer pixels present');
+  assert.ok(await page.getByLabel('PSD compatibility notes').count() === 1, 'compatibility notes shown');
+  await page.keyboard.press('Escape');
 });
 
 await step('no uncaught page errors', async () => assert.deepEqual(errors, []));
