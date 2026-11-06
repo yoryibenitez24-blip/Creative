@@ -10,12 +10,17 @@
 //   v3  adds optional `layer.mask` (raster layer mask, see engine/mask.js). The data change is
 //       additive, but the version is bumped so an older app refuses the file instead of
 //       silently dropping masks on save.
+//   v4  adds the `smart` layer type (Smart Object: an embedded source asset plus a non-destructive
+//       smart-filter stack, see engine/smart.js), the `shape` layer type (vector path, see
+//       engine/paths.js), document `paths` (saved paths), optional `layer.vectorMask`, extended
+//       type properties on text layers and colour-management metadata. Additive; bumped so an
+//       older app refuses the file instead of dropping the new layers on save.
 //
 // Migration rule: never drop fields we do not understand. Unknown document and
 // layer fields are carried through untouched, so a later version can still read them.
 
-export const SCHEMA_VERSION = 3;
-export const LAYER_TYPES = ['rect', 'ellipse', 'text', 'image', 'raster', 'adjustment', 'fill'];
+export const SCHEMA_VERSION = 4;
+export const LAYER_TYPES = ['rect', 'ellipse', 'text', 'image', 'raster', 'adjustment', 'fill', 'smart', 'shape'];
 export const PROJECT_FORMAT = 'zertake-project';
 
 const newId = () => globalThis.crypto?.randomUUID?.() || 'doc-' + Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -55,7 +60,9 @@ function v1to2(d) {
 
 const v2to3 = d => ({ ...d, schemaVersion: 3, migrations: [...(d.migrations || []), { from: 2, to: 3 }] });
 
-const STEPS = { 1: v1to2, 2: v2to3 };
+const v3to4 = d => ({ ...d, schemaVersion: 4, migrations: [...(d.migrations || []), { from: 3, to: 4 }] });
+
+const STEPS = { 1: v1to2, 2: v2to3, 3: v3to4 };
 
 /** Migrate any known document version to SCHEMA_VERSION. Throws for unknown/future versions. */
 export function migrateDocument(raw) {
@@ -91,6 +98,7 @@ export function referencedAssets(doc) {
     if (l.type === 'raster' && typeof l.assetId === 'string') ids.add(l.assetId);
     if (l.mask && typeof l.mask.assetId === 'string') ids.add(l.mask.assetId);
     if (l.develop && typeof l.develop.sourceId === 'string') ids.add(l.develop.sourceId);
+    if (l.smart) for (const k of ['sourceId', 'renderId']) if (typeof l.smart[k] === 'string') ids.add(l.smart[k]);
   }
   return [...ids];
 }

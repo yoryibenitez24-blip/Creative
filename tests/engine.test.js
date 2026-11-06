@@ -169,7 +169,7 @@ test('schema: v1 documents migrate to v2 without losing unknown data', () => {
   assert.deepEqual(d.layers[0].futureField, { keep: true });
   assert.deepEqual(d.psdGroups, v1.psdGroups);
   assert.deepEqual(d.groups.map(g => g.id).sort(), ['g1', 'g2']);
-  assert.deepEqual(d.migrations, [{ from: 1, to: 2 }, { from: 2, to: 3 }]);
+  assert.deepEqual(d.migrations, [{ from: 1, to: 2 }, { from: 2, to: 3 }, { from: 3, to: 4 }]);
   assert.equal(d.color.profile, 'sRGB IEC61966-2.1');
   assert.equal(migrateDocument(d), d, 'migrating current version is a no-op');
 });
@@ -277,5 +277,5 @@ test('schema: v2 documents migrate to v3; mask assets are referenced', () => {
   const id = 'sha256-' + 'b'.repeat(64);
   const d = { ...v2, layers: [{ ...v2.layers[0], mask: { ...newMask(10, 10), assetId: id } }] };
   assert.deepEqual(referencedAssets(d), [id]);
-  assert.equal(migrateDocument({ ...v1, schemaVersion: 2 }).schemaVersion, 3);
+  assert.equal(migrateDocument({ ...v1, schemaVersion: 2 }).schemaVersion, SCHEMA_VERSION);
 });
