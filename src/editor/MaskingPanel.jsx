@@ -101,10 +101,11 @@ export function useMasking({ masks, setMasks, getSource, resetKey, windowKeys = 
     window.addEventListener('keydown', h, true); return () => window.removeEventListener('keydown', h, true);
   }, [windowKeys, on]);
   const onKey = e => {
-    if (!on || isTyping(e.target) || e.ctrlKey || e.metaKey) return false;
+    if (!on || e.ctrlKey || e.metaKey) return false;
     const k = e.key;
+    if (k === 'Escape' && tool) { setTool(null); if (isTyping(e.target)) e.target.blur?.(); return true; }
+    if (isTyping(e.target)) return false;
     if ((k === 'o' || k === 'O') && !e.altKey) { setOverlay(o => ({ ...o, show: !o.show })); return true; }
-    if (k === 'Escape' && tool) { setTool(null); return true; }
     if (k === 'Delete' || k === 'Backspace') { if (comp) deleteComp(comp.id); return true; }
     if ((k === '[' || k === ']') && tool?.kind === 'brush') { setBrush(b => ({ ...b, size: Math.max(0.005, Math.min(0.5, b.size * (k === ']' ? 1.15 : 1 / 1.15))) })); return true; }
     return false;

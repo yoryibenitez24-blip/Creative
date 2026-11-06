@@ -49,7 +49,7 @@ const png = { name: 'scene.png', mimeType: 'image/png', buffer: scene.toBuffer('
 
 // ---- Camera Raw helpers
 const crs = () => page.getByRole('dialog', { name: 'Camera Raw Filter' });
-const openCrs = async () => { await app().getByRole('button', { name: 'Filter', exact: true }).click(); await page.getByRole('menuitem', { name: 'Camera Raw Filter…', exact: true }).click(); await crs().waitFor(); await ready(); };
+const openCrs = async () => { await app().getByRole('button', { name: 'Filter', exact: true }).click(); await page.getByRole('menuitem', { name: 'Camera Raw Filter…', exact: true }).click(); await crs().waitFor(); await page.waitForFunction(sel => { const c = document.querySelector(sel); return c && c.width > 1 && c.getContext('2d').getImageData(c.width >> 1, c.height >> 1, 1, 1).data[3] === 255; }, canvasSel, { timeout: 30000 }); await ready(); };
 const ready = async () => { await page.waitForTimeout(350); await page.waitForFunction(() => { const s = document.querySelector('.cameraRaw .crsStatus')?.textContent || ''; return s.includes('ready') && !document.querySelector('.mkStatus')?.textContent.includes('Detecting'); }, null, { timeout: 30000 }); await page.waitForTimeout(150); };
 const canvasSel = '.cameraRaw canvas[aria-label="Camera Raw preview"]';
 /** average colour of the preview canvas around normalised (nx, ny) */
@@ -188,6 +188,7 @@ await step('Radial gradient: drag an ellipse; −2 EV darkens inside only; the w
   await crs().getByRole('button', { name: 'Outside', exact: true }).click(); await ready();
   const c3 = await prev(0.75, 0.2), o3 = await prev(0.55, 0.2); assert.ok(lum(c3) > lum(c1) + 30 && lum(o3) < lum(o0) - 30, 'Outside flips the effect');
   await crs().getByRole('button', { name: 'Inside', exact: true }).click(); await ready();
+  if (process.env.MASK_SHOT) await page.screenshot({ path: process.env.MASK_SHOT });
 });
 
 await step('OK renders every mask at full resolution', async () => {
