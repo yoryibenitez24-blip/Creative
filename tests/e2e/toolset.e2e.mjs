@@ -150,7 +150,7 @@ await step('Crop tool: drag a box, Enter crops; undo restores', async () => {
 
 await step('Rasterize a shape layer and Merge Down keep the composite identical', async () => {
   const before = await exportPx();
-  await page.keyboard.press('u'); await settle();
+  await page.keyboard.press('u'); await drag([[60, 40], [120, 90], [180, 140]]); await settle();
   const withShape = await exportPx();
   await menu('Layer', 'Rasterize layer'); await settle(); await page.waitForTimeout(300);
   const raster = await exportPx();
