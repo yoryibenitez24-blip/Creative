@@ -18,6 +18,8 @@ export const TOOLS = [
   { id: 'focus', label: 'Blur / Sharpen / Smudge', key: '', ledger: ['RETOUCH-BLUR', 'RETOUCH-SHARPEN', 'RETOUCH-SMUDGE'] },
   { id: 'tone', label: 'Dodge / Burn / Sponge', key: 'O', ledger: ['RETOUCH-DODGE', 'RETOUCH-BURN', 'RETOUCH-SPONGE'] },
   { id: 'pencil', label: 'Pencil (Brush variant)', key: 'B', ledger: ['PAINT-PENCIL'] },
+  { id: 'pen', label: 'Pen', key: 'P', ledger: ['VEC-PEN', 'VEC-FREEFORM', 'VEC-CURVATURE', 'VEC-ANCHOR-EDIT'] },
+  { id: 'pathSelect', label: 'Path / Direct Selection', key: 'A', ledger: ['VEC-PATH-SEL', 'VEC-DIRECT-SEL'] },
   { id: 'zoom', label: 'Zoom', key: 'Z', ledger: ['NAV-ZOOM-TOOL', 'NAV-ZOOM-SCRUB'] },
 ];
 

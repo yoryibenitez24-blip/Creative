@@ -662,9 +662,17 @@ AREAS.push(
 // Current state. Rows absent here are `missing`.
 // evidence: test name or file proving it. note: limitations.
 const T_TF = 'tests/e2e/transform.e2e.mjs (docs/evidence/m1-transform-e2e-results.json); tests/warp.test.js', T_DEV = 'tests/develop.test.js', T_STY = 'tests/e2e/styles.e2e.mjs (docs/evidence/m1-styles-e2e-results.json)', T_STU = 'tests/styles.test.js', T_TOOLSET = 'tests/e2e/toolset.e2e.mjs (docs/evidence/m1-toolset-e2e-results.json)', T_OPS = 'tests/ops.test.js', T_TOOLS = 'tests/tools.test.js', T_MASKS = 'tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json)', T_ENGINE = 'tests/engine.test.js', T_E2E = 'tests/e2e/slice.e2e.mjs (docs/evidence/m1-e2e-results.json)', T_MODEL = 'src/model.test.js', T_IMPORT = 'tests/import.test.js';
-const T_SMART = 'tests/e2e/smart.e2e.mjs', T_PRO = 'tests/e2e/pro.e2e.mjs';
+const T_SMART = 'tests/e2e/smart.e2e.mjs', T_PRO = 'tests/e2e/pro.e2e.mjs', T_PATHS = 'tests/e2e/paths.e2e.mjs';
 export const STATUS = {
-  // ---- slice 5: Smart Objects, Liquify, Select and Mask, advanced type ----
+  // ---- slice 5: Smart Objects, Liquify, Select and Mask, advanced type, paths ----
+  'VEC-PEN': ['verified', T_PATHS + ' pen clicks close a path; tests/paths.test.js', 'No magnetic pen'],
+  'VEC-FREEFORM': ['implemented-unverified', 'tests/paths.test.js fitBezier; Freeform Pen variant'], 'VEC-CURVATURE': ['implemented-unverified', 'Curvature Pen variant (PenOverlay)'],
+  'VEC-ANCHOR-EDIT': ['implemented-unverified', 'tests/paths.test.js insert/delete/convert anchors'], 'VEC-PATH-SEL': ['implemented-unverified', 'Path Selection: move, Alt-drag duplicate, delete'],
+  'VEC-DIRECT-SEL': ['verified', T_PATHS + ' Direct Selection anchor drag'], 'VEC-BOOLEAN': ['implemented-unverified', 'tests/paths.test.js combine/subtract/intersect/exclude rasterisation; Path operations in the options bar'],
+  'VEC-FILL-STROKE': ['verified', T_PATHS + ' fill path via selection, Stroke Path, shape layer from path'], 'VEC-STROKE-OPTS': ['implemented-unverified', 'Shape layers: stroke align inside/center/outside, dashes, caps, joins (engine + renderer)', 'No stroke options UI in Properties yet'],
+  'VEC-TO-SEL': ['verified', T_PATHS + ' Make: Selection; Make Work Path from Selection'], 'VEC-POLYGON': ['implemented-unverified', 'tests/paths.test.js polygonPath/star (engine only)'],
+  'VEC-CUSTOM': ['implemented-unverified', 'tests/paths.test.js customShape (engine only)'], 'VEC-PATHS-PANEL': ['verified', T_PATHS + ' Paths tab: work path, save, fill, stroke, mask, shape'],
+
   'SMART-EMBED': ['verified', T_SMART + ' convert + Place Embedded', 'Contents stored as one embedded raster asset (not a layered sub-document)'],
   'SMART-EDIT': ['implemented-unverified', 'Layer › Smart Objects › Edit Contents opens a tab; File › Save to Smart Object propagates back', 'Contents tab is a single paint layer; a tab must be saved back explicitly'],
   'SMART-REPLACE': ['verified', T_SMART + ' Replace Contents'],

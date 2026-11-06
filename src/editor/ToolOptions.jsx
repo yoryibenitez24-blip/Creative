@@ -22,10 +22,12 @@ export const VARIANTS = {
   focus: [['blur', 'Blur'], ['sharpen', 'Sharpen'], ['smudge', 'Smudge']],
   heal: [['spot', 'Spot Healing'], ['healing', 'Healing Brush'], ['patch', 'Patch']],
   wand: [['quick', 'Quick Selection'], ['wand', 'Magic Wand']],
+  pen: [['pen', 'Pen'], ['freeform', 'Freeform Pen'], ['curvature', 'Curvature Pen'], ['addAnchor', 'Add Anchor Point'], ['deleteAnchor', 'Delete Anchor Point'], ['convert', 'Convert Point']],
+  pathSelect: [['pathSelect', 'Path Selection'], ['direct', 'Direct Selection']],
 };
-export const TOOL_NAMES = { move: 'Move', hand: 'Hand', zoom: 'Zoom', marquee: 'Marquee', lasso: 'Lasso', wand: 'Magic Wand', crop: 'Crop', eyedropper: 'Eyedropper', heal: 'Healing', brush: 'Brush', clone: 'Clone Stamp', eraser: 'Eraser', fill: 'Gradient / Bucket', tone: 'Dodge / Burn / Sponge', focus: 'Blur / Sharpen / Smudge' };
+export const TOOL_NAMES = { move: 'Move', hand: 'Hand', zoom: 'Zoom', marquee: 'Marquee', lasso: 'Lasso', wand: 'Magic Wand', crop: 'Crop', eyedropper: 'Eyedropper', heal: 'Healing', brush: 'Brush', clone: 'Clone Stamp', eraser: 'Eraser', fill: 'Gradient / Bucket', tone: 'Dodge / Burn / Sponge', focus: 'Blur / Sharpen / Smudge', pen: 'Pen', pathSelect: 'Path Selection' };
 
-export default function ToolOptions({ onMask, tool, brush, setBrush, sel, setSel, variant, setVariant, polyActive, opts, setOpt, crop }) {
+export default function ToolOptions({ pen, onMask, tool, brush, setBrush, sel, setSel, variant, setVariant, polyActive, opts, setOpt, crop }) {
   const o = opts[tool] || {}, set = k => v => setOpt(tool, { ...o, [k]: v });
   const bar = (label, children) => <div className="optionsBar" role="toolbar" aria-label={label} onPointerDown={e => e.stopPropagation()}>{children}</div>;
   const variantSeg = VARIANTS[tool] && segmented('Tool variant', variant, setVariant, VARIANTS[tool]);
@@ -93,6 +95,11 @@ export default function ToolOptions({ onMask, tool, brush, setBrush, sel, setSel
     {pick('Ratio', o.ratio, set('ratio'), [['free', 'Free'], ['original', 'Original ratio'], ['1:1', '1 : 1 (square)'], ['4:5', '4 : 5'], ['3:2', '3 : 2'], ['16:9', '16 : 9']])}
     {crop && <span className="optHint">{Math.round(crop.w)} × {Math.round(crop.h)} px</span>}
     <button className="optButton" onClick={crop?.cancel} disabled={!crop}>Cancel</button><button className="optButton primary" onClick={crop?.apply} disabled={!crop}>Apply crop ⏎</button></>);
+  if ((tool === 'pen' || tool === 'pathSelect') && pen) return bar(tool === 'pen' ? 'Pen options' : 'Path selection options', <>{variantSeg}
+    {pick('Tool mode', pen.opts.mode, v => pen.set({ ...pen.opts, mode: v }), [['path', 'Path'], ['shape', 'Shape']])}
+    {pick('Path operations', pen.opts.pathOp, v => pen.set({ ...pen.opts, pathOp: v }), [['combine', 'Combine Shapes'], ['subtract', 'Subtract Front Shape'], ['intersect', 'Intersect Shape Areas'], ['exclude', 'Exclude Overlapping Shapes']])}
+    <span className="optHint">Make:</span><button className="optButton" onClick={pen.toSelection}>Selection</button><button className="optButton" onClick={pen.toMask}>Mask</button><button className="optButton" onClick={pen.toShape}>Shape</button><button className="optButton" onClick={pen.save}>Save path</button>
+    <small className="optHint">{tool === 'pen' ? 'Click for corners, drag for curves, click the first point to close · Esc/Enter ends the path' : 'Drag to move · Alt-drag duplicates · Delete removes'}</small></>);
   if (tool === 'zoom') return bar('Zoom options', <><strong>Zoom</strong><small className="optHint">Click to zoom in · Alt-click to zoom out · drag left/right for scrubby zoom</small></>);
   return null;
 }
