@@ -18,7 +18,7 @@ const reload = () => { for (const res of clients) res.write('data: reload\n\n');
 
 const notify = { name: 'notify', setup(b) { b.onEnd(r => { const t = new Date().toLocaleTimeString(); if (r.errors.length) console.log(`[${t}] build failed (${r.errors.length} error${r.errors.length > 1 ? 's' : ''}); the page keeps the last good build`); else { console.log(`[${t}] rebuilt`); reload(); } }); } };
 const ctx = await esbuild.context({
-  entryPoints: { app: join(root, 'src/main.jsx'), 'psd-worker': join(root, 'src/psd-worker.js') },
+  entryPoints: { app: join(root, 'src/main.jsx'), 'psd-worker': join(root, 'src/psd-worker.js'), 'ops-worker': join(root, 'src/engine/ops-worker.js') },
   bundle: true, outdir: out, sourcemap: true, loader: { '.jsx': 'jsx' }, logLevel: 'error', plugins: [notify],
 });
 await ctx.watch();
@@ -30,7 +30,7 @@ const snippet = '<script>new EventSource("/__reload").onmessage=()=>location.rel
 http.createServer(async (req, res) => {
   const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^([/\\])+/, '') || 'index.html';
   if (path === '__reload') { res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' }); res.write('\n'); clients.add(res); req.on('close', () => clients.delete(res)); return; }
-  const fromDev = /^(app|psd-worker)\.js(\.map)?$/.test(path);
+  const fromDev = /^(app|psd-worker|ops-worker)\.js(\.map)?$/.test(path);
   try {
     let body = await readFile(join(fromDev ? out : dist, path));
     if (path === 'index.html') body = body.toString().replace('</body>', snippet + '</body>');

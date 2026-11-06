@@ -71,7 +71,7 @@ await step('create a new 400×300 document in its own tab', async () => {
 
 let strokeAt1;
 await step('A1: brush stroke at 100% zoom paints a new paint layer in document space', async () => {
-  await app().getByTitle('Brush', { exact: true }).click();
+  await app().getByTitle('Brush (B)', { exact: true }).click();
   await setOption('Size', 20); await setOption('Hardness', 100); await setOption('Spacing', 10);
   await setZoom(1);
   await drag(linePts(40, 60, 360, 240));
@@ -115,12 +115,12 @@ await step('A1: the same document-space stroke at 200% zoom matches the 100% res
 
 let edgeRow;
 await step('A2: feathered marquee restricts the brush; fill and export keep the same alpha boundary', async () => {
-  await app().getByTitle('Marquee', { exact: true }).click();
+  await app().getByTitle('Marquee (M)', { exact: true }).click();
   await setOption('Feather', 8);
   await drag([[50, 50], [120, 150], [200, 250]]);
   await settle();
   assert.ok((await app().locator('path.antsDash').getAttribute('d')).length > 10, 'marching ants rendered');
-  await app().getByTitle('Brush', { exact: true }).click();
+  await app().getByTitle('Brush (B)', { exact: true }).click();
   await setOption('Size', 60);
   await drag(linePts(20, 150, 380, 150));
   await settle();
@@ -169,7 +169,7 @@ await step('selection commands: deselect, reselect, inverse, clear, lasso', asyn
   const b = await alpha();
   assert.equal(b[100 * W + 120], 0, 'clear removed selected pixels');
   await page.keyboard.press('Control+z'); await settle();
-  await app().getByTitle('Lasso', { exact: true }).click();
+  await app().getByTitle('Lasso (L)', { exact: true }).click();
   await drag([[250, 40], [380, 60], [360, 200], [260, 180]]);
   await settle();
   assert.ok((await app().locator('path.antsDash').getAttribute('d')).length > 10, 'lasso selection rendered');

@@ -22,3 +22,20 @@
 .maskButtons{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.maskButtons button{padding:6px 9px;border:1px solid #3a3a41;border-radius:5px;font-size:11px}.maskButtons button:disabled{opacity:.45;cursor:not-allowed}
 .maskPanel .hint{color:#8e8e98;font-size:11px;line-height:1.4}
 .maskTag{background:#393044;color:#e2d6ff;border-radius:4px;padding:3px 7px}
+/* Slice 3: Photoshop toolset */
+.rail{overflow-y:auto;scrollbar-width:none}.rail>button{width:34px;height:32px;flex-shrink:0}.rail{gap:3px}
+.menuSep{height:1px;background:#3a3a40;margin:4px 6px}
+.dropdown button:disabled{opacity:.4;cursor:default}
+.subWrap{position:relative}.subWrap>.submenu{display:none;position:absolute;left:100%;top:-6px;margin-left:2px;max-height:70vh;overflow-y:auto}.subWrap:hover>.submenu,.subWrap:focus-within>.submenu{display:block}
+.dialogBlocker{position:fixed;inset:0;z-index:40;background:transparent}
+.opDialog{position:fixed;top:120px;right:330px;z-index:41;width:330px;max-height:calc(100vh - 160px);overflow-y:auto;background:#1f1f23;border:1px solid #3a3a42;border-radius:10px;box-shadow:0 18px 50px #000a;padding:14px;color:#ddd;font-size:11px}
+.opDialog header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.opDialog h3{margin:0;font-size:14px;color:#eee}.opStatus{color:#8e8e98;font-size:10px}
+.opFields{display:flex;flex-direction:column;gap:8px}.opField{display:grid;grid-template-columns:110px 1fr 56px auto;align-items:center;gap:6px}.opField.column{display:flex;flex-direction:column;align-items:stretch}.opField input[type=range]{accent-color:#b5a2ef}.opField input[type=number]{height:24px;padding:0 4px}.opField select{height:26px}.opField span{color:#b4b4bc}
+.opDialog footer{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:12px}.opDialog footer .optCheck{margin-right:auto}.opDialog footer button{padding:7px 12px;border:1px solid #3a3a41;border-radius:6px}.opDialog footer .primary{background:#b5a2ef;color:#211a35;border-color:#b5a2ef}
+.histogram{width:100%;height:70px;color:#8f8f99;background:#141417;border-radius:4px;display:block}
+.curveEditor{display:flex;flex-direction:column;gap:6px}.curveBox{position:relative;width:256px;height:256px;align-self:center;background:#141417;border-radius:4px}.curveBox .histogram{position:absolute;inset:0;width:100%;height:100%;opacity:.35;background:none}.curveBox svg:last-child{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}.curvePoint{fill:#fff;stroke:#000;stroke-width:1}
+.anchorGrid{display:grid;grid-template-columns:repeat(3,26px);gap:3px;align-self:center}.anchorGrid button{width:26px;height:26px;border:1px solid #45454c;border-radius:3px}.anchorGrid button.on{background:#b5a2ef}
+.historyPanel{display:flex;flex-direction:column;padding:8px;gap:2px;overflow-y:auto}.historyItem{justify-content:flex-start;padding:7px 8px;border-radius:5px;font-size:11px;text-align:left}.historyItem.current{background:#393044;color:#e2d6ff}.historyItem.future{opacity:.45}.historyIndex{width:22px;color:#77777f;font-size:10px}
+.optButton{padding:4px 9px;border:1px solid #3a3a41;border-radius:5px;font-size:10px}.optButton.primary{background:#b5a2ef;color:#211a35}
+.optionsBar select{height:22px;font-size:10px;padding:0 4px;width:auto}
+.tool-zoom{cursor:zoom-in}.tool-eyedropper,.tool-wand,.tool-fill,.tool-crop,.tool-clone,.tool-heal,.tool-tone,.tool-focus{cursor:crosshair}.spacePan,.spacePan *{cursor:grab!important}

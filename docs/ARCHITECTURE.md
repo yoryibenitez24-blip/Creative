@@ -66,6 +66,35 @@ Each referenced asset is stored once. On open, every asset is re-hashed and a mi
 * **Editing:** mask pixels live on a surface `<layerId>#mask` in the same registry as paint layers. Strokes and fills reuse `raster.js` with a grey colour (foreground or background luminance), and commits reuse the asset queue.
 * **Rendering:** each layer renders as an outer `<g>` carrying opacity, blend and `mask=url(#…)`, wrapping an inner `<g>` with the transform and pointer handlers. The `<mask>` holds a fill rectangle plus an `<image>`. Chromium ignores a canvas inside a mask, hence the image. With feather or density, the image is `sampleMask()` over the document, so preview, PNG export and Apply share one implementation and match exactly.
 
+## Pixel operations (Image › Adjustments, Filter, geometry)
+
+* **Registry:** `src/engine/ops.js` lists every destructive operation with its parameters, menu group and ledger row. The same list drives three things: the menus and dialogs (`src/editor/OpDialog.jsx`), the worker (`src/engine/ops-worker.js`, built to `dist/ops-worker.js`) and the tests (`tests/ops.test.js`). `tests/ledger.test.js` fails if a menu entry points at a ledger row that isn't implemented.
+* **Implementations:**
+  * `adjust.js`: Levels, Curves (monotone cubic), Exposure in linear light, Black & White mixer, Hue/Saturation and the other adjustments.
+  * `filters.js`: blurs on premultiplied alpha, Unsharp Mask, sliding-histogram median, seeded noise, inverse-mapped distortions, Voronoi crystallize, Kuwahara oil paint, fBm clouds and the rest.
+  * `geometry.js`: separable, area-correct resampling; lossless rotate and flip.
+* **Selections:** `runOp()` blends every result back through the selection mask, so all operations respect selections the same way.
+* **Threading:** dialogs re-run the operation in the worker on every change (debounced 120 ms) and show the result on the canvas while Preview is on. Starting a new job terminates the running one, which is real cancellation. OK commits one undo step; Cancel restores the stroke-start pixels. Nothing full-resolution runs inside a React event handler.
+
+## Tools built on the brush and fill engines
+
+* **`raster.js`:** `beginPaint` accepts `aliased` (Pencil), `source(x,y)` (Clone Stamp, gradients) and `process(before,…)` (Dodge/Burn/Sponge, Blur/Sharpen). Each effect moves pixels toward a target computed from the stroke-start pixels, scaled by stroke coverage × exposure, so strokes are deterministic.
+* **`retouch.js`:**
+  * Smudge drags pixels from the previous dab position.
+  * Spot healing looks for a source on rings around the painted region by matching the surrounding band (sum of squared differences). It then solves a Poisson equation by SOR iterations: the source texture's gradients, with the destination as the boundary condition. The Healing Brush uses the same solver with an Alt-click source.
+* **`fill.js`:** scanline flood fill for the Paint Bucket and Magic Wand, with tolerance, contiguous and anti-alias options, and five gradient shapes with ordered dithering.
+* **`selection.js`:** wand results and mask → selection are stored as run-length-encoded `bitmap` shapes inside the selection descriptor. They therefore survive undo, autosave and reload. Expand, contract and border use an exact Euclidean distance transform; smooth uses blur plus threshold.
+
+## Whole-document commands
+
+* **`docxform.js`** computes the new layer and mask rectangles for Canvas Size, Crop, Trim, Image Size and Image Rotation. Pixels go through the worker (resample, rotate, flip), and everything commits as one undo step.
+* **Crop and Canvas Size are non-destructive:** layers keep pixels outside the canvas.
+* **Rasterize, Merge Down, Merge Visible and Flatten** render the chosen layers through the same SVG pipeline as PNG export. Merged pixels therefore match what was on screen; the browser test measured a difference of at most 2 levels.
+
+## History
+
+Every committed state carries a label: either explicit (for example "Gaussian Blur" or "Paint Bucket") or derived by `describeChange()`. The History panel lists all reachable states and jumps between them. Up to 80 states are kept in memory for the session.
+
 ## Selection engine
 
 A selection is an immutable descriptor `{ops:[…]}` replayed onto a W×H coverage buffer:

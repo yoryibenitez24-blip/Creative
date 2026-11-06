@@ -61,7 +61,7 @@ await step('setup: black paint layer filling a 400×300 document', async () => {
 });
 
 await step('reveal selection: mask from a marquee hides the rest, selection is consumed', async () => {
-  await app().getByTitle('Marquee', { exact: true }).click();
+  await app().getByTitle('Marquee (M)', { exact: true }).click();
   await drag([[-5, -5], [100, 150], [200, 305]]);
   await settle();
   await app().getByRole('button', { name: 'Reveal selection' }).click();

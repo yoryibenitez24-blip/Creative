@@ -26,7 +26,8 @@ export function dabAlpha(d, r, hardness) {
 }
 
 /**
- * opts: {color:[r,g,b], mode:'paint'|'erase', opacity, hardness,
+ * opts: {color:[r,g,b], mode:'paint'|'erase', opacity, hardness, aliased (pencil),
+ *        source(lx,ly,out)→rgba (clone, gradient), process(before,p,lx,ly,out)→rgba (retouch),
  *        mask: Uint8Array|null (document-sized selection), docW, docH, offsetX, offsetY}
  * Layer-local pixel (lx,ly) maps to document pixel (lx+offsetX, ly+offsetY).
  */
@@ -41,10 +42,25 @@ function selAt(o, lx, ly) {
   return o.mask[dy * o.docW + dx] / 255;
 }
 
+const px = [0, 0, 0, 0];
 function compositePixel(ctx, i, lx, ly) {
   const o = ctx.opts, d = ctx.buf.data, b = ctx.before, p = i * 4;
   const eff = Math.min(1, ctx.cov[i]) * o.opacity * selAt(o, lx, ly);
   const ba = b[p + 3] / 255;
+  if (o.process) {
+    // retouch tools: move towards a per-pixel target computed from the stroke-start pixels
+    const t = o.process(b, p, lx, ly, px);
+    for (let c = 0; c < 4; c++) d[p + c] = Math.round(b[p + c] + (t[c] - b[p + c]) * eff);
+    return;
+  }
+  if (o.source) {
+    // per-pixel colour and alpha (clone stamp, gradients, fills from an image)
+    const s = o.source(lx, ly, px), sa = s[3] / 255 * eff, oa = sa + ba * (1 - sa);
+    if (oa <= 0) { d[p] = d[p + 1] = d[p + 2] = d[p + 3] = 0; return; }
+    for (let c = 0; c < 3; c++) d[p + c] = Math.round((s[c] * sa + b[p + c] * ba * (1 - sa)) / oa);
+    d[p + 3] = Math.round(oa * 255);
+    return;
+  }
   if (o.mode === 'erase') {
     d[p] = b[p]; d[p + 1] = b[p + 1]; d[p + 2] = b[p + 2];
     d[p + 3] = Math.round(ba * (1 - eff) * 255);
@@ -65,7 +81,8 @@ export function applyDab(ctx, dab) {
   if (x1 <= x0 || y1 <= y0) return null;
   const flow = dab.flow ?? 1;
   for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
-    const a = dabAlpha(Math.hypot(x + 0.5 - cx, y + 0.5 - cy), r, opts.hardness) * flow;
+    const dist = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
+    const a = (opts.aliased ? (dist <= r ? 1 : 0) : dabAlpha(dist, r, opts.hardness)) * flow;
     if (a <= 0) continue;
     const i = y * buf.w + x;
     ctx.cov[i] += (1 - ctx.cov[i]) * a;
