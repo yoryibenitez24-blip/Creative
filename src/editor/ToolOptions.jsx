@@ -20,7 +20,7 @@ export const VARIANTS = {
   fill: [['gradient', 'Gradient'], ['bucket', 'Paint Bucket']],
   tone: [['dodge', 'Dodge'], ['burn', 'Burn'], ['sponge', 'Sponge']],
   focus: [['blur', 'Blur'], ['sharpen', 'Sharpen'], ['smudge', 'Smudge']],
-  heal: [['spot', 'Spot Healing'], ['healing', 'Healing Brush']],
+  heal: [['spot', 'Spot Healing'], ['healing', 'Healing Brush'], ['patch', 'Patch']],
 };
 export const TOOL_NAMES = { move: 'Move', hand: 'Hand', zoom: 'Zoom', marquee: 'Marquee', lasso: 'Lasso', wand: 'Magic Wand', crop: 'Crop', eyedropper: 'Eyedropper', heal: 'Healing', brush: 'Brush', clone: 'Clone Stamp', eraser: 'Eraser', fill: 'Gradient / Bucket', tone: 'Dodge / Burn / Sponge', focus: 'Blur / Sharpen / Smudge' };
 
@@ -81,7 +81,7 @@ export default function ToolOptions({ onMask, tool, brush, setBrush, sel, setSel
   if (tool === 'clone') return bar('Clone Stamp options', <><strong>Clone Stamp</strong>{brushCore()}{check('Aligned', o.aligned, set('aligned'))}
     <small className="optHint">{o.source ? `Source set at ${Math.round(o.source.x)}, ${Math.round(o.source.y)}` : 'Alt-click to set the source point'}</small></>);
   if (tool === 'heal') return bar('Healing options', <>{variantSeg}{brushCore(false)}
-    <small className="optHint">{variant === 'spot' ? 'Paint over a blemish; texture is taken from nearby and blended in' : o.source ? `Source set at ${Math.round(o.source.x)}, ${Math.round(o.source.y)}` : 'Alt-click to set the source point'}</small></>);
+    <small className="optHint">{variant === 'patch' ? 'Draw around the area to fix, then drag the selection onto clean texture' : variant === 'spot' ? 'Paint over a blemish; texture is taken from nearby and blended in' : o.source ? `Source set at ${Math.round(o.source.x)}, ${Math.round(o.source.y)}` : 'Alt-click to set the source point'}</small></>);
   if (tool === 'tone') return bar('Toning options', <>{variantSeg}{brushCore(false)}
     {variant === 'sponge' ? pick('Mode', o.sponge, set('sponge'), [['desaturate', 'Desaturate'], ['saturate', 'Saturate']]) : pick('Range', o.range, set('range'), [['shadows', 'Shadows'], ['midtones', 'Midtones'], ['highlights', 'Highlights']])}
     {num(variant === 'sponge' ? 'Flow' : 'Exposure', o.exposure, set('exposure'), { min: 0.01, max: 1, scale: 100, suffix: '%' })}

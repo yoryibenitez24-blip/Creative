@@ -10,6 +10,7 @@ import * as G from './geometry.js';
 import { BW_DEFAULTS } from './adjust.js';
 import { develop } from './develop.js';
 import { projectiveTransform, meshWarp } from './warp.js';
+import { contentAwareFill } from './inpaint.js';
 
 const r = (key, label, min, max, def, step = 1, unit = '') => ({ key, label, type: 'range', min, max, default: def, step, unit });
 const sel = (key, label, options, def) => ({ key, label, type: 'select', options, default: def });
@@ -73,6 +74,12 @@ export const OPS = [
 
   // ---- Camera Raw Filter (own full-screen dialog, src/editor/CameraRaw.jsx) ----
   { id: 'cameraRaw', name: 'Camera Raw Filter…', menu: 'special', ledger: 'FILT-CAMERA-RAW', params: [], run: (b, p, c) => develop(b, p.settings || {}, c) },
+  { id: 'contentAwareFill', name: 'Content-Aware Fill', menu: 'special', ledger: 'RETOUCH-CA-FILL', params: [], run: (b, p, c) => {
+    if (!c.mask) throw Error('Make a selection around what should be removed first');
+    const hole = new Uint8Array(b.w * b.h), ox = c.offsetX || 0, oy = c.offsetY || 0;
+    for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) { const dx = x + ox, dy = y + oy; if (dx >= 0 && dy >= 0 && dx < c.docW && dy < c.docH && c.mask[dy * c.docW + dx] > 127) hole[y * b.w + x] = 255; }
+    return contentAwareFill(b, hole, { seed: p.seed || 1 });
+  } },
   // ---- geometry (size-changing; no selection blending) ----
   { id: 'flipH', name: 'Flip Horizontal', menu: 'geometry', geometry: true, params: [], run: G.flipH },
   { id: 'flipV', name: 'Flip Vertical', menu: 'geometry', geometry: true, params: [], run: G.flipV },

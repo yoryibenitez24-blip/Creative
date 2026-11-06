@@ -98,6 +98,28 @@ await step('Edit › Warp: dragging a top-edge control point bulges the bar; Esc
   assert.ok(black((await exportPx()).at(150, 65)), 'cancel left the bar unchanged');
 });
 
+await step('Content-Aware Fill (Shift+Backspace) removes a red blob from striped texture', async () => {
+  await page.keyboard.press('Control+Shift+n');
+  for (let x = 0; x < W; x += 20) { await app().getByTitle('Marquee (M)', { exact: true }).click(); await drag([[x, 110], [x + 5, 150], [x + 10, 200]]); await page.keyboard.press('Alt+Backspace'); await settle(); }
+  await page.keyboard.press('Control+d');
+  await app().getByLabel('Foreground color').fill('#ff0000'); await app().getByLabel('Foreground color').blur();
+  await page.keyboard.press('b'); await setNum('Size value', 14); await setNum('Hardness value', 100); await drag([[150, 155], [152, 155]]); await settle();
+  assert.ok((await exportPx()).at(151, 155)[1] < 60, 'red blob painted');
+  await app().getByTitle('Marquee (M)', { exact: true }).click(); await drag([[138, 143], [150, 155], [164, 167]]); await settle();
+  await page.keyboard.press('Shift+Backspace'); await settle(); await page.waitForTimeout(300);
+  const e = await exportPx('m1-content-aware-fill.png');
+  let red = 0; for (let y = 145; y < 166; y++) for (let x = 140; x < 163; x++) { const p = e.at(x, y); if (p[0] > 200 && p[1] < 80) red++; }
+  assert.equal(red, 0, 'no red left'); await page.keyboard.press('Control+d');
+});
+
+await step('Patch tool: draw around a blob, drag it onto clean texture, blob is healed away', async () => {
+  await page.keyboard.press('b'); await drag([[90, 185], [92, 185]]); await settle();
+  await page.keyboard.press('j'); await app().getByRole('button', { name: 'Patch', exact: true }).click();
+  await drag([[80, 175], [100, 175], [100, 195], [80, 195], [80, 176]]); await settle();
+  await drag([[90, 185], [90, 160], [90, 135]]); await settle(); await page.waitForTimeout(300);
+  const p = (await exportPx('m1-patch.png')).at(91, 185); assert.ok(!(p[0] > 200 && p[1] < 80), 'blob replaced: ' + p);
+});
+
 await step('no uncaught page errors', async () => assert.deepEqual(errors, []));
 await browser.close(); server.close();
 writeFileSync(join(evidence, 'm1-transform-e2e-results.json'), JSON.stringify({ date: new Date().toISOString(), browser: 'chromium (Playwright)', results }, null, 2));
