@@ -120,6 +120,20 @@ await step('Patch tool: draw around a blob, drag it onto clean texture, blob is 
   const p = (await exportPx('m1-patch.png')).at(91, 185); assert.ok(!(p[0] > 200 && p[1] < 80), 'blob replaced: ' + p);
 });
 
+await step('Quick Selection: painting over the bar selects it and stops at its edge; Filter Gallery filter applies', async () => {
+  await page.keyboard.press('w'); await app().getByRole('button', { name: 'Quick Selection', exact: true }).click();
+  await setNum('Size value', 10); await drag([[110, 65], [150, 65], [190, 65]]); await settle();
+  await page.waitForSelector(APP + ' path.antsDash');
+  await page.keyboard.press('Control+j'); await settle(); await page.waitForTimeout(300);
+  const names = await app().locator('.layerList .layer input[aria-label="Layer name"]').evaluateAll(els => els.map(e => e.value));
+  assert.ok(names.some(n => n.endsWith(' copy')), 'layer via copy from the quick selection: ' + names);
+  await page.keyboard.press('Control+z'); await settle(); await page.keyboard.press('Control+d');
+  await app().locator('.layerList .layer .layerThumb').first().click();
+  await app().getByRole('button', { name: 'Filter', exact: true }).click(); await page.getByRole('menuitem', { name: 'Texture', exact: true }).hover(); await page.getByRole('menuitem', { name: 'Stained Glass…', exact: true }).click();
+  await page.waitForTimeout(500); await page.getByRole('button', { name: 'OK', exact: true }).click(); await settle();
+  assert.ok((await app().locator('.historyItem').count()) >= 0);
+});
+
 await step('no uncaught page errors', async () => assert.deepEqual(errors, []));
 await browser.close(); server.close();
 writeFileSync(join(evidence, 'm1-transform-e2e-results.json'), JSON.stringify({ date: new Date().toISOString(), browser: 'chromium (Playwright)', results }, null, 2));

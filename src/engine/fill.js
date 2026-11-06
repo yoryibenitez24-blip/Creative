@@ -68,3 +68,32 @@ export function gradientSampler({ type = 'linear', x0, y0, x1, y1, from, to, rev
     return out;
   };
 }
+
+/**
+ * Quick Selection growth step: pixels around a brush dab whose colour is close to the colours
+ * under the brush (tolerance adapts to their spread) are added to `region` (doc-sized Uint8, 255),
+ * growing contiguously outward but never across strong edges and never further than `reach` px.
+ */
+export function quickSelectGrow(buf, region, cx, cy, r, { reach = 3, edge = 60 } = {}) {
+  const { w, h, data: d } = buf, R = Math.max(1, r), maxD = R * reach;
+  let s = [0, 0, 0], n = 0;
+  for (let y = Math.max(0, Math.floor(cy - R)); y < Math.min(h, Math.ceil(cy + R)); y++) for (let x = Math.max(0, Math.floor(cx - R)); x < Math.min(w, Math.ceil(cx + R)); x++) { if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) > R) continue; const p = (y * w + x) * 4; s[0] += d[p]; s[1] += d[p + 1]; s[2] += d[p + 2]; n++; }
+  if (!n) return 0;
+  const m = s.map(v => v / n); let v2 = 0;
+  for (let y = Math.max(0, Math.floor(cy - R)); y < Math.min(h, Math.ceil(cy + R)); y++) for (let x = Math.max(0, Math.floor(cx - R)); x < Math.min(w, Math.ceil(cx + R)); x++) { if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) > R) continue; const p = (y * w + x) * 4; v2 += (d[p] - m[0]) ** 2 + (d[p + 1] - m[1]) ** 2 + (d[p + 2] - m[2]) ** 2; }
+  const tol = Math.max(24, 2.5 * Math.sqrt(v2 / n)), seen = new Uint8Array(w * h), stack = [];
+  const close = i => { const p = i * 4; return Math.hypot(d[p] - m[0], d[p + 1] - m[1], d[p + 2] - m[2]) <= tol; };
+  for (let y = Math.max(0, Math.floor(cy - R)); y < Math.min(h, Math.ceil(cy + R)); y++) for (let x = Math.max(0, Math.floor(cx - R)); x < Math.min(w, Math.ceil(cx + R)); x++) { const i = y * w + x; if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= R && close(i)) { seen[i] = 1; stack.push(i); } }
+  let added = 0;
+  while (stack.length) {
+    const i = stack.pop(), x = i % w, y = (i / w) | 0;
+    if (!region[i]) { region[i] = 255; added++; }
+    for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue; const j = ny * w + nx; if (seen[j]) continue; seen[j] = 1;
+      if (Math.hypot(nx + 0.5 - cx, ny + 0.5 - cy) > maxD) continue;
+      const p = i * 4, q = j * 4; if (Math.abs(d[p] - d[q]) + Math.abs(d[p + 1] - d[q + 1]) + Math.abs(d[p + 2] - d[q + 2]) > edge) continue; // strong edge
+      if (close(j)) stack.push(j);
+    }
+  }
+  return added;
+}

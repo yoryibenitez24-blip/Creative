@@ -361,3 +361,57 @@ export function clouds(buf, { scale = 128, seed = 1, difference = false }, ctx =
   }
   return buf;
 }
+
+// ---------- Filter Gallery: artistic / brush strokes / sketch / texture (compositions of the above) ----------
+const sobelMag = buf => { const { w, h, data: s } = buf, m = new Float32Array(w * h); const L = (x, y) => { x = Math.min(w - 1, Math.max(0, x)); y = Math.min(h - 1, Math.max(0, y)); const p = (y * w + x) * 4; return lum(s[p], s[p + 1], s[p + 2]); }; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const gx = L(x + 1, y - 1) + 2 * L(x + 1, y) + L(x + 1, y + 1) - L(x - 1, y - 1) - 2 * L(x - 1, y) - L(x - 1, y + 1), gy = L(x - 1, y + 1) + 2 * L(x, y + 1) + L(x + 1, y + 1) - L(x - 1, y - 1) - 2 * L(x, y - 1) - L(x + 1, y - 1); m[y * w + x] = Math.hypot(gx, gy) / 4; } return m; };
+const posterizeBuf = (buf, n) => { const k = Math.max(2, n) - 1, d = buf.data; for (let i = 0; i < d.length; i += 4) for (let c = 0; c < 3; c++) d[i + c] = Math.round(Math.round(d[i + c] / 255 * k) / k * 255); return buf; };
+const darkenEdges = (buf, mag, thr, strength) => { const d = buf.data; for (let i = 0; i < mag.length; i++) if (mag[i] > thr) { const k = Math.min(1, (mag[i] - thr) / 60) * strength; for (let c = 0; c < 3; c++) d[i * 4 + c] *= 1 - k; } return buf; };
+/** Cutout: flattened colour levels with simplified, smoothed shapes. */
+export function cutout(buf, { levels = 5, simplicity = 3 }) { median(buf, { radius: simplicity }); return posterizeBuf(buf, levels); }
+/** Poster Edges: posterised colour with dark outlines on edges. */
+export function posterEdges(buf, { thickness = 2, intensity = 60, levels = 6 }) { const mag = sobelMag(buf); posterizeBuf(buf, levels); return darkenEdges(buf, minimumMask(mag, buf.w, buf.h, thickness - 1), 100 - intensity, 0.9); }
+function minimumMask(mag, w, h, r) { if (r <= 0) return mag; const o = new Float32Array(mag.length); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { let v = 0; for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) { const xx = Math.min(w - 1, Math.max(0, x + i)), yy = Math.min(h - 1, Math.max(0, y + j)); v = Math.max(v, mag[yy * w + xx]); } o[y * w + x] = v; } return o; }
+/** Dry Brush: painterly regions (Kuwahara) with reduced colour levels. */
+export function dryBrush(buf, { size = 3, levels = 8 }) { oilPaint(buf, { radius: size }); return posterizeBuf(buf, levels); }
+/** Watercolor: softened pigment pools with darker accumulated edges. */
+export function watercolor(buf, { detail = 4, darkness = 50 }) { median(buf, { radius: Math.max(1, 6 - detail) }); const mag = sobelMag(buf); gaussianBlur(buf, { radius: 1 }); return darkenEdges(buf, mag, 12, darkness / 100); }
+/** Ink Outlines: original colours with inked contours. */
+export function inkOutlines(buf, { width = 1, darkness = 80 }) { const mag = minimumMask(sobelMag(buf), buf.w, buf.h, width - 1); return darkenEdges(buf, mag, 18, darkness / 100); }
+/** Colored Pencil: paper-coloured base with coloured strokes along edges and hatching. */
+export function coloredPencil(buf, { pressure = 60, paper = 230 }, ctx = {}) {
+  const src = new Uint8ClampedArray(buf.data), mag = sobelMag(buf), d = buf.data, ox = ctx.offsetX || 0, oy = ctx.offsetY || 0;
+  for (let y = 0; y < buf.h; y++) for (let x = 0; x < buf.w; x++) { const i = y * buf.w + x, hatch = ((x + ox + y + oy) % 4 === 0 ? 0.8 : 0.35) + hash2(x + ox, y + oy, 11) * 0.2, k = Math.min(1, mag[i] / 40 + hatch * pressure / 100 * (1 - lum(src[i * 4], src[i * 4 + 1], src[i * 4 + 2]) / 255)); for (let c = 0; c < 3; c++) d[i * 4 + c] = paper + (src[i * 4 + c] - paper) * k; }
+  return buf;
+}
+/** Halftone Pattern (Sketch): monochrome dot screen between foreground and background colours. */
+export function halftonePattern(buf, { size = 4 }, ctx = {}) {
+  const fg = hexToRgb(ctx.fg || '#000000'), bg = hexToRgb(ctx.bg || '#ffffff'), cell = Math.max(2, size) * 2, src = new Uint8ClampedArray(buf.data), d = buf.data;
+  for (let y = 0; y < buf.h; y++) for (let x = 0; x < buf.w; x++) { const cx = (Math.floor(x / cell) + 0.5) * cell, cy = (Math.floor(y / cell) + 0.5) * cell, sx = Math.min(buf.w - 1, Math.floor(cx)), sy = Math.min(buf.h - 1, Math.floor(cy)), q = (sy * buf.w + sx) * 4, ink = 1 - lum(src[q], src[q + 1], src[q + 2]) / 255, on = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= cell / 2 * Math.SQRT2 * Math.sqrt(ink), p = (y * buf.w + x) * 4; d.set(on ? fg : bg, p); }
+  return buf;
+}
+/** Charcoal / Graphic Pen (Sketch): monochrome strokes from luminance and edges. */
+export function charcoal(buf, { thickness = 2, balance = 50 }, ctx = {}) {
+  const fg = hexToRgb(ctx.fg || '#000000'), bg = hexToRgb(ctx.bg || '#ffffff'), mag = minimumMask(sobelMag(buf), buf.w, buf.h, thickness - 1), d = buf.data, ox = ctx.offsetX || 0, oy = ctx.offsetY || 0;
+  for (let y = 0; y < buf.h; y++) for (let x = 0; x < buf.w; x++) { const i = y * buf.w + x, l = lum(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]) / 255, stroke = ((x + ox) - (y + oy) * 0.5) % 5 < 2, dark = mag[i] > 25 || (l < balance / 100 && stroke) || l < balance / 250; d.set(dark ? fg : bg, i * 4); }
+  return buf;
+}
+/** Stained Glass (Texture): Voronoi cells of mean colour separated by dark leading. */
+export function stainedGlass(buf, { cell = 14, border = 2, seed = 1 }, ctx = {}) {
+  crystallize(buf, { cell, seed }, ctx); const src = new Uint8ClampedArray(buf.data), d = buf.data, { w, h } = buf, b = Math.max(1, border);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const p = (y * w + x) * 4; let edge = false; for (const [dx, dy] of [[b, 0], [0, b]]) { const xx = Math.min(w - 1, x + dx), yy = Math.min(h - 1, y + dy), q = (yy * w + xx) * 4; if (src[p] !== src[q] || src[p + 1] !== src[q + 1] || src[p + 2] !== src[q + 2]) edge = true; } if (edge) { d[p] = d[p + 1] = d[p + 2] = 25; } }
+  return buf;
+}
+/** Texturizer (Texture): relief of a canvas/brick/burlap pattern, lit from the top left. */
+export function texturizer(buf, { texture = 'canvas', scale = 100, relief = 4 }, ctx = {}) {
+  const ox = ctx.offsetX || 0, oy = ctx.offsetY || 0, s = Math.max(0.25, scale / 100), d = buf.data;
+  const H = (x, y) => { x = Math.floor((x + ox) / s); y = Math.floor((y + oy) / s); if (texture === 'brick') return (y % 12 === 0 || (x + (Math.floor(y / 12) % 2 ? 12 : 0)) % 24 === 0) ? 0 : 1; if (texture === 'burlap') return ((x % 4 < 2) !== (y % 4 < 2) ? 0.7 : 0.3) + hash2(x, y, 4) * 0.3; return ((x % 3 < 2) !== (y % 3 < 2) ? 0.65 : 0.35) + hash2(x, y, 2) * 0.15; };
+  for (let y = 0; y < buf.h; y++) for (let x = 0; x < buf.w; x++) { const g = (H(x - 1, y - 1) - H(x + 1, y + 1)) * relief * 12, p = (y * buf.w + x) * 4; for (let c = 0; c < 3; c++) d[p + c] = clamp255(d[p + c] + g); }
+  return buf;
+}
+/** Glass (Distort): refraction through a noise-shaped glass surface. */
+export function glass(buf, { distortion = 5, smoothness = 3, seed = 1 }, ctx = {}) {
+  const ox = ctx.offsetX || 0, oy = ctx.offsetY || 0, sc = Math.max(1, smoothness) * 4;
+  return remap(buf, (x, y) => [x + (fbm((x + ox) / sc, (y + oy) / sc, seed, 3) - 0.5) * distortion * 4, y + (fbm((x + ox) / sc + 50, (y + oy) / sc + 50, seed, 3) - 0.5) * distortion * 4]);
+}
+/** Spatter (Brush Strokes): splattered edges by random displacement plus smoothing. */
+export function spatter(buf, { radius = 6, smoothness = 2, seed = 1 }, ctx) { diffuse(buf, { radius, seed }, ctx); return median(buf, { radius: Math.max(1, smoothness) }); }

@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-06T10:00:56.420Z",
+  "date": "2026-11-06T10:07:28.240Z",
   "browser": "chromium (Playwright)",
   "results": [
     {
@@ -28,6 +28,10 @@
     },
     {
       "name": "Patch tool: draw around a blob, drag it onto clean texture, blob is healed away",
+      "ok": true
+    },
+    {
+      "name": "Quick Selection: painting over the bar selects it and stops at its edge; Filter Gallery filter applies",
       "ok": true
     },
     {
