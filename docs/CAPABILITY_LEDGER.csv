@@ -138,15 +138,15 @@ SEL-SAVE-CHANNEL,Selection tools,core,1,Photoshop 27.6,Save/Load selection as al
 SEL-ANTS,Selection tools,core,1,Photoshop 27.6,Marching-ants display,Animated 50% boundary at any zoom; reduced motion respected,verified,,Unit geometry test + E2E with real pointer input,tests/engine.test.js outline test; tests/e2e/slice.e2e.mjs (docs/evidence/m1-e2e-results.json),
 SEL-EMPTY-WARN,Selection tools,core,1,Photoshop 27.6,Empty selection warning,Warn when an operation targets no selected pixels,missing,,Unit geometry test + E2E with real pointer input,,
 SEL-QUICKMASK,Selection tools,core,1,Photoshop 27.6,Quick Mask mode (Q),Paint the selection as a mask overlay,missing,,Unit geometry test + E2E with real pointer input,,
-SAM-VIEW,Select and Mask workspace,core,3,Photoshop 27.6,Overlay view modes,"Onion skin, marching ants, overlay, on black/white, B&W, on layers",missing,,Hair-edge fixture comparison,,
-SAM-EDGE-BRUSH,Select and Mask workspace,core,3,Photoshop 27.6,Refine Edge Brush,Brush areas for edge-aware refinement,missing,,Hair-edge fixture comparison,,
-SAM-RADIUS,Select and Mask workspace,core,3,Photoshop 27.6,Edge detection radius / smart radius,Adaptive edge band,missing,,Hair-edge fixture comparison,,
-SAM-SMOOTH,Select and Mask workspace,core,3,Photoshop 27.6,Global smooth,Smooths edge contour,missing,,Hair-edge fixture comparison,,
-SAM-FEATHER,Select and Mask workspace,core,3,Photoshop 27.6,Global feather,Feather in refinement,missing,,Hair-edge fixture comparison,,
-SAM-CONTRAST,Select and Mask workspace,core,3,Photoshop 27.6,Global contrast,Sharpens soft edges,missing,,Hair-edge fixture comparison,,
-SAM-SHIFT,Select and Mask workspace,core,3,Photoshop 27.6,Shift edge,Moves edge in/out by %,missing,,Hair-edge fixture comparison,,
-SAM-DECONTAM,Select and Mask workspace,core,3,Photoshop 27.6,Decontaminate colours,Removes fringe colour with amount,missing,,Hair-edge fixture comparison,,
-SAM-OUTPUT,Select and Mask workspace,core,3,Photoshop 27.6,Output to selection/mask/new layer,All output targets including new layer with mask,missing,,Hair-edge fixture comparison,,
+SAM-VIEW,Select and Mask workspace,core,3,Photoshop 27.6,Overlay view modes,"Onion skin, marching ants, overlay, on black/white, B&W, on layers",implemented-unverified,,Hair-edge fixture comparison,src/editor/SelectAndMask.jsx: all seven view modes,
+SAM-EDGE-BRUSH,Select and Mask workspace,core,3,Photoshop 27.6,Refine Edge Brush,Brush areas for edge-aware refinement,implemented-unverified,,Hair-edge fixture comparison,tests/refine.test.js (brush only changes painted areas),
+SAM-RADIUS,Select and Mask workspace,core,3,Photoshop 27.6,Edge detection radius / smart radius,Adaptive edge band,implemented-unverified,,Hair-edge fixture comparison,tests/refine.test.js (smart radius narrows band),"Colour-model + guided-filter matte, not closed-form matting"
+SAM-SMOOTH,Select and Mask workspace,core,3,Photoshop 27.6,Global smooth,Smooths edge contour,implemented-unverified,,Hair-edge fixture comparison,tests/refine.test.js,
+SAM-FEATHER,Select and Mask workspace,core,3,Photoshop 27.6,Global feather,Feather in refinement,verified,,Hair-edge fixture comparison,tests/e2e/pro.e2e.mjs Select and Mask step; tests/refine.test.js,
+SAM-CONTRAST,Select and Mask workspace,core,3,Photoshop 27.6,Global contrast,Sharpens soft edges,implemented-unverified,,Hair-edge fixture comparison,tests/refine.test.js,
+SAM-SHIFT,Select and Mask workspace,core,3,Photoshop 27.6,Shift edge,Moves edge in/out by %,implemented-unverified,,Hair-edge fixture comparison,tests/refine.test.js (±2 px at ±50 %),Distance formula is our own
+SAM-DECONTAM,Select and Mask workspace,core,3,Photoshop 27.6,Decontaminate colours,Removes fringe colour with amount,implemented-unverified,,Hair-edge fixture comparison,tests/refine.test.js,"Nearest-foreground colour replacement, not a compositing solve"
+SAM-OUTPUT,Select and Mask workspace,core,3,Photoshop 27.6,Output to selection/mask/new layer,All output targets including new layer with mask,verified,,Hair-edge fixture comparison,tests/e2e/pro.e2e.mjs (new layer output); all five outputs wired,
 SAM-HAIR-FIXTURES,Select and Mask workspace,core,3,Photoshop 27.6,Hair-edge test assets,Committed licensed fixtures with expected masks,missing,,Hair-edge fixture comparison,,
 SAM-BG-REMOVE,Select and Mask workspace,core,3,Photoshop 27.6,Remove background as editable mask,"Creates a layer mask, never destructive transparency only",missing,Segmentation model,Hair-edge fixture comparison,,Deferred by D-001
 MOVE-001,Move & arrange,core,1,Photoshop 27.6,Move tool,Drag selected layer(s); raster layers move by whole pixels,implemented-unverified,,E2E drag + numeric checks,Baseline move; paint layers move by whole pixels from anywhere on canvas,
@@ -403,34 +403,34 @@ FX-SCALE,Layer styles,core,3,Photoshop 27.6,Scale effects,Scale effects,missing,
 FX-BLEND-IF,Layer styles,core,3,Photoshop 27.6,Blend If split sliders,This layer / underlying with split,verified,,Golden image per style,tests/e2e/styles.e2e.mjs (docs/evidence/m1-styles-e2e-results.json); tests/styles.test.js,
 FX-KNOCKOUT,Layer styles,core,3,Photoshop 27.6,Knockout,Shallow/deep,implemented-unverified,,Golden image per style,tests/styles.test.js filter graph; rendered by src/editor/LayerFx.jsx,
 FX-ADV-BLEND,Layer styles,core,3,Photoshop 27.6,Advanced blending,"Channels, blend interior/clipped as group",implemented-unverified,,Golden image per style,tests/styles.test.js filter graph; rendered by src/editor/LayerFx.jsx,
-SMART-EMBED,Smart objects & filters,core,3,Photoshop 27.6,Embedded smart objects,Contents kept as a sub-document,missing,,E2E edit-contents round trip,,
+SMART-EMBED,Smart objects & filters,core,3,Photoshop 27.6,Embedded smart objects,Contents kept as a sub-document,verified,,E2E edit-contents round trip,tests/e2e/smart.e2e.mjs convert + Place Embedded,Contents stored as one embedded raster asset (not a layered sub-document)
 SMART-LINKED,Smart objects & filters,core,3,Photoshop 27.6,Linked smart objects,Local file reference with status,missing,,E2E edit-contents round trip,,
-SMART-EDIT,Smart objects & filters,core,3,Photoshop 27.6,Edit contents,Opens in a tab; changes propagate,missing,,E2E edit-contents round trip,,
-SMART-REPLACE,Smart objects & filters,core,3,Photoshop 27.6,Replace contents / relink,Replace contents / relink,missing,,E2E edit-contents round trip,,
-SMART-XFORM,Smart objects & filters,core,3,Photoshop 27.6,Transform retention,Non-destructive scaling from source,missing,,E2E edit-contents round trip,,
+SMART-EDIT,Smart objects & filters,core,3,Photoshop 27.6,Edit contents,Opens in a tab; changes propagate,implemented-unverified,,E2E edit-contents round trip,Layer › Smart Objects › Edit Contents opens a tab; File › Save to Smart Object propagates back,Contents tab is a single paint layer; a tab must be saved back explicitly
+SMART-REPLACE,Smart objects & filters,core,3,Photoshop 27.6,Replace contents / relink,Replace contents / relink,verified,,E2E edit-contents round trip,tests/e2e/smart.e2e.mjs Replace Contents,
+SMART-XFORM,Smart objects & filters,core,3,Photoshop 27.6,Transform retention,Non-destructive scaling from source,verified,,E2E edit-contents round trip,tests/e2e/smart.e2e.mjs scale down/up round trip (≤ 8 levels max difference),Scale/rotate via handles; skew/perspective/warp of smart objects not yet
 SMART-MISSING,Smart objects & filters,core,3,Photoshop 27.6,Missing-link recovery,Relink flow,missing,,E2E edit-contents round trip,,
-SMART-SF-STACK,Smart objects & filters,core,3,Photoshop 27.6,Smart filters stack,"Reorder, toggle, settings, blend options",missing,,E2E edit-contents round trip,,
+SMART-SF-STACK,Smart objects & filters,core,3,Photoshop 27.6,Smart filters stack,"Reorder, toggle, settings, blend options",verified,,E2E edit-contents round trip,"tests/e2e/smart.e2e.mjs toggle, edit (double-click), delete",Reorder via context menu; no per-filter blend options yet
 SMART-SF-MASK,Smart objects & filters,core,3,Photoshop 27.6,Smart filter mask,Smart filter mask,missing,,E2E edit-contents round trip,,
-SMART-PRIVACY,Smart objects & filters,core,3,Photoshop 27.6,External content stays local,No uploads without explicit authorisation,missing,,E2E edit-contents round trip,,
-TEXT-POINT,Type,core,3,Photoshop 27.6,Point text,Baseline editable SVG text,implemented-unverified,,Rendering fixture + editability round trip,Baseline SVG text,
-TEXT-PARA,Type,core,3,Photoshop 27.6,Paragraph text,Box with wrapping,missing,,Rendering fixture + editability round trip,,
+SMART-PRIVACY,Smart objects & filters,core,3,Photoshop 27.6,External content stays local,No uploads without explicit authorisation,implemented-unverified,,E2E edit-contents round trip,Contents live only in the local asset store; nothing is uploaded,
+TEXT-POINT,Type,core,3,Photoshop 27.6,Point text,Baseline editable SVG text,verified,,Rendering fixture + editability round trip,tests/e2e/pro.e2e.mjs type step,
+TEXT-PARA,Type,core,3,Photoshop 27.6,Paragraph text,Box with wrapping,implemented-unverified,,Rendering fixture + editability round trip,tests/textlayout.test.js wrapping + justification; Convert to Paragraph Text,
 TEXT-VERTICAL,Type,core,3,Photoshop 27.6,Vertical text,Vertical text,missing,,Rendering fixture + editability round trip,,
 TEXT-MASK,Type,core,3,Photoshop 27.6,Type mask tools,Creates a selection,missing,,Rendering fixture + editability round trip,,
-TEXT-FONT-LOAD,Type,core,3,Photoshop 27.6,Font loading,Local fonts / user-provided font files,partial,,Rendering fixture + editability round trip,Four system font stacks,
+TEXT-FONT-LOAD,Type,core,3,Photoshop 27.6,Font loading,Local fonts / user-provided font files,partial,,Rendering fixture + editability round trip,16 web-safe/system families in the Character panel,No web-font upload yet
 TEXT-MISSING-FONT,Type,core,3,Photoshop 27.6,Missing-font report,Substitution report on open,missing,,Rendering fixture + editability round trip,,
-TEXT-RUNS,Type,core,3,Photoshop 27.6,Multiple styles in one layer,Character runs,missing,,Rendering fixture + editability round trip,,
-TEXT-KERN,Type,core,3,Photoshop 27.6,Kerning,Metrics/optical/manual,missing,,Rendering fixture + editability round trip,,
-TEXT-TRACK,Type,core,3,Photoshop 27.6,Tracking,Baseline letter-spacing,implemented-unverified,,Rendering fixture + editability round trip,Baseline,
-TEXT-LEADING,Type,core,3,Photoshop 27.6,Leading,Baseline line height,partial,,Rendering fixture + editability round trip,lineHeight field not exposed in UI,
-TEXT-BASELINE,Type,core,3,Photoshop 27.6,Baseline shift,Baseline shift,missing,,Rendering fixture + editability round trip,,
-TEXT-PARA-SPACE,Type,core,3,Photoshop 27.6,Paragraph spacing/indents,Paragraph spacing/indents,missing,,Rendering fixture + editability round trip,,
+TEXT-RUNS,Type,core,3,Photoshop 27.6,Multiple styles in one layer,Character runs,implemented-unverified,,Rendering fixture + editability round trip,tests/textlayout.test.js; Character panel applies to the on-canvas selection,
+TEXT-KERN,Type,core,3,Photoshop 27.6,Kerning,Metrics/optical/manual,implemented-unverified,,Rendering fixture + editability round trip,tests/textlayout.test.js (metrics + manual pairs),Optical kerning is a bounding-box approximation
+TEXT-TRACK,Type,core,3,Photoshop 27.6,Tracking,Baseline letter-spacing,verified,,Rendering fixture + editability round trip,tests/e2e/pro.e2e.mjs tracking widens text; tests/textlayout.test.js,
+TEXT-LEADING,Type,core,3,Photoshop 27.6,Leading,Baseline line height,implemented-unverified,,Rendering fixture + editability round trip,tests/textlayout.test.js (auto = 120 %),
+TEXT-BASELINE,Type,core,3,Photoshop 27.6,Baseline shift,Baseline shift,implemented-unverified,,Rendering fixture + editability round trip,"tests/textlayout.test.js (baseline shift, super/subscript)",
+TEXT-PARA-SPACE,Type,core,3,Photoshop 27.6,Paragraph spacing/indents,Paragraph spacing/indents,implemented-unverified,,Rendering fixture + editability round trip,"tests/textlayout.test.js (indents, space before/after)",Paragraph settings apply to the whole layer
 TEXT-ALIGN,Type,core,3,Photoshop 27.6,Alignment/justification,Baseline left/centre/right,implemented-unverified,,Rendering fixture + editability round trip,Baseline,
-TEXT-DECOR,Type,core,3,Photoshop 27.6,Underline/strikethrough,Underline/strikethrough,missing,,Rendering fixture + editability round trip,,
-TEXT-OPENTYPE,Type,core,3,Photoshop 27.6,OpenType features,"Ligatures, alternates, fractions",missing,,Rendering fixture + editability round trip,,
+TEXT-DECOR,Type,core,3,Photoshop 27.6,Underline/strikethrough,Underline/strikethrough,implemented-unverified,,Rendering fixture + editability round trip,"Underline, strikethrough, faux bold/italic, all/small caps",
+TEXT-OPENTYPE,Type,core,3,Photoshop 27.6,OpenType features,"Ligatures, alternates, fractions",partial,,Rendering fixture + editability round trip,Standard ligatures toggle,Per-glyph positioning limits ligatures in Chrome
 TEXT-VARIABLE,Type,core,3,Photoshop 27.6,Variable fonts,Axis sliders,missing,,Rendering fixture + editability round trip,,
 TEXT-RTL,Type,core,3,Photoshop 27.6,RTL and complex shaping,HarfBuzz-class shaping,missing,,Rendering fixture + editability round trip,,
-TEXT-ON-PATH,Type,core,3,Photoshop 27.6,Text on path,Text on path,missing,,Rendering fixture + editability round trip,,
-TEXT-WARP,Type,core,3,Photoshop 27.6,Warp text,Warp text,missing,,Rendering fixture + editability round trip,,
+TEXT-ON-PATH,Type,core,3,Photoshop 27.6,Text on path,Text on path,partial,,Rendering fixture + editability round trip,tests/textlayout.test.js layoutOnPath,Engine + renderer; created from a path via the Paths panel only when a path exists
+TEXT-WARP,Type,core,3,Photoshop 27.6,Warp text,Warp text,verified,,Rendering fixture + editability round trip,tests/e2e/pro.e2e.mjs Warp Text (Arc) renders; tests/textlayout.test.js,Warped text is rasterised (not vector) in exports
 TEXT-PSD-CONVERT,Type,core,3,Photoshop 27.6,Convert imported PSD text,Baseline explicit conversion with local font,implemented-unverified,,Rendering fixture + editability round trip,Baseline,
 VEC-PEN,Paths & shapes,core,3,Photoshop 27.6,Pen tool,Bezier anchors/handles,missing,,Geometry unit tests + SVG round trip,,
 VEC-FREEFORM,Paths & shapes,core,3,Photoshop 27.6,Freeform pen,Fitted curves,missing,,Geometry unit tests + SVG round trip,,
@@ -457,7 +457,7 @@ FILT-SEARCH,Filter engine & gallery,core,3,Photoshop 27.6,Search/categories,Sear
 FILT-PREVIEW,Filter engine & gallery,core,3,Photoshop 27.6,Live preview with split before/after,Live preview with split before/after,partial,,Golden image per filter; identity and cancel tests,tests/e2e/toolset.e2e.mjs (docs/evidence/m1-toolset-e2e-results.json) live preview on canvas with Preview toggle,No split before/after view
 FILT-CANCEL,Filter engine & gallery,core,3,Photoshop 27.6,Cancelable background processing,Workers; no full-res work in event handlers,verified,,Golden image per filter; identity and cancel tests,Filters run in src/engine/ops-worker.js; a new job terminates the running one; tests/e2e/toolset.e2e.mjs (docs/evidence/m1-toolset-e2e-results.json),
 FILT-PRESETS,Filter engine & gallery,core,3,Photoshop 27.6,"User presets (folders, favourites, import/export, intensity)","User presets (folders, favourites, import/export, intensity)",missing,,Golden image per filter; identity and cancel tests,,
-FILT-LIQUIFY,Filter engine & gallery,core,3,Photoshop 27.6,Liquify,"Forward warp, reconstruct, smooth, twirl, pucker, bloat, push, freeze/thaw",missing,,Golden image per filter; identity and cancel tests,,
+FILT-LIQUIFY,Filter engine & gallery,core,3,Photoshop 27.6,Liquify,"Forward warp, reconstruct, smooth, twirl, pucker, bloat, push, freeze/thaw",verified,,Golden image per filter; identity and cancel tests,tests/e2e/pro.e2e.mjs Forward Warp step; tests/liquify.test.js,"Edits at ≤1200 px proxy resolution, field upsampled; no Face-Aware, Pin Edges or Backdrop"
 FILT-LIQUIFY-FACE,Filter engine & gallery,core,3,Photoshop 27.6,Face-aware Liquify,Face-aware Liquify,missing,Face landmark model,Golden image per filter; identity and cancel tests,,Deferred by D-001
 FILT-LENS-CORR,Filter engine & gallery,core,3,Photoshop 27.6,Lens Correction filter,Lens Correction filter,missing,,Golden image per filter; identity and cancel tests,,
 FILT-VANISHING,Filter engine & gallery,core,3,Photoshop 27.6,Vanishing Point,Vanishing Point,missing,,Golden image per filter; identity and cancel tests,,

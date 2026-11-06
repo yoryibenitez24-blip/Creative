@@ -1,0 +1,21 @@
+/* Advanced type: Character / Paragraph panels, Warp Text dialog, on-canvas text editor */
+.typePanel{padding:10px 12px;border-top:1px solid #2e2e33;color:#ddd;font-size:11px}
+.typePanel h4{margin:0 0 8px;font-size:11px;color:#c9c9d1;text-transform:uppercase;letter-spacing:.5px}
+.typePanel h4 small{text-transform:none;letter-spacing:0;color:#8e8e98;font-weight:400}
+.typeRow{display:flex;gap:6px;align-items:center;margin:6px 0}.typeRow select{flex:1;min-width:0;height:24px;font-size:11px}
+.typeGrid{display:grid;grid-template-columns:1fr 1fr;gap:5px 8px;margin:6px 0}
+.typeNum{display:flex;flex-direction:column;gap:2px;min-width:0;position:relative}
+.typeNum span{color:#8e8e98;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.typeNum input,.typeNum select{width:100%;height:22px;padding:0 4px;font-size:11px;box-sizing:border-box}
+.typeNum small{position:absolute;right:5px;bottom:4px;color:#6f6f78;font-size:9px;pointer-events:none}
+.typeNum input{padding-right:46px}
+.typeColor{display:flex;align-items:center;gap:8px;margin:6px 0}.typeColor span{color:#8e8e98;font-size:10px}.typeColor input{width:34px;height:22px;padding:0;border:1px solid #3a3a42}.typeColor code{color:#aaa;font-size:10px}
+.typeToggles,.typeAligns{display:flex;flex-wrap:wrap;gap:3px;margin:8px 0}
+.typeToggle{min-width:26px;height:24px;padding:0 5px;border:1px solid #3a3a42;border-radius:4px;color:#c4c4cc;font-family:Georgia,serif;font-size:12px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;line-height:1}
+.typeToggle sup,.typeToggle sub{font-size:8px}.typeToggle small{font-size:9px}
+.typeToggle.on{background:#393044;border-color:#6d5aa8;color:#e2d6ff}
+.typeConvert{width:100%;margin-top:8px;padding:6px;border:1px solid #3a3a42;border-radius:6px}
+.typePanel .hint{display:block;color:#6f6f78;font-size:9.5px;margin-top:6px;line-height:1.35}
+.typeFieldset{border:0;margin:0;padding:0;min-width:0}.typeFieldset:disabled{opacity:.45}
+.typeWarpPreview{display:block;width:100%;height:auto;margin-top:10px;border-radius:6px;border:1px solid #333338}
+.typeEditArea{display:block;font-kerning:normal}.typeEditArea::selection{background:#b5a2ef66;color:inherit}

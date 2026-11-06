@@ -1,0 +1,39 @@
+/* Paths panel, Pen overlay and path thumbnails (module: paths) */
+
+.pathsPanel { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.pathsList { list-style: none; margin: 0; padding: 4px; overflow-y: auto; flex: 1; min-height: 60px; }
+.pathRow { display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 8px; border: 1px solid transparent; border-radius: 4px; cursor: default; user-select: none; }
+.pathRow:hover { background: #26262b; }
+.pathRow.selected { background: #302a3c; border-color: #443854; }
+.pathRow:focus-visible { outline: 2px solid #a997ea; outline-offset: -2px; }
+.pathRow.work .pathName { font-style: italic; }
+.pathName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: #d4d4da; }
+.pathRow input { flex: 1; height: 22px; padding: 0 5px; font-size: 11px; }
+.pathsEmpty { padding: 10px 6px; color: #8b8b94; font-size: 11px; line-height: 1.4; }
+.pathThumb { flex-shrink: 0; border: 1px solid #3a3a40; border-radius: 2px; }
+.pathThumbBg { fill: #3a3a40; }
+.pathsFooter { display: flex; justify-content: flex-end; gap: 2px; padding: 4px 6px; border-top: 1px solid #303034; flex-shrink: 0; }
+.pathsFooter button { width: 26px; height: 24px; border-radius: 4px; color: #b4b4bb; }
+.pathsFooter button:disabled { opacity: .35; cursor: default; background: none; }
+
+/* Pen overlay (inside the document SVG) */
+.penOverlay { cursor: crosshair; }
+.penOverlay .penPathUnder { stroke: rgba(0, 0, 0, .45); }
+.penOverlay .penPath { stroke: #3d9bff; }
+.penOverlay .penPathSelected { stroke: #7cc0ff; }
+.penOverlay .penRubber { stroke: #3d9bff; opacity: .75; }
+.penOverlay .penHandleLine { stroke: #3d9bff; }
+.penOverlay .penHandle { fill: #3d9bff; stroke: #fff; }
+.penOverlay .penAnchor { fill: #fff; stroke: #1f6fd0; }
+.penOverlay .penAnchor.on { fill: #1f6fd0; stroke: #fff; }
+.penOverlay .penMarquee { fill: rgba(61, 155, 255, .08); stroke: #3d9bff; }
+
+/* Cursor feedback: a pen nib with a modifier mark (+ add, − delete, o close, ^ convert, / continue) */
+.penOverlay.penHover-pen, .penOverlay.penHover-new { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M2 2l6 14 3-3 5 5 2-2-5-5 3-3z' fill='%23fff' stroke='%23000'/%3E%3C/svg%3E") 2 2, crosshair; }
+.penOverlay.penHover-add { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M2 2l6 14 3-3 5 5 2-2-5-5 3-3z' fill='%23fff' stroke='%23000'/%3E%3Cpath d='M17 5h6M20 2v6' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") 2 2, copy; }
+.penOverlay.penHover-delete { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M2 2l6 14 3-3 5 5 2-2-5-5 3-3z' fill='%23fff' stroke='%23000'/%3E%3Cpath d='M17 5h6' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") 2 2, crosshair; }
+.penOverlay.penHover-close { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M2 2l6 14 3-3 5 5 2-2-5-5 3-3z' fill='%23fff' stroke='%23000'/%3E%3Ccircle cx='20' cy='5' r='2.5' fill='none' stroke='%23000' stroke-width='1.5'/%3E%3C/svg%3E") 2 2, crosshair; }
+.penOverlay.penHover-continue { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M2 2l6 14 3-3 5 5 2-2-5-5 3-3z' fill='%23fff' stroke='%23000'/%3E%3Cpath d='M17 8l5-6' stroke='%23000' stroke-width='1.5'/%3E%3C/svg%3E") 2 2, crosshair; }
+.penOverlay.penHover-convert { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M2 2l6 14 3-3 5 5 2-2-5-5 3-3z' fill='%23fff' stroke='%23000'/%3E%3Cpath d='M16 8l4-5 4 5' fill='none' stroke='%23000' stroke-width='1.5'/%3E%3C/svg%3E") 2 2, crosshair; }
+.penOverlay.penTool-direct, .penOverlay.penTool-pathSelect { cursor: default; }
+.penOverlay.penHover-target { cursor: move; }

@@ -1,0 +1,23 @@
+/* Filter › Liquify (src/editor/LiquifyDialog.jsx). Builds on the .cameraRaw / .crs* layout. */
+.liquify .crsMain{min-height:0}
+.lqTools{width:44px;flex-shrink:0;background:#232326;border-right:1px solid #2e2e33;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;overflow-y:auto}
+.lqTools button{width:32px;height:32px;border-radius:5px;color:#b4b4bc;flex-shrink:0}
+.lqTools button.on{background:#393044;color:#e2d6ff}
+.lqTools button:nth-child(9){margin-bottom:8px}
+.lqView{flex:1;position:relative;overflow:hidden;min-width:0;background:#111113;touch-action:none;cursor:none}
+.lqView.hand{cursor:grab}.lqView.hand:active{cursor:grabbing}.lqView.zoom{cursor:zoom-in}
+.lqStage{position:absolute;left:0;top:0;transform-origin:0 0;background:repeating-conic-gradient(#2a2a2e 0 25%,#202024 0 50%) 0 0/16px 16px;box-shadow:0 10px 30px #0008}
+.lqStage canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+.lqMesh{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.lqCursor{position:absolute;left:0;top:0;border-radius:50%;border:1px solid #fff;box-shadow:0 0 0 1px #000a;pointer-events:none}
+.lqSide .crsPanel header{padding:0}
+.lqHead{margin:0;padding:9px 10px 4px;font-size:12px;font-weight:600;color:#e2e2e6}
+.lqButtons{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+.lqButtons .optButton,.lqZoom .optButton{padding:4px 9px;border:1px solid #3a3a41;border-radius:5px;font-size:10px}
+.lqZoom{align-items:center;gap:6px}.lqZoom span{min-width:44px;text-align:center;color:#a8a8b0}
+.lqZoom .optButton:disabled{opacity:.4;cursor:default}
+.lqDisabled{opacity:.45}
+.liquify .crsRow input[type=color]{width:24px;height:20px}
+.liquify .hint{color:#8e8e98;font-size:10px;line-height:1.4;margin:4px 0}
+.lqPreview{margin-right:auto}
+.liquify .optCheck{margin:5px 0}

@@ -1,0 +1,22 @@
+/* Colour management and Image › Mode dialogs (src/editor/ColorDialogs.jsx). */
+.colorDialog{width:360px}
+.colorDialog.wide{width:430px}
+.colorDialog .opField{grid-template-columns:150px 1fr 56px auto}
+.colorDialog .opField select{min-width:0;width:100%}
+.colorDialog .opField:has(select) {grid-template-columns:150px 1fr}
+.cdGroup{border:1px solid #34343b;border-radius:8px;padding:8px 10px 10px;margin:0;display:flex;flex-direction:column;gap:6px}
+.cdGroup legend{padding:0 4px;color:#b9b9c3;font-size:11px;font-weight:600}
+.cdRow{display:grid;grid-template-columns:150px 1fr;gap:6px;align-items:center}
+.cdRow span{color:#a8a8b2}
+.cdRow b{font-weight:500;color:#e2e2e8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cdRadios{display:flex;flex-direction:column;gap:5px}
+.cdRadios label{display:flex;align-items:center;gap:6px}
+.cdLoad{display:flex;flex-direction:column;gap:4px}
+.cdFile{display:flex;flex-direction:column;gap:4px;color:#a8a8b2}
+.cdFile input[type=file]{font-size:10px;color:#ccc}
+.cdError{margin:0;color:#ff8a80;line-height:1.4}
+.cdInfo{margin:0;color:#9fd49f;line-height:1.4}
+.duoCurve{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.duoCurve label{display:flex;flex-direction:column;gap:2px;font-size:10px;color:#a8a8b2}
+.duoCurve input{width:100%;box-sizing:border-box}
+.colorDialog .cdGroup > button{align-self:flex-start;padding:4px 8px;border:1px solid #3a3a41;border-radius:6px}

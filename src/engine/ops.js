@@ -10,6 +10,8 @@ import * as G from './geometry.js';
 import { BW_DEFAULTS } from './adjust.js';
 import { develop } from './develop.js';
 import { projectiveTransform, meshWarp } from './warp.js';
+import { liquifyOp } from './liquify.js';
+import { refineAlphaOp } from './refine.js';
 import { contentAwareFill } from './inpaint.js';
 
 const r = (key, label, min, max, def, step = 1, unit = '') => ({ key, label, type: 'range', min, max, default: def, step, unit });
@@ -101,6 +103,8 @@ export const OPS = [
   { id: 'rotate180', name: 'Rotate 180°', menu: 'geometry', geometry: true, params: [], run: G.rotate180 },
   { id: 'resample', name: 'Resample', menu: 'geometry', geometry: true, params: [], run: (b, p) => G.resample(b, p.w, p.h, p.method) },
   { id: 'projective', name: 'Free Transform', menu: 'geometry', geometry: true, params: [], run: (b, p) => projectiveTransform(b, p.quad, p.method) },
+  { id: 'liquify', name: 'Liquify…', menu: 'geometry', ledger: 'FILT-LIQUIFY', params: [], run: (b, p) => liquifyOp(b, p) },
+  { id: 'refineEdge', name: 'Refine Layer Edge', menu: 'geometry', ledger: 'SAM-RADIUS', params: [], run: (b, p, c) => refineAlphaOp(b, p, c) },
   { id: 'meshWarp', name: 'Warp', menu: 'geometry', geometry: true, params: [], run: (b, p) => meshWarp(b, p.grid, p.method) },
   { id: 'place', name: 'Place', menu: 'geometry', geometry: true, params: [], run: (b, p) => G.placeInto(b, p.w, p.h, p.dx, p.dy) },
 ];

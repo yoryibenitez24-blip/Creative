@@ -190,14 +190,14 @@ await step('native project: .zertake envelope stores pixels once and reopens ide
   const [dl] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+s')]);
   const json = JSON.parse(readFileSync(await dl.path(), 'utf8'));
   assert.equal(json.format, 'zertake-project');
-  assert.equal(json.schemaVersion, 3);
+  assert.equal(json.schemaVersion, 4);
   const raster = json.document.layers.filter(l => l.type === 'raster');
   assert.equal(raster.length, 1);
   assert.deepEqual(Object.keys(json.assets), [raster[0].assetId]);
   const path = join(evidence, 'm1-roundtrip.zertake');
   writeFileSync(path, JSON.stringify(json));
   const tabs = await app().locator('.docTab').count();
-  await app().locator('input[type=file]').first().setInputFiles(path);
+  await app().locator('input[type=file][accept*="zertake"]').first().setInputFiles(path);
   await page.waitForFunction(([sel, n]) => document.querySelectorAll(sel + ' .docTab').length === n, [APP, tabs + 1]);
   await page.waitForFunction(sel => { const c = document.querySelector(sel + ' canvas.rasterSurface'); return c && c.getContext('2d').getImageData(120, 100, 1, 1).data[3] === 255; }, APP, { timeout: 10000 });
   assert.deepEqual(await alpha(), beforeReload);

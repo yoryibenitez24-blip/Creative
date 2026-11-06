@@ -662,7 +662,35 @@ AREAS.push(
 // Current state. Rows absent here are `missing`.
 // evidence: test name or file proving it. note: limitations.
 const T_TF = 'tests/e2e/transform.e2e.mjs (docs/evidence/m1-transform-e2e-results.json); tests/warp.test.js', T_DEV = 'tests/develop.test.js', T_STY = 'tests/e2e/styles.e2e.mjs (docs/evidence/m1-styles-e2e-results.json)', T_STU = 'tests/styles.test.js', T_TOOLSET = 'tests/e2e/toolset.e2e.mjs (docs/evidence/m1-toolset-e2e-results.json)', T_OPS = 'tests/ops.test.js', T_TOOLS = 'tests/tools.test.js', T_MASKS = 'tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json)', T_ENGINE = 'tests/engine.test.js', T_E2E = 'tests/e2e/slice.e2e.mjs (docs/evidence/m1-e2e-results.json)', T_MODEL = 'src/model.test.js', T_IMPORT = 'tests/import.test.js';
+const T_SMART = 'tests/e2e/smart.e2e.mjs', T_PRO = 'tests/e2e/pro.e2e.mjs';
 export const STATUS = {
+  // ---- slice 5: Smart Objects, Liquify, Select and Mask, advanced type ----
+  'SMART-EMBED': ['verified', T_SMART + ' convert + Place Embedded', 'Contents stored as one embedded raster asset (not a layered sub-document)'],
+  'SMART-EDIT': ['implemented-unverified', 'Layer › Smart Objects › Edit Contents opens a tab; File › Save to Smart Object propagates back', 'Contents tab is a single paint layer; a tab must be saved back explicitly'],
+  'SMART-REPLACE': ['verified', T_SMART + ' Replace Contents'],
+  'SMART-XFORM': ['verified', T_SMART + ' scale down/up round trip (≤ 8 levels max difference)', 'Scale/rotate via handles; skew/perspective/warp of smart objects not yet'],
+  'SMART-SF-STACK': ['verified', T_SMART + ' toggle, edit (double-click), delete', 'Reorder via context menu; no per-filter blend options yet'],
+  'SMART-PRIVACY': ['implemented-unverified', 'Contents live only in the local asset store; nothing is uploaded'],
+  'FILT-LIQUIFY': ['verified', T_PRO + ' Forward Warp step; tests/liquify.test.js', 'Edits at ≤1200 px proxy resolution, field upsampled; no Face-Aware, Pin Edges or Backdrop'],
+  'SAM-VIEW': ['implemented-unverified', 'src/editor/SelectAndMask.jsx: all seven view modes'],
+  'SAM-EDGE-BRUSH': ['implemented-unverified', 'tests/refine.test.js (brush only changes painted areas)'],
+  'SAM-RADIUS': ['implemented-unverified', 'tests/refine.test.js (smart radius narrows band)', 'Colour-model + guided-filter matte, not closed-form matting'],
+  'SAM-SMOOTH': ['implemented-unverified', 'tests/refine.test.js'], 'SAM-FEATHER': ['verified', T_PRO + ' Select and Mask step; tests/refine.test.js'],
+  'SAM-CONTRAST': ['implemented-unverified', 'tests/refine.test.js'], 'SAM-SHIFT': ['implemented-unverified', 'tests/refine.test.js (±2 px at ±50 %)', 'Distance formula is our own'],
+  'SAM-DECONTAM': ['implemented-unverified', 'tests/refine.test.js', 'Nearest-foreground colour replacement, not a compositing solve'],
+  'SAM-OUTPUT': ['verified', T_PRO + ' (new layer output); all five outputs wired'],
+  'TEXT-POINT': ['verified', T_PRO + ' type step'], 'TEXT-PARA': ['implemented-unverified', 'tests/textlayout.test.js wrapping + justification; Convert to Paragraph Text'],
+  'TEXT-RUNS': ['implemented-unverified', 'tests/textlayout.test.js; Character panel applies to the on-canvas selection'],
+  'TEXT-KERN': ['implemented-unverified', 'tests/textlayout.test.js (metrics + manual pairs)', 'Optical kerning is a bounding-box approximation'],
+  'TEXT-TRACK': ['verified', T_PRO + ' tracking widens text; tests/textlayout.test.js'],
+  'TEXT-LEADING': ['implemented-unverified', 'tests/textlayout.test.js (auto = 120 %)'], 'TEXT-BASELINE': ['implemented-unverified', 'tests/textlayout.test.js (baseline shift, super/subscript)'],
+  'TEXT-PARA-SPACE': ['implemented-unverified', 'tests/textlayout.test.js (indents, space before/after)', 'Paragraph settings apply to the whole layer'],
+  'TEXT-DECOR': ['implemented-unverified', 'Underline, strikethrough, faux bold/italic, all/small caps'],
+  'TEXT-ON-PATH': ['partial', 'tests/textlayout.test.js layoutOnPath', 'Engine + renderer; created from a path via the Paths panel only when a path exists'],
+  'TEXT-WARP': ['verified', T_PRO + ' Warp Text (Arc) renders; tests/textlayout.test.js', 'Warped text is rasterised (not vector) in exports'],
+  'TEXT-FONT-LOAD': ['partial', '16 web-safe/system families in the Character panel', 'No web-font upload yet'],
+  'TEXT-OPENTYPE': ['partial', 'Standard ligatures toggle', 'Per-glyph positioning limits ligatures in Chrome'],
+
   'M0-LAYOUT': ['verified', 'npm run build + node --test (docs/MILESTONE_REPORT.md)'],
   'M0-BASE-TESTS': ['verified', 'npm test'],
   'M0-LEDGER': ['verified', 'tests/ledger.test.js'],
@@ -975,8 +1003,7 @@ export const STATUS = {
   'LAYER-THUMBS': ['partial', 'Icons only'],
   'BLEND-NORMAL': ['implemented-unverified', 'CSS mix-blend-mode'], 'BLEND-MULTIPLY': ['implemented-unverified', 'CSS mix-blend-mode'], 'BLEND-SCREEN': ['implemented-unverified', 'CSS mix-blend-mode'], 'BLEND-OVERLAY': ['implemented-unverified', 'CSS mix-blend-mode'], 'BLEND-DARKEN': ['implemented-unverified', 'CSS mix-blend-mode'], 'BLEND-LIGHTEN': ['implemented-unverified', 'CSS mix-blend-mode'], 'BLEND-DIFFERENCE': ['implemented-unverified', 'CSS mix-blend-mode'],
   'BLEND-COLOR-DODGE': ['partial', 'Imported PSD layers only (not in menu)'], 'BLEND-COLOR-BURN': ['partial', 'Imported PSD layers only'], 'BLEND-SOFT-LIGHT': ['partial', 'Imported PSD layers only'], 'BLEND-HARD-LIGHT': ['partial', 'Imported PSD layers only'], 'BLEND-EXCLUSION': ['partial', 'Imported PSD layers only'], 'BLEND-HUE': ['partial', 'Imported PSD layers only'], 'BLEND-SATURATION': ['partial', 'Imported PSD layers only'], 'BLEND-COLOR': ['partial', 'Imported PSD layers only'], 'BLEND-LUMINOSITY': ['partial', 'Imported PSD layers only'],
-  'TEXT-POINT': ['implemented-unverified', 'Baseline SVG text'], 'TEXT-TRACK': ['implemented-unverified', 'Baseline'], 'TEXT-LEADING': ['partial', 'lineHeight field not exposed in UI'], 'TEXT-ALIGN': ['implemented-unverified', 'Baseline'], 'TEXT-PSD-CONVERT': ['implemented-unverified', 'Baseline'],
-  'TEXT-FONT-LOAD': ['partial', 'Four system font stacks'],
+  'TEXT-ALIGN': ['implemented-unverified', 'Baseline'], 'TEXT-PSD-CONVERT': ['implemented-unverified', 'Baseline'],
   'VEC-RECT': ['implemented-unverified', 'Baseline'], 'VEC-ROUNDRECT': ['partial', 'Single corner radius'], 'VEC-ELLIPSE': ['implemented-unverified', 'Baseline'],
   'FILT-LEGACY-PANEL': ['partial', 'src/FilterGallery.jsx', 'Destructive bake, main-thread, 24 MP cap; not Develop'],
   'FILT-LEG-EXPOSURE': ['partial', 'src/FilterGallery.jsx; browser QA in DOCUMENTACION_VERSION §8'],

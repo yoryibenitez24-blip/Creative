@@ -140,7 +140,7 @@ await step('mask and its properties persist across reload and in the .zertake fi
   const [dl] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Control+s')]);
   const json = JSON.parse(readFileSync(await dl.path(), 'utf8'));
   const l = json.document.layers.find(x => x.mask);
-  assert.equal(json.schemaVersion, 3); assert.ok(json.assets[l.mask.assetId], 'mask asset embedded once');
+  assert.equal(json.schemaVersion, 4); assert.ok(json.assets[l.mask.assetId], 'mask asset embedded once');
   assert.equal(l.mask.density, 0.8); assert.equal(l.mask.feather, 6);
 });
 

@@ -1,0 +1,36 @@
+/* Select › Select and Mask… workspace (src/editor/SelectAndMask.jsx). Builds on the .cameraRaw / .crs* layout. */
+.selectMask .crsTop{gap:12px}
+.selectMask .smZoomPct{color:#8d8d96;font-variant-numeric:tabular-nums}
+.selectMask .smUndo{border:1px solid #444;border-radius:4px;padding:3px 8px;font-size:10px}
+.selectMask .smUndo:disabled{opacity:.4}
+.smOptions{height:34px;display:flex;align-items:center;gap:12px;padding:0 12px;border-bottom:1px solid #2e2e33;background:#202023;flex-shrink:0}
+.smOptions .segmented{margin:0}
+.smOptions button{border:1px solid #444;border-radius:4px;padding:3px 8px;font-size:10px}
+.smOptions .segmented button{border:0;border-radius:0}
+.smOptions .hint{color:#8d8d96}
+.smSize{display:flex;align-items:center;gap:6px}
+.smSize input[type=range]{width:120px}
+.smSize input[type=number]{width:52px;height:20px;padding:0 4px;font-size:10px;text-align:right}
+.smTools{width:40px;background:#232326;border-right:1px solid #2e2e33;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;flex-shrink:0}
+.smTools button{width:30px;height:30px;display:grid;place-items:center;border-radius:4px;color:#c4c4cc;padding:0}
+.smTools button:hover{background:#333338}
+.smTools button.on{background:#393044;color:#e2d6ff}
+.smView{flex:1;position:relative;overflow:hidden;background:#111113;min-width:0;touch-action:none;cursor:crosshair}
+.smView.tool-hand{cursor:grab}
+.smView.tool-hand:active{cursor:grabbing}
+.smView.tool-zoom{cursor:zoom-in}
+.smView.tool-quick,.smView.tool-refine,.smView.tool-brush{cursor:none}
+.smView canvas,.smOverlay{position:absolute;image-rendering:auto}
+.smView canvas{box-shadow:0 10px 30px #0008}
+.smOverlay{pointer-events:none;overflow:visible}
+.smAntsA{fill:none;stroke:#fff}
+.smAntsB{fill:none;stroke:#000;animation:smAnts .6s linear infinite}
+@keyframes smAnts{to{stroke-dashoffset:-8}}
+.smLasso{fill:#b5a2ef22;stroke:#e2d6ff}
+.smCursor{fill:none;stroke:#fff;mix-blend-mode:difference}
+.smBusy{position:absolute;inset:0;display:grid;place-items:center;background:#0008;color:#fff;font-size:13px;cursor:progress}
+.selectMask .smButtons{display:flex;gap:6px;margin-top:8px}
+.selectMask .smButtons button{flex:1;border:1px solid #444;border-radius:4px;padding:4px 6px;font-size:10px}
+.selectMask .smUnit{color:#8d8d96}
+.selectMask .crsRow input[type=color]{width:40px;height:20px;padding:0;border:1px solid #444}
+.selectMask .crsFooter button:disabled{opacity:.5}
