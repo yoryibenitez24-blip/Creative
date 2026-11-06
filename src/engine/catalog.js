@@ -294,7 +294,8 @@ export function resetDevelop(cat, ids) { let c = cat; for (const id of [].concat
 // ---------------------------------------------------------------- presets
 
 /** Built-in presets (original looks). Each holds only the keys it changes. */
-export const BUILTIN_PRESETS = [
+import { PRESET_LIBRARY } from './presetLibrary.js';
+const ESSENTIALS = [
   { id: 'b-clean-pop', name: 'Clean Pop', builtin: true, settings: { contrast: 14, highlights: -22, shadows: 18, clarity: 10, vibrance: 22 } },
   { id: 'b-soft-matte', name: 'Soft Matte', builtin: true, settings: { contrast: -12, highlights: -10, curve: { rgb: [[0, 26], [128, 130], [255, 240]] }, saturation: -8 } },
   { id: 'b-warm-afternoon', name: 'Warm Afternoon', builtin: true, settings: { wb: 'custom', temp: 18, tint: 4, vibrance: 10, grading: { highlights: { hue: 42, sat: 14, lum: 0 } } } },
@@ -303,6 +304,8 @@ export const BUILTIN_PRESETS = [
   { id: 'b-silver-mono', name: 'Silver Mono', builtin: true, settings: { profile: 'monochrome', profileAmount: 100, contrast: 18, clarity: 14 } },
   { id: 'b-crisp-detail', name: 'Crisp Detail', builtin: true, settings: { sharpenAmount: 60, sharpenMasking: 20, texture: 18, clarity: 8 } },
 ];
+/** Built-in presets: the 7 essentials plus the categorised original library (presetLibrary.js). */
+export const BUILTIN_PRESETS = [...ESSENTIALS.map(p => ({ ...p, category: 'Essentials' })), ...PRESET_LIBRARY];
 
 /** Apply a preset: deep-merges ONLY the preset's keys into the settings. */
 export function applyPreset(settings, preset) { return mergeDeep(expandSettings(settings), preset.settings); }

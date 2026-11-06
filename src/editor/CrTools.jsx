@@ -1,9 +1,11 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { develop, developDefaults } from '../engine/develop.js';
+import { resample } from '../engine/geometry.js';
 import { SlidersHorizontal, Crop, Grid3x3, Bandage, Layers, Sparkles, History, Trash2, Pencil } from 'lucide-react';
 import {
   CROP_DEFAULTS, GEOMETRY_DEFAULTS, SPOT_DEFAULTS, cropSettingsToRect, isCropIdentity, uprightFor, autoStraightenAngle, findSpotSource, spotMask,
 } from '../engine/develop2.js';
-import { PANELS, DEFAULT_SYNC_PANELS, blendPreset as blend } from '../engine/catalog.js';
+import { PANELS, DEFAULT_SYNC_PANELS, blendPreset as blend, applyPreset } from '../engine/catalog.js';
 import { CropOverlay, CropPanel, GeometryPanel, GuidedOverlay, RemovePanel, SpotsOverlay, straightenCrop } from './GeometryTools.jsx';
 import { Slider } from './DevelopPanels.jsx';
 
@@ -73,19 +75,41 @@ export function ToolRail({ ct }) {
   })}</nav>;
 }
 
-function PresetsPanel({ presets, active, amount, onApply, onAmount, onSave, onDelete }) {
+// Preset thumbnails: each preset rendered on a ~112 px copy of the photo (main thread, cached by id).
+function usePresetThumbs(getSource, presets, category) {
+  const [thumbs, setThumbs] = useState({}); const tiny = useRef(null), done = useRef({});
+  useEffect(() => {
+    const src = getSource?.(); if (!src) return;
+    if (!tiny.current || tiny.current.from !== src) { const k = Math.min(1, 112 / Math.max(src.w, src.h)); tiny.current = { from: src, buf: k < 1 ? resample(src, Math.max(1, Math.round(src.w * k)), Math.max(1, Math.round(src.h * k)), 'bilinear') : src }; done.current = {}; setThumbs({}); }
+    const todo = presets.filter(p => (!category || p.category === category || (category === 'User presets' && !p.builtin)) && !done.current[p.id]);
+    let i = 0, alive = true;
+    const step = () => { if (!alive) return; const t0 = performance.now(); const out = {};
+      while (i < todo.length && performance.now() - t0 < 24) { const p = todo[i++]; done.current[p.id] = true;
+        try { const b = tiny.current.buf, r = develop({ w: b.w, h: b.h, data: new Uint8ClampedArray(b.data) }, applyPreset(developDefaults(), p), { scale: b.w / 1600 }); const c = document.createElement('canvas'); c.width = r.w; c.height = r.h; c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(r.data), r.w, r.h), 0, 0); out[p.id] = c.toDataURL('image/jpeg', 0.8); } catch { /* skip */ } }
+      if (Object.keys(out).length) setThumbs(t => ({ ...t, ...out })); if (i < todo.length) setTimeout(step, 16); };
+    step(); return () => { alive = false; };
+  }, [presets, category, getSource]);
+  return thumbs;
+}
+
+function PresetsPanel({ presets, active, amount, onApply, onAmount, onSave, onDelete, getSource }) {
   const [saving, setSaving] = useState(false), [name, setName] = useState(''), [panels, setPanels] = useState(() => [...DEFAULT_SYNC_PANELS]);
-  const groups = [['Built-in', presets.filter(p => p.builtin)], ['User presets', presets.filter(p => !p.builtin)]];
+  const cats = [...new Set(presets.filter(p => p.builtin).map(p => p.category || 'Built-in')), 'User presets'];
+  const [cat, setCat] = useState(cats[0]), [q, setQ] = useState('');
+  const list = presets.filter(p => q ? p.name.toLowerCase().includes(q.toLowerCase()) : cat === 'User presets' ? !p.builtin : (p.category || 'Built-in') === cat && p.builtin);
+  const thumbs = usePresetThumbs(getSource, presets, q ? null : cat);
   return <div className="ctPanel" aria-label="Presets">
     {active && <div className="ctAmount"><Slider label={'Amount · ' + active.name} aria="Preset amount" value={amount} min={0} max={200} def={100} onChange={onAmount} /></div>}
-    {groups.map(([title, list]) => <section key={title}><h5>{title}</h5>
-      {!list.length && <p className="d2Note">No user presets yet — save the current settings below.</p>}
-      <div className="ctList">{list.map(p => <div key={p.id} className={'ctRow' + (active?.id === p.id ? ' on' : '')}>
-        <button className="ctItem" aria-label={'Apply preset ' + p.name} aria-pressed={active?.id === p.id} onClick={() => onApply(p)}>{p.name}</button>
-        {!p.builtin && <button className="d2Icon" aria-label={'Delete preset ' + p.name} title="Delete preset" onClick={() => onDelete(p.id)}><Trash2 size={12} /></button>}
-      </div>)}</div></section>)}
+    <input className="ctSearch" type="search" aria-label="Search presets" placeholder="Search presets" value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.stopPropagation()} />
+    {!q && <div className="ctCats" role="tablist" aria-label="Preset categories">{cats.map(c => <button key={c} role="tab" aria-selected={cat === c} className={cat === c ? 'on' : ''} onClick={() => setCat(c)}>{c}</button>)}</div>}
+    {!list.length && <p className="d2Note">{cat === 'User presets' && !q ? 'No user presets yet — save the current settings below.' : 'No presets match.'}</p>}
+    <div className="ctGrid">{list.map(p => <div key={p.id} className={'ctTile' + (active?.id === p.id ? ' on' : '')}>
+      <button className="ctTileBtn" aria-label={'Apply preset ' + p.name} aria-pressed={active?.id === p.id} title={(p.category ? p.category + ' · ' : '') + p.name} onClick={() => onApply(p)}>
+        <span className="ctThumb">{thumbs[p.id] ? <img src={thumbs[p.id]} alt="" /> : <span className="ctThumbWait" />}</span><span className="ctTileName">{p.name}</span></button>
+      {!p.builtin && <button className="d2Icon ctTileDel" aria-label={'Delete preset ' + p.name} title="Delete preset" onClick={() => onDelete(p.id)}><Trash2 size={12} /></button>}
+    </div>)}</div>
     {!saving ? <button className="d2Wide" onClick={() => { setSaving(true); setName(''); }}>Save Preset…</button>
-      : <form className="ctSave" aria-label="Save preset" onSubmit={e => { e.preventDefault(); if (!panels.length) return; onSave(name.trim() || 'User Preset', panels); setSaving(false); }}>
+      : <form className="ctSave" aria-label="Save preset" onSubmit={e => { e.preventDefault(); if (!panels.length) return; onSave(name.trim() || 'User Preset', panels); setSaving(false); setCat('User presets'); }}>
         <label className="ctField"><span>Preset name</span><input aria-label="Preset name" value={name} autoFocus onChange={e => setName(e.target.value)} onKeyDown={e => e.stopPropagation()} /></label>
         <div className="ctChecks">{Object.entries(PANELS).map(([k, p]) => <label key={k} className="optCheck"><input type="checkbox" aria-label={'Include ' + p.name} checked={panels.includes(k)} onChange={e => setPanels(v => e.target.checked ? [...v, k] : v.filter(x => x !== k))} />{p.name}</label>)}</div>
         <div className="d2Buttons"><button type="button" onClick={() => setSaving(false)}>Cancel</button><button type="submit" disabled={!panels.length}>Save</button></div>
@@ -148,7 +172,7 @@ export function useDevelopTools({ s, replace, getSource, mk, presets = [], saveP
   else if (tool === 'geometry') panel = <GeometryPanel geometry={geo} onChange={setGeometry} onUpright={onUpright} />;
   else if (tool === 'remove') panel = <RemovePanel tool={spotTool} setTool={setSpotTool} brush={brush} setBrush={setBrush} spots={spots} showOverlay={showSpots} setShowOverlay={setShowSpots}
     onDeleteSpot={id => put({ spots: spots.filter((x, i) => (x.id ?? i) !== id) }, 'Delete Spot')} />;
-  else if (tool === 'presets') panel = <PresetsPanel presets={presets} active={preset?.p} amount={preset?.amount ?? 100}
+  else if (tool === 'presets') panel = <PresetsPanel getSource={getSource} presets={presets} active={preset?.p} amount={preset?.amount ?? 100}
     onApply={p => { const base = preset ? preset.base : sRef.current; setPreset({ p, base, amount: 100 }); applyPresetAt(p, base, 100); }}
     onAmount={v => { if (!preset) return; setPreset({ ...preset, amount: v }); applyPresetAt(preset.p, preset.base, v); }}
     onSave={(name, panels) => savePreset?.(name, panels)} onDelete={id => deletePreset?.(id)} />;
