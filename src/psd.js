@@ -3,7 +3,8 @@ const blendMap={'normal':'normal','multiply':'multiply','screen':'screen','overl
 export function convertPsd(psd,name,{uid,rasterize}){
  if(!psd.width||!psd.height||psd.width>8000||psd.height>8000)throw Error('PSD dimensions must be between 1 and 8000 pixels.');
  const layers=[],groups=[],warnings=[];let count=0;
- const walk=(children,parent=null,inherited={visible:true,opacity:1,locked:false})=>{for(const l of [...children].reverse()){
+ // ag-psd lists children bottom-first (PSD stores the bottom layer first), the same order as doc.layers
+ const walk=(children,parent=null,inherited={visible:true,opacity:1,locked:false})=>{for(const l of children){
  const id=uid(),label=l.name||'Unnamed layer',visible=inherited.visible&&!l.hidden,opacity=inherited.opacity*(l.opacity??1),locked=inherited.locked||!!l.protected?.position;
  const report=m=>warnings.push(`${label}: ${m}`);
  if(l.children){groups.push({id,name:label,parent,visible,opacity,blend:l.blendMode});if(l.opacity!==undefined&&l.opacity!==1)report('group opacity is applied per child and may look different where layers overlap.');if(l.mask||l.vectorMask||l.effects||l.blendMode&& !['normal','pass through'].includes(l.blendMode))report('group masks, effects or blending are not reproduced.');walk(l.children,id,{visible,opacity,locked});continue}

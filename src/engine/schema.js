@@ -15,7 +15,7 @@
 // layer fields are carried through untouched, so a later version can still read them.
 
 export const SCHEMA_VERSION = 3;
-export const LAYER_TYPES = ['rect', 'ellipse', 'text', 'image', 'raster'];
+export const LAYER_TYPES = ['rect', 'ellipse', 'text', 'image', 'raster', 'adjustment', 'fill'];
 export const PROJECT_FORMAT = 'zertake-project';
 
 const newId = () => globalThis.crypto?.randomUUID?.() || 'doc-' + Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -90,6 +90,7 @@ export function referencedAssets(doc) {
   for (const l of doc.layers || []) {
     if (l.type === 'raster' && typeof l.assetId === 'string') ids.add(l.assetId);
     if (l.mask && typeof l.mask.assetId === 'string') ids.add(l.mask.assetId);
+    if (l.develop && typeof l.develop.sourceId === 'string') ids.add(l.develop.sourceId);
   }
   return [...ids];
 }

@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-06T15:06:18.418Z",
+  "browser": "chromium (Playwright)",
+  "results": [
+    {
+      "name": "the + button creates an empty layer (not a rectangle)",
+      "ok": true
+    },
+    {
+      "name": "black square on the layer, then right-click › Blending Options opens Layer Style",
+      "ok": true
+    },
+    {
+      "name": "Drop Shadow (distance 20, size 0) and outside red Stroke render and export",
+      "ok": true
+    },
+    {
+      "name": "Color Overlay and Fill Opacity 0: overlay stays, content hidden; Cancel discards changes",
+      "ok": true
+    },
+    {
+      "name": "Blend If (This Layer black 10) hides the black content; undo restores in one step",
+      "ok": true
+    },
+    {
+      "name": "Clipping mask: a full red layer clipped to the square only shows inside it",
+      "ok": true
+    },
+    {
+      "name": "right-click on the canvas with a selection shows selection commands",
+      "ok": true
+    },
+    {
+      "name": "Camera Raw Filter: every panel present; Exposure +1 brightens; settings reopen with the layer",
+      "ok": true
+    },
+    {
+      "name": "Fill layer (Solid Color) and adjustment layers (Invert, Levels) affect layers below; undo removes them",
+      "ok": true
+    },
+    {
+      "name": "Export › PSD writes editable layers in Photoshop order with masks and effects",
+      "ok": true
+    },
+    {
+      "name": "no uncaught page errors",
+      "ok": true
+    }
+  ]
+}

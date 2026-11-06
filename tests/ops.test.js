@@ -28,7 +28,8 @@ test('ops: every registry op runs, keeps size (non-geometry) and never touches t
   for (const op of OPS) {
     if (op.geometry) continue;
     const src = img(), before = new Uint8ClampedArray(src.data);
-    const out = runOp(op.id, src, {}, { fg: '#102030', bg: '#f0e0d0' });
+    const mask = op.needsSelection ? Uint8Array.from({ length: 48 * 32 }, (_, i) => (i % 48 > 20 && i % 48 < 28 && i / 48 > 10 && i / 48 < 18) ? 255 : 0) : null;
+    const out = runOp(op.id, src, {}, { fg: '#102030', bg: '#f0e0d0', mask, docW: 48, docH: 32 });
     assert.equal(out.w, src.w, op.id); assert.equal(out.h, src.h, op.id);
     assert.deepEqual(src.data, before, op.id + ' mutated its input');
     assert.ok(op.ledger, op.id + ' has no ledger row');
@@ -182,4 +183,17 @@ test('geometry: rotate/flip are lossless, resample keeps flat colour and alpha, 
   assert.ok(maxDiff(down, src) <= 40, 'up/down round trip ' + maxDiff(down, src));
   const p = placeInto(flat(2, 2, [9, 9, 9, 255]), 4, 4, ...anchorOffset(2, 2, 4, 4, 2, 2));
   assert.deepEqual(px(p, 3, 3), [9, 9, 9, 255]); assert.deepEqual(px(p, 0, 0), [0, 0, 0, 0]);
+});
+
+test('filter gallery: each artistic/sketch/texture filter does what its name says', () => {
+  const src = img(48, 32, false);
+  const colours = b => new Set(Array.from({ length: b.w * b.h }, (_, i) => b.data.slice(i * 4, i * 4 + 3).join(','))).size;
+  assert.ok(colours(runOp('cutout', src, { levels: 3 })) <= 27, 'cutout flattens colours');
+  for (const id of ['halftonePattern', 'charcoal']) { const o = runOp(id, src, {}, { fg: '#000000', bg: '#ffffff' }); for (let i = 0; i < o.data.length; i += 4) assert.ok(o.data[i] === o.data[i + 1] && (o.data[i] === 0 || o.data[i] === 255), id + ' is two-tone'); }
+  const sg = runOp('stainedGlass', src, { cell: 8 }); let lead = 0; for (let i = 0; i < sg.data.length; i += 4) if (sg.data[i] === 25 && sg.data[i + 1] === 25) lead++; assert.ok(lead > 40, 'stained glass has leading');
+  assert.ok(maxDiff(runOp('texturizer', flat(32, 32, [128, 128, 128, 255])), flat(32, 32, [128, 128, 128, 255])) > 5, 'texturizer adds relief to a flat area');
+  for (const id of ['dryBrush', 'posterEdges', 'watercolor', 'coloredPencil', 'spatter', 'glass']) assert.ok(maxDiff(runOp(id, src), src) > 5, id + ' changes the image');
+  const edge = flat(20, 10, [230, 230, 230, 255]); for (let y = 0; y < 10; y++) for (let x = 0; x < 10; x++) edge.data.set([30, 30, 30, 255], (y * 20 + x) * 4);
+  const ink = runOp('inkOutlines', edge); assert.ok(ink.data[(5 * 20 + 10) * 4] < 150, 'ink line on the edge'); assert.equal(ink.data[(5 * 20 + 17) * 4], 230, 'flat areas untouched');
+  assert.equal(maxDiff(runOp('glass', src, { seed: 2 }), runOp('glass', src, { seed: 2 })), 0, 'deterministic');
 });

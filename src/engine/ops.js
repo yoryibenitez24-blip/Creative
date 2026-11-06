@@ -8,6 +8,9 @@ import * as A from './adjust.js';
 import * as F from './filters.js';
 import * as G from './geometry.js';
 import { BW_DEFAULTS } from './adjust.js';
+import { develop } from './develop.js';
+import { projectiveTransform, meshWarp } from './warp.js';
+import { contentAwareFill } from './inpaint.js';
 
 const r = (key, label, min, max, def, step = 1, unit = '') => ({ key, label, type: 'range', min, max, default: def, step, unit });
 const sel = (key, label, options, def) => ({ key, label, type: 'select', options, default: def });
@@ -69,6 +72,27 @@ export const OPS = [
   { id: 'clouds', name: 'Clouds', menu: 'filter', group: 'Render', ledger: 'FLT-RENDER-CLOUDS', params: [r('scale', 'Scale', 8, 1024, 128, 1, 'px'), seed], run: F.clouds },
   { id: 'differenceClouds', name: 'Difference Clouds', menu: 'filter', group: 'Render', ledger: 'FLT-RENDER-DIFFERENCE-CLOUDS', params: [r('scale', 'Scale', 8, 1024, 128, 1, 'px'), seed], run: (b, p, c) => F.clouds(b, { ...p, difference: true }, c) },
 
+  // ---- Filter Gallery (artistic, brush strokes, sketch, texture) ----
+  { id: 'cutout', name: 'Cutout…', menu: 'filter', group: 'Artistic', ledger: 'FLT-ARTISTIC-CUTOUT', params: [r('levels', 'Number of levels', 2, 8, 5), r('simplicity', 'Edge simplicity', 1, 10, 3)], run: F.cutout },
+  { id: 'dryBrush', name: 'Dry Brush…', menu: 'filter', group: 'Artistic', ledger: 'FLT-ARTISTIC-DRY-BRUSH', params: [r('size', 'Brush size', 1, 10, 3), r('levels', 'Colour levels', 2, 16, 8)], run: F.dryBrush },
+  { id: 'posterEdges', name: 'Poster Edges…', menu: 'filter', group: 'Artistic', ledger: 'FLT-ARTISTIC-POSTER-EDGES', params: [r('thickness', 'Edge thickness', 1, 10, 2), r('intensity', 'Edge intensity', 0, 100, 60), r('levels', 'Posterization', 2, 8, 6)], run: F.posterEdges },
+  { id: 'watercolor', name: 'Watercolor…', menu: 'filter', group: 'Artistic', ledger: 'FLT-ARTISTIC-WATERCOLOR', params: [r('detail', 'Brush detail', 1, 5, 4), r('darkness', 'Shadow intensity', 0, 100, 50)], run: F.watercolor },
+  { id: 'coloredPencil', name: 'Colored Pencil…', menu: 'filter', group: 'Artistic', ledger: 'FLT-ARTISTIC-COLORED-PENCIL', params: [r('pressure', 'Stroke pressure', 0, 100, 60), r('paper', 'Paper brightness', 150, 255, 230)], run: F.coloredPencil },
+  { id: 'inkOutlines', name: 'Ink Outlines…', menu: 'filter', group: 'Brush Strokes', ledger: 'FLT-STROKE-INK-OUTLINES', params: [r('width', 'Stroke width', 1, 5, 1), r('darkness', 'Dark intensity', 0, 100, 80)], run: F.inkOutlines },
+  { id: 'spatter', name: 'Spatter…', menu: 'filter', group: 'Brush Strokes', ledger: 'FLT-STROKE-SPATTER', params: [r('radius', 'Spray radius', 1, 25, 6), r('smoothness', 'Smoothness', 1, 15, 2), seed], run: F.spatter },
+  { id: 'halftonePattern', name: 'Halftone Pattern…', menu: 'filter', group: 'Sketch', ledger: 'FLT-SKETCH-HALFTONE-PATTERN', params: [r('size', 'Size', 1, 12, 4)], run: F.halftonePattern },
+  { id: 'charcoal', name: 'Charcoal…', menu: 'filter', group: 'Sketch', ledger: 'FLT-SKETCH-CHARCOAL', params: [r('thickness', 'Charcoal thickness', 1, 7, 2), r('balance', 'Light/dark balance', 0, 100, 50)], run: F.charcoal },
+  { id: 'stainedGlass', name: 'Stained Glass…', menu: 'filter', group: 'Texture', ledger: 'FLT-TEXTURE-STAINED-GLASS', params: [r('cell', 'Cell size', 4, 50, 14), r('border', 'Border thickness', 1, 8, 2), seed], run: F.stainedGlass },
+  { id: 'texturizer', name: 'Texturizer…', menu: 'filter', group: 'Texture', ledger: 'FLT-TEXTURE-TEXTURIZER', params: [sel('texture', 'Texture', [['canvas', 'Canvas'], ['brick', 'Brick'], ['burlap', 'Burlap']], 'canvas'), r('scale', 'Scaling', 50, 200, 100, 1, '%'), r('relief', 'Relief', 0, 20, 4)], run: F.texturizer },
+  { id: 'glass', name: 'Glass…', menu: 'filter', group: 'Distort', ledger: 'FLT-DISTORT-GLASS', params: [r('distortion', 'Distortion', 0, 20, 5), r('smoothness', 'Smoothness', 1, 15, 3), seed], run: F.glass },
+  // ---- Camera Raw Filter (own full-screen dialog, src/editor/CameraRaw.jsx) ----
+  { id: 'cameraRaw', name: 'Camera Raw Filter…', menu: 'special', ledger: 'FILT-CAMERA-RAW', params: [], run: (b, p, c) => develop(b, p.settings || {}, c) },
+  { id: 'contentAwareFill', name: 'Content-Aware Fill', menu: 'special', ledger: 'RETOUCH-CA-FILL', needsSelection: true, params: [], run: (b, p, c) => {
+    if (!c.mask) throw Error('Make a selection around what should be removed first');
+    const hole = new Uint8Array(b.w * b.h), ox = c.offsetX || 0, oy = c.offsetY || 0;
+    for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) { const dx = x + ox, dy = y + oy; if (dx >= 0 && dy >= 0 && dx < c.docW && dy < c.docH && c.mask[dy * c.docW + dx] > 127) hole[y * b.w + x] = 255; }
+    return contentAwareFill(b, hole, { seed: p.seed || 1 });
+  } },
   // ---- geometry (size-changing; no selection blending) ----
   { id: 'flipH', name: 'Flip Horizontal', menu: 'geometry', geometry: true, params: [], run: G.flipH },
   { id: 'flipV', name: 'Flip Vertical', menu: 'geometry', geometry: true, params: [], run: G.flipV },
@@ -76,6 +100,8 @@ export const OPS = [
   { id: 'rotate90ccw', name: 'Rotate 90° counter-clockwise', menu: 'geometry', geometry: true, params: [], run: b => G.rotate90(b, false) },
   { id: 'rotate180', name: 'Rotate 180°', menu: 'geometry', geometry: true, params: [], run: G.rotate180 },
   { id: 'resample', name: 'Resample', menu: 'geometry', geometry: true, params: [], run: (b, p) => G.resample(b, p.w, p.h, p.method) },
+  { id: 'projective', name: 'Free Transform', menu: 'geometry', geometry: true, params: [], run: (b, p) => projectiveTransform(b, p.quad, p.method) },
+  { id: 'meshWarp', name: 'Warp', menu: 'geometry', geometry: true, params: [], run: (b, p) => meshWarp(b, p.grid, p.method) },
   { id: 'place', name: 'Place', menu: 'geometry', geometry: true, params: [], run: (b, p) => G.placeInto(b, p.w, p.h, p.dx, p.dy) },
 ];
 

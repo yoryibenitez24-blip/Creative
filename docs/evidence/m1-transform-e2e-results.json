@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-06T15:06:57.071Z",
+  "browser": "chromium (Playwright)",
+  "results": [
+    {
+      "name": "setup: black 100×30 bar on a paint layer",
+      "ok": true
+    },
+    {
+      "name": "Ctrl+T, drag the bottom-right corner: proportional ×1.5 scale about the opposite corner",
+      "ok": true
+    },
+    {
+      "name": "rotate 90° (Shift snaps to 15°) turns the bar vertical around its centre",
+      "ok": true
+    },
+    {
+      "name": "Ctrl+drag a corner distorts only that corner",
+      "ok": true
+    },
+    {
+      "name": "Edit › Warp: dragging a top-edge control point bulges the bar; Escape cancels nothing committed",
+      "ok": true
+    },
+    {
+      "name": "Content-Aware Fill (Shift+Backspace) removes a red blob from striped texture",
+      "ok": true
+    },
+    {
+      "name": "Patch tool: draw around a blob, drag it onto clean texture, blob is healed away",
+      "ok": true
+    },
+    {
+      "name": "Quick Selection: painting over the bar selects it and stops at its edge; Filter Gallery filter applies",
+      "ok": true
+    },
+    {
+      "name": "no uncaught page errors",
+      "ok": true
+    }
+  ]
+}

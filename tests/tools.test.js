@@ -160,3 +160,13 @@ test('docxform: canvas size anchors, crop shifts masks, image size scales vector
   assert.deepEqual([r.x, r.y, r.w, r.h], [20, -10, 20, 40]);
   assert.equal(place({ w: 1, h: 1, data: new Uint8ClampedArray([1, 2, 3, 4]) }, 3, 3, 1, 1).data[16], 1);
 });
+
+import { quickSelectGrow } from '../src/engine/fill.js';
+test('quick selection grows over similar colour, stops at a strong edge, and accumulates strokes', () => {
+  const W = 60, H = 30, b = flat(W, H, [200, 60, 60, 255]); for (let y = 0; y < H; y++) for (let x = 30; x < W; x++) set(b, x, y, [40, 40, 200, 255]);
+  const region = new Uint8Array(W * H);
+  quickSelectGrow(b, region, 10, 15, 4, { reach: 6 });
+  assert.equal(region[15 * W + 25], 255, 'grew across the red area'); assert.equal(region[15 * W + 35], 0, 'stopped at the blue edge');
+  quickSelectGrow(b, region, 45, 15, 4, { reach: 6 });
+  assert.equal(region[15 * W + 45], 255); assert.equal(region[15 * W + 10], 255, 'previous stroke kept');
+});
