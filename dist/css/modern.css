@@ -173,3 +173,30 @@ input[type=range][style*="background"]::-moz-range-thumb { width: 12px; height: 
 .insColor .insNum input { width: 100%; }
 .insSlider input[type=range] { margin: 0; box-sizing: border-box; padding: 0 2px; }
 .inspector input { box-sizing: border-box; }
+
+/* ---------- Camera Raw / Develop sliders: compact Lightroom-style (ring thumb, fill from origin) ---------- */
+.crsSlider { padding: 2px 0 0; }
+.crsSlider .crsRow span { font-size: 12.5px; color: #c4c4c4; }
+.crsSlider .crsRow input[type=number] { font: 400 12.5px/1 inherit; font-family: inherit; color: #d6d6d6; }
+.crsSlider input[type=range]:not([style*="background"]) {
+  height: 22px; margin: 0; background: none; -webkit-mask-image: none; mask-image: none;
+}
+.crsSlider input[type=range]:not([style*="background"])::-webkit-slider-runnable-track {
+  height: 2px; border-radius: 1px;
+  background: linear-gradient(90deg, transparent var(--lo, 50%), #cfcfcf var(--lo, 50%) var(--hi, 50%), transparent var(--hi, 50%)), #464646;
+}
+.crsSlider input[type=range]:not([style*="background"])::-moz-range-track { height: 2px; background: linear-gradient(90deg, transparent var(--lo, 50%), #cfcfcf var(--lo, 50%) var(--hi, 50%), transparent var(--hi, 50%)), #464646; }
+.crsSlider input[type=range]:not([style*="background"])::-webkit-slider-thumb {
+  width: 18px; height: 18px; margin-top: -8px; border-radius: 50%; background: var(--z-panel, #161618);
+  border: 2px solid #bdbdbd; box-shadow: 0 0 0 5px var(--z-panel, #161618); transform: none;
+}
+.crsSlider input[type=range]:not([style*="background"])::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--z-panel, #161618); border: 2px solid #bdbdbd; box-shadow: 0 0 0 5px var(--z-panel, #161618); }
+.crsSlider input[type=range]:not([style*="background"]):hover::-webkit-slider-thumb { border-color: #fff; transform: none; }
+.crsSlider input[type=range]:not([style*="background"]):focus-visible::-webkit-slider-thumb { border-color: var(--z-accent); }
+.crsSlider input[type=range][style*="background"] { height: 12px; margin: 5px 0; }
+.crsSlider input[type=range][style*="background"]::-webkit-slider-runnable-track { height: 12px; }
+.crsSlider input[type=range][style*="background"]::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -2px; background: var(--z-panel, #161618); border: 2px solid #e6e6e6; }
+.crsSlider input[type=range] { border: 0 !important; outline: none; background-color: transparent; width: 100%; display: block; }
+.crsSlider input[type=range]:not([style*="background"]) { box-shadow: none !important; }
+.crsBody .crsSlider, .crsSlider { margin: 0 !important; padding: 0 0 2px !important; gap: 0 !important; }
+.crsSlider .crsRow { margin: 0; min-height: 20px; }

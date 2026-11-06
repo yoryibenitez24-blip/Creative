@@ -18,11 +18,14 @@ import { CurveEditor } from './OpDialog.jsx';
 
 const lin = v => { const c = v / 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
 
+// Fill from the slider's origin (its default) to the thumb, Lightroom style.
+const fillVars = (v, o, min, max) => { const p = x => (Math.min(max, Math.max(min, x)) - min) / (max - min) * 100; const a = p(v), b = p(o); return { '--lo': Math.min(a, b) + '%', '--hi': Math.max(a, b) + '%' }; };
+
 export function Slider({ label, value, min, max, step = 1, onChange, def = 0, gradient }) {
   const fmt = v => step < 1 ? (+v).toFixed(2) : Math.round(v);
   return <div className="crsSlider" onDoubleClick={() => onChange(def)} title="Double-click to reset">
     <div className="crsRow"><span>{label}</span><input type="number" aria-label={label + ' value'} min={min} max={max} step={step} value={fmt(value)} onChange={e => { const v = +e.target.value; if (Number.isFinite(v)) onChange(Math.max(min, Math.min(max, v))); }} /></div>
-    <input type="range" aria-label={label} min={min} max={max} step={step} value={value} onChange={e => onChange(+e.target.value)} style={gradient ? { background: gradient } : undefined} />
+    <input type="range" aria-label={label} min={min} max={max} step={step} value={value} onChange={e => onChange(+e.target.value)} style={gradient ? { background: gradient } : fillVars(value, def, min, max)} />
   </div>;
 }
 export function Panel({ id, title, open, toggle, bypass, setBypass, children }) {
