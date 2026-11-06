@@ -80,3 +80,12 @@ test('ledger: rows deferred by a scope decision stay missing and unused by enabl
     for (const d of DECISIONS) if (d.applies(r)) assert.match(r.note, new RegExp(d.id), r.id);
   }
 });
+
+import { OPS } from '../src/engine/ops.js';
+test('ledger: every Image/Filter operation maps to an existing, implemented ledger row', () => {
+  for (const op of OPS) {
+    if (op.geometry) continue;
+    assert.ok(byId.has(op.ledger), `${op.id} → unknown ledger row ${op.ledger}`);
+    assert.ok(['verified', 'implemented-unverified'].includes(byId.get(op.ledger).state), `${op.id} is in the menu but ${op.ledger} is ${byId.get(op.ledger).state}`);
+  }
+});

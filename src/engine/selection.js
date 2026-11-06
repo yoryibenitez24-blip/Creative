@@ -44,6 +44,11 @@ function addSpan(row, w, a, b, weight) {
 export function rasterizeShape(shape, W, H) {
   const out = new Float32Array(W * H);
   if (shape.type === 'all') { out.fill(1); return out; }
+  if (shape.type === 'bitmap') {
+    const vals = decodeRle(shape.rle, shape.w * shape.h);
+    for (let y = 0; y < shape.h; y++) { const ty = y + shape.y; if (ty < 0 || ty >= H) continue; for (let x = 0; x < shape.w; x++) { const tx = x + shape.x; if (tx >= 0 && tx < W) out[ty * W + tx] = vals[y * shape.w + x] / 255; } }
+    return out;
+  }
   if (shape.type === 'rect') {
     let { x, y, w, h } = shape;
     if (w < 0) { x += w; w = -w; }
@@ -185,9 +190,66 @@ function shapeBounds(shape, W, H) {
   let xs, ys;
   if (shape.type === 'polygon') { xs = shape.points.filter((_, i) => i % 2 === 0); ys = shape.points.filter((_, i) => i % 2 === 1); }
   else if (shape.type === 'all') return { x0: 0, y0: 0, x1: W, y1: H };
+  else if (shape.type === 'bitmap') { xs = [shape.x, shape.x + shape.w]; ys = [shape.y, shape.y + shape.h]; }
   else { xs = [shape.x, shape.x + shape.w]; ys = [shape.y, shape.y + shape.h]; }
   const b = { x0: Math.max(0, Math.floor(Math.min(...xs))), y0: Math.max(0, Math.floor(Math.min(...ys))), x1: Math.min(W, Math.ceil(Math.max(...xs))), y1: Math.min(H, Math.ceil(Math.max(...ys))) };
   return b.x1 > b.x0 && b.y1 > b.y0 ? b : null;
+}
+
+// ---------- pixel selections (magic wand, colour range, mask → selection) ----------
+/** Run-length encode 0..255 values as base64 of [value, runLength≤255] byte pairs. */
+export function encodeRle(vals) {
+  const bytes = [];
+  for (let i = 0; i < vals.length;) { const v = vals[i]; let n = 1; while (n < 255 && i + n < vals.length && vals[i + n] === v) n++; bytes.push(v, n); i += n; }
+  let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.slice(i, i + 0x8000));
+  return btoa(s);
+}
+export function decodeRle(b64, n) {
+  const s = atob(b64), out = new Uint8Array(n); let o = 0;
+  for (let i = 0; i + 1 < s.length && o < n; i += 2) { const v = s.charCodeAt(i), c = s.charCodeAt(i + 1); out.fill(v, o, Math.min(n, o + c)); o += c; }
+  return out;
+}
+/** Crop a document-sized 0..255 mask to its bounds and store it as a serialisable bitmap shape. */
+export function bitmapShape(mask, W, H) {
+  let x0 = W, y0 = H, x1 = -1, y1 = -1;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (mask[y * W + x]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; y1 = y; }
+  if (x1 < 0) return null;
+  const w = x1 - x0 + 1, h = y1 - y0 + 1, vals = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) vals.set(mask.subarray((y + y0) * W + x0, (y + y0) * W + x0 + w), y * w);
+  return { type: 'bitmap', x: x0, y: y0, w, h, rle: encodeRle(vals) };
+}
+
+// ---------- Select > Modify ----------
+// Exact Euclidean distance transform (Felzenszwalb & Huttenlocher) of a binary image.
+function edt1d(f, n, out, v, z) {
+  let k = 0; v[0] = 0; z[0] = -Infinity; z[1] = Infinity;
+  for (let q = 1; q < n; q++) {
+    let s; do { const p = v[k]; s = ((f[q] + q * q) - (f[p] + p * p)) / (2 * q - 2 * p); } while (s <= z[k] && --k >= 0);
+    k++; v[k] = q; z[k] = s; z[k + 1] = Infinity;
+  }
+  k = 0; for (let q = 0; q < n; q++) { while (z[k + 1] < q) k++; out[q] = (q - v[k]) ** 2 + f[v[k]]; }
+}
+/** Squared distance from each pixel to the nearest pixel where `on(i)` is true. */
+export function distanceTransform(W, H, on) {
+  const INF = 1e20, d = new Float64Array(W * H), n = Math.max(W, H), f = new Float64Array(n), o = new Float64Array(n), v = new Int32Array(n), z = new Float64Array(n + 1);
+  for (let i = 0; i < W * H; i++) d[i] = on(i) ? 0 : INF;
+  for (let x = 0; x < W; x++) { for (let y = 0; y < H; y++) f[y] = d[y * W + x]; edt1d(f, H, o, v, z); for (let y = 0; y < H; y++) d[y * W + x] = o[y]; }
+  for (let y = 0; y < H; y++) { for (let x = 0; x < W; x++) f[x] = d[y * W + x]; edt1d(f, W, o, v, z); for (let x = 0; x < W; x++) d[y * W + x] = o[x]; }
+  return d;
+}
+/** expand/contract by radius px (round), border = band of width radius around the edge, smooth = rounds corners. */
+function modify(acc, W, H, kind, radius) {
+  const r = Math.max(0, radius), out = new Float32Array(W * H);
+  if (kind === 'smooth') { const t = Float32Array.from(acc); feather(t, W, H, r * 2); for (let i = 0; i < t.length; i++) out[i] = t[i] >= 0.5 ? 1 : 0; return out; }
+  const inside = distanceTransform(W, H, i => acc[i] >= 0.5), outside = distanceTransform(W, H, i => acc[i] < 0.5);
+  for (let i = 0; i < out.length; i++) {
+    // centre-to-centre distances; the selection edge lies half a pixel from the nearest centre
+    const dIn = Math.sqrt(inside[i]), dOut = Math.sqrt(outside[i]); // to nearest selected / unselected pixel
+    if (kind === 'expand') out[i] = acc[i] >= 0.5 ? acc[i] : Math.max(0, Math.min(1, r + 1 - dIn));
+    else if (kind === 'contract') out[i] = acc[i] < 0.5 ? 0 : Math.max(0, Math.min(1, dOut - r)) * acc[i];
+    else { const dist = acc[i] >= 0.5 ? dOut : dIn; out[i] = Math.max(0, Math.min(1, r / 2 + 1 - dist)); }
+  }
+  return out;
 }
 
 const cache = new WeakMap();
@@ -201,6 +263,7 @@ export function computeMask(selection, W, H) {
   for (const op of selection.ops) {
     if (op.op === 'invert') { for (let i = 0; i < acc.length; i++) acc[i] = 1 - acc[i]; continue; }
     if (op.op === 'feather') { feather(acc, W, H, op.radius); continue; }
+    if (op.op === 'expand' || op.op === 'contract' || op.op === 'border' || op.op === 'smooth') { acc = modify(acc, W, H, op.op, op.radius); continue; }
     const s = rasterizeShape(op.shape, W, H);
     if (op.feather > 0) feather(s, W, H, op.feather, shapeBounds(op.shape, W, H));
     if (op.op === 'replace') acc = s;

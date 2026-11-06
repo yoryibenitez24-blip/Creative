@@ -12,10 +12,10 @@ Inputs (kept unchanged in `docs/baseline/`): INVENTARIO_BRECHAS.csv sha256 `9e40
 | Capas | Blend modes | Parcial | missing 1, partial 3, implemented-unverified 7: BLEND-NORMAL, BLEND-MULTIPLY, BLEND-SCREEN, BLEND-OVERLAY, BLEND-DARKEN, BLEND-LIGHTEN, BLEND-DIFFERENCE, BLEND-COLOR-DODGE, BLEND-SOFT-LIGHT, BLEND-HUE, BLEND-UI-COMPLETE |  |
 | Capas | Máscaras raster/vector y clipping | Pendiente | missing 4, verified 1: MASK-RASTER, MASK-VECTOR, LAYER-CLIPPING, PSD-IMPORT-MASKS, PSD-IMPORT-CLIP |  |
 | Capas | Ajustes y estilos | Pendiente | missing 8: ADJ-LEVELS, ADJ-CURVES, FX-DROP, FX-STROKE, FX-BLEND-IF, SMART-SF-STACK, PSD-IMPORT-FX, PSD-IMPORT-ADJ |  |
-| Pintura | Pincel, lápiz, borradores y mixer | Pendiente | missing 5, verified 4: PAINT-BRUSH, PAINT-ERASER, PAINT-PENCIL, PAINT-BG-ERASER, PAINT-MAGIC-ERASER, PAINT-MIXER, BRUSH-PRESS-SIZE, BRUSH-SHAPE-DYN, CMD-UNDO-STROKE | Brush and eraser are now implemented; pencil, background/magic eraser, mixer and dynamics remain missing. |
-| Selección | Marquee, lazos y varita | Pendiente | missing 4, implemented-unverified 2, verified 3: SEL-MARQ-RECT, SEL-MARQ-ELLI, SEL-LASSO-FREE, SEL-LASSO-POLY, SEL-LASSO-MAG, SEL-WAND, SEL-QUICK, SEL-FEATHER-OPT, SAM-EDGE-BRUSH | Marquee and lassos with pixel selection masks are now implemented; wand, magnetic lasso, quick selection and refinement remain missing. |
-| Retoque | Clone, heal, patch, remove | Pendiente | missing 6: RETOUCH-CLONE, RETOUCH-HEAL, RETOUCH-SPOT-HEAL, RETOUCH-PATCH, RETOUCH-REMOVE, RETOUCH-NONDESTRUCT |  |
-| Transformación | Mover, tamaño, rotación | Parcial | missing 4, partial 2, implemented-unverified 1: MOVE-001, XFORM-SCALE, XFORM-ROTATE, XFORM-PERSPECTIVE, XFORM-WARP, XFORM-PUPPET, CROP-TOOL |  |
+| Pintura | Pincel, lápiz, borradores y mixer | Pendiente | missing 4, verified 5: PAINT-BRUSH, PAINT-ERASER, PAINT-PENCIL, PAINT-BG-ERASER, PAINT-MAGIC-ERASER, PAINT-MIXER, BRUSH-PRESS-SIZE, BRUSH-SHAPE-DYN, CMD-UNDO-STROKE | Brush and eraser are now implemented; pencil, background/magic eraser, mixer and dynamics remain missing. |
+| Selección | Marquee, lazos y varita | Pendiente | missing 3, implemented-unverified 2, verified 4: SEL-MARQ-RECT, SEL-MARQ-ELLI, SEL-LASSO-FREE, SEL-LASSO-POLY, SEL-LASSO-MAG, SEL-WAND, SEL-QUICK, SEL-FEATHER-OPT, SAM-EDGE-BRUSH | Marquee and lassos with pixel selection masks are now implemented; wand, magnetic lasso, quick selection and refinement remain missing. |
+| Retoque | Clone, heal, patch, remove | Pendiente | missing 3, implemented-unverified 1, verified 2: RETOUCH-CLONE, RETOUCH-HEAL, RETOUCH-SPOT-HEAL, RETOUCH-PATCH, RETOUCH-REMOVE, RETOUCH-NONDESTRUCT |  |
+| Transformación | Mover, tamaño, rotación | Parcial | missing 3, partial 2, implemented-unverified 1, verified 1: MOVE-001, XFORM-SCALE, XFORM-ROTATE, XFORM-PERSPECTIVE, XFORM-WARP, XFORM-PUPPET, CROP-TOOL |  |
 | Texto | Tipografía editable | Parcial | missing 4, partial 1, implemented-unverified 1: TEXT-POINT, TEXT-FONT-LOAD, TEXT-RUNS, TEXT-PARA, TEXT-RTL, TEXT-ON-PATH |  |
 | Vectores | Pluma, curvas y formas avanzadas | Pendiente | missing 5: VEC-PEN, VEC-CURVATURE, VEC-BOOLEAN, VEC-POLYGON, MASK-VECTOR |  |
 | Filtros | Galería propia | Parcial | missing 2, partial 2: FILT-LEGACY-PANEL, FILT-LEG-PRESETS, FILT-STACK, FILT-THUMBS |  |
@@ -44,7 +44,7 @@ Inputs (kept unchanged in `docs/baseline/`): INVENTARIO_BRECHAS.csv sha256 `9e40
 | Timeline | Animación y vídeo | Pendiente | missing 2: ADV-FRAME-ANIM, ADV-VIDEO |  |
 | IA | Selección semántica y generación | Pendiente | missing 4: AI-PROVIDER, AI-SEGMENT, AI-SEMANTIC, AI-GEN-FILL |  |
 | Infraestructura | Cloud, cuentas y colaboración | Pendiente | missing 4: CLOUD-AUTH, CLOUD-SYNC, CLOUD-REVIEW, CLOUD-QUOTAS | Host-level sign-in on the published site is not an app account. |
-| Robustez | Workers y recuperación | Parcial | missing 3, partial 1, implemented-unverified 1: RENDER-WORKERS, DOC-RECOVERY-UI, DOC-CRASH, RENDER-MEM-PRESSURE, FILT-CANCEL |  |
+| Robustez | Workers y recuperación | Parcial | missing 2, partial 1, implemented-unverified 1, verified 1: RENDER-WORKERS, DOC-RECOVERY-UI, DOC-CRASH, RENDER-MEM-PRESSURE, FILT-CANCEL |  |
 | Documentación | Mensajes y README | Deuda | verified 1: M0-OBSOLETE-TEXT | Resolved in this milestone: README rewritten, worker errors replaced; guarded by a test. |
 
 Items from DOCUMENTACION_VERSION.txt that were not in the ledger and are now added: legacy Filter gallery sliders as separate rows (`FILT-LEG-*`), the gallery Cancel-after-upload behaviour, hostile project import hardening (`M0-IMPORT-HARDENING`), hosting under a sub-path (`M0-BASE-PATH`) and unused legacy CSS (`M0-DEAD-CSS`).

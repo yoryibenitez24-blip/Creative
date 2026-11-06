@@ -32,11 +32,11 @@ async function drag(points) {
   for (const p of s.slice(1)) await page.mouse.move(p.x, p.y, { steps: 6 });
   await page.mouse.up();
 }
-const settle = () => page.waitForFunction(sel => document.querySelector(sel + ' .saveStatus')?.textContent.includes('Saved locally'), APP, { timeout: 10000 }).then(() => page.waitForTimeout(250));
+const settle = () => page.waitForTimeout(120).then(() => page.waitForFunction(sel => { const a = document.querySelector(sel); return a && a.dataset.work === '0' && !document.querySelector('.opDialog') && a.querySelector('.saveStatus')?.textContent.includes('Saved locally'); }, APP, { timeout: 20000 })).then(() => page.waitForTimeout(150));
 async function setNumber(label, value) { const i = app().getByLabel(label, { exact: true }); await i.fill(String(value)); await i.blur(); await settle(); }
 async function exportRed(name) {
   await app().locator('button.export').click();
-  const [dl] = await Promise.all([page.waitForEvent('download'), app().getByRole('button', { name: /Download PNG/ }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download'), app().getByRole('button', { name: /Download PNG/ }).click()]); await page.waitForFunction(() => !document.querySelector('.modalBackdrop'));
   const png = readFileSync(await dl.path());
   if (name) writeFileSync(join(evidence, name), png);
   const img = await loadImage(png); const c = createCanvas(W, H); const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
@@ -61,7 +61,7 @@ await step('setup: black paint layer filling a 400×300 document', async () => {
 });
 
 await step('reveal selection: mask from a marquee hides the rest, selection is consumed', async () => {
-  await app().getByTitle('Marquee', { exact: true }).click();
+  await app().getByTitle('Marquee (M)', { exact: true }).click();
   await drag([[-5, -5], [100, 150], [200, 305]]);
   await settle();
   await app().getByRole('button', { name: 'Reveal selection' }).click();

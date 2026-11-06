@@ -1,5 +1,57 @@
 # Milestone report: M0 + M1 vertical slices
 
+## Slice 3: Photoshop toolset (ledger v0.3.0)
+
+**What was added.**
+* **Image › Adjustments (16 adjustments):** Brightness/Contrast, Levels, Curves, Exposure, Vibrance, Hue/Saturation, Color Balance, Black & White, Photo Filter, Channel Mixer, Invert, Posterize, Threshold, Gradient Map, Desaturate and Equalize.
+* **Filter menu (34 filters)**, organised in Blur, Sharpen, Noise, Distort, Pixelate, Stylize, Render and Other, plus Last Filter.
+* **Dialogs:** each runs in a background worker with live preview on the canvas, Preview toggle, Reset, Cancel (restores the pixels) and OK (one undo step). Levels, Curves and Threshold show a histogram. Curves has an editable curve per channel.
+* **New tools,** each with its own options bar:
+  * Magic Wand
+  * Crop (ratios, handles, Enter/Esc)
+  * Eyedropper (1–31 px, layer or composite)
+  * Spot Healing Brush and Healing Brush (Poisson blending)
+  * Pencil
+  * Clone Stamp (aligned)
+  * Gradient (linear, radial, angle, reflected, diamond) and Paint Bucket
+  * Blur, Sharpen and Smudge
+  * Dodge, Burn and Sponge
+  * Zoom (click, Alt-click, drag to scrub)
+* **Navigation:** holding Space gives a temporary hand, the wheel pans, and Ctrl+wheel zooms around the pointer.
+* **Image commands:** Image Size (bicubic, bilinear or nearest), Canvas Size with anchor, Image Rotation (90°, 180°, flip), Crop to selection and Trim.
+* **Layer commands:** Rasterize, Merge Down, Merge Visible and Flatten. Edit › Transform flips or rotates a layer. All 16 blend modes the browser supports are now in the menu.
+* **Selections:** Select › Modify (Expand, Contract, Border, Smooth) using an exact distance transform, and Load mask as selection. Wand and mask selections are stored as run-length-encoded bitmaps, so undo and reload keep them.
+* **History panel** with named steps (explicit names, or names inferred from the change). Click a step to jump backward or forward.
+* **Menus** now use nested submenus. `npm run dev` gained the worker build.
+
+**Tests.**
+* `npm test` gives 85 passed. New suites: `tests/ops.test.js` and `tests/tools.test.js` (identity at neutral settings, selection masking, property checks for every filter, flood fill, gradients, healing, document transforms) and an operation-to-ledger check.
+* The browser tests give 17/17 for the toolset (`tests/e2e/toolset.e2e.mjs`), 11/11 for slice 1 and 12/12 for masks, all judged on exported PNGs.
+
+**Bugs the browser test caught before the final commit.**
+1. Spot healing and smudge strokes used new stroke kinds that the pointer-move and pointer-up handlers did not route. They fell into the layer-move code and pushed an undefined state into history. Fixed, and covered by the healing and smudge steps.
+2. The test's "operation finished" signal ("Saved locally") could be true before an asynchronous operation started. The app now exposes a work counter on its root element (`data-work`) and shows "Working…" while busy. The tests wait on it.
+3. Several test-only issues: the export modal swallowing a keystroke, focus left in the colour or layer-name input, and the shortcut text inside menu accessible names (now `aria-label` only). The app behaved as designed in each case; the tests were fixed.
+
+**Ledger v0.2.0 → v0.3.0.**
+* 25 rows added: the new `IMGADJ` area, plus "Sharpen" and "Sharpen More" rows.
+* Every menu operation is now implemented, and a test enforces it. Rows backed by a specific automated test are `verified`. Rows that only pass the generic identity and selection tests are `implemented-unverified`: Brightness/Contrast, Vibrance, Color Balance, Photo Filter, Channel Mixer, Gradient Map, Equalize, Radial Blur, Despeckle, Custom, Diffuse, Wind, Oil Paint, Ripple and Polar Coordinates.
+* Adjustment **layers** (`ADJ-*`) stay `missing`. Image › Adjustments is the destructive Photoshop command, not an editable layer.
+
+**Known gaps** (highlights; the ledger has the rest):
+* Adjustment and fill layers, layer styles, smart objects and filters.
+* Vector pen and paths, and advanced text.
+* Free Transform of paint layers (scale, skew, perspective, warp).
+* Quick Selection and Select and Mask.
+* Content-Aware Fill, Patch and Remove.
+* Filter Gallery, Liquify and Lens Blur.
+* The split before/after preview for filters.
+* Colour management and 16/32-bit.
+* PSD export.
+* Develop (M2), library and output.
+
+---
+
 ## Slice 2: raster layer masks (ledger v0.2.0)
 
 **What works.** Every layer type (paint, image, shape, text) can have a document-space 8-bit mask. White reveals and black hides.

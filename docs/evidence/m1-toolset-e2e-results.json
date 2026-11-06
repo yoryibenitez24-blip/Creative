@@ -1,0 +1,74 @@
+{
+  "date": "2026-11-06T09:12:49.651Z",
+  "browser": "chromium (Playwright)",
+  "results": [
+    {
+      "name": "setup: white paint layer with a black left half",
+      "ok": true
+    },
+    {
+      "name": "magic wand selects the contiguous white half",
+      "ok": true
+    },
+    {
+      "name": "paint bucket fills the white region with the foreground colour",
+      "ok": true
+    },
+    {
+      "name": "eyedropper sets the foreground (click) and background (Alt-click)",
+      "ok": true
+    },
+    {
+      "name": "Filter › Blur › Gaussian Blur softens the edge with live preview and one undo step",
+      "ok": true
+    },
+    {
+      "name": "History panel jumps to an earlier state and back",
+      "ok": true
+    },
+    {
+      "name": "Image › Adjustments: Invert (⌘I), Levels (⌘L) and Curves cancel",
+      "ok": true
+    },
+    {
+      "name": "Image Size resamples to 150×100 (constrained), undo restores",
+      "ok": true
+    },
+    {
+      "name": "Image Rotation 90° clockwise moves the black half to the top",
+      "ok": true
+    },
+    {
+      "name": "Canvas Size with a centre anchor adds space without deleting pixels",
+      "ok": true
+    },
+    {
+      "name": "Crop tool: drag a box, Enter crops; undo restores",
+      "ok": true
+    },
+    {
+      "name": "Rasterize a shape layer and Merge Down keep the composite identical",
+      "ok": true
+    },
+    {
+      "name": "Clone Stamp: Alt-click a source, paint copies it",
+      "ok": true
+    },
+    {
+      "name": "Dodge (shadows) lightens black; spot healing removes a blemish",
+      "ok": true
+    },
+    {
+      "name": "Smudge drags black into the red half; undo restores",
+      "ok": true
+    },
+    {
+      "name": "navigation: zoom tool click doubles the zoom, Alt-click halves it; Space-drag pans",
+      "ok": true
+    },
+    {
+      "name": "no uncaught page errors",
+      "ok": true
+    }
+  ]
+}

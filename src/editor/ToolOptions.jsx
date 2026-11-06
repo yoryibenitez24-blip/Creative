@@ -7,33 +7,91 @@ const num = (label, value, onChange, { min, max, step = 1, suffix = '', scale = 
     <input type="number" aria-label={label + ' value'} min={min * scale} max={max * scale} step={step} value={Math.round(value * scale * 100) / 100} onChange={e => { const v = +e.target.value; if (Number.isFinite(v)) onChange(Math.min(max, Math.max(min, v / scale))); }} />
     {suffix && <small>{suffix}</small>}
   </label>;
+const check = (label, value, onChange) => <label className="optCheck"><input type="checkbox" aria-label={label} checked={!!value} onChange={e => onChange(e.target.checked)} />{label}</label>;
+const pick = (label, value, onChange, options) => <label className="opt"><span>{label}</span><select aria-label={label} value={value} onChange={e => onChange(e.target.value)}>{options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>;
+const segmented = (label, value, onChange, options) => <div className="segmented" role="group" aria-label={label}>{options.map(([v, l]) => <button key={v} aria-pressed={value === v} className={value === v ? 'on' : ''} onClick={() => onChange(v)}>{l}</button>)}</div>;
 
-const MODES = [['replace', 'New selection'], ['add', 'Add to selection (Shift)'], ['subtract', 'Subtract from selection (Alt)'], ['intersect', 'Intersect with selection (Shift+Alt)']];
+const MODES = [['replace', 'New'], ['add', 'Add'], ['subtract', 'Subtract'], ['intersect', 'Intersect']];
+const MODE_TITLES = { replace: 'New selection', add: 'Add to selection (Shift)', subtract: 'Subtract from selection (Alt)', intersect: 'Intersect with selection (Shift+Alt)' };
+export const VARIANTS = {
+  marquee: [['rect', 'Rectangular'], ['ellipse', 'Elliptical']],
+  lasso: [['free', 'Freehand'], ['polygon', 'Polygonal']],
+  brush: [['brush', 'Brush'], ['pencil', 'Pencil']],
+  fill: [['gradient', 'Gradient'], ['bucket', 'Paint Bucket']],
+  tone: [['dodge', 'Dodge'], ['burn', 'Burn'], ['sponge', 'Sponge']],
+  focus: [['blur', 'Blur'], ['sharpen', 'Sharpen'], ['smudge', 'Smudge']],
+  heal: [['spot', 'Spot Healing'], ['healing', 'Healing Brush']],
+};
+export const TOOL_NAMES = { move: 'Move', hand: 'Hand', zoom: 'Zoom', marquee: 'Marquee', lasso: 'Lasso', wand: 'Magic Wand', crop: 'Crop', eyedropper: 'Eyedropper', heal: 'Healing', brush: 'Brush', clone: 'Clone Stamp', eraser: 'Eraser', fill: 'Gradient / Bucket', tone: 'Dodge / Burn / Sponge', focus: 'Blur / Sharpen / Smudge' };
 
-export default function ToolOptions({ onMask, tool, brush, setBrush, sel, setSel, variant, setVariant, polyActive }) {
+export default function ToolOptions({ onMask, tool, brush, setBrush, sel, setSel, variant, setVariant, polyActive, opts, setOpt, crop }) {
+  const o = opts[tool] || {}, set = k => v => setOpt(tool, { ...o, [k]: v });
+  const bar = (label, children) => <div className="optionsBar" role="toolbar" aria-label={label} onPointerDown={e => e.stopPropagation()}>{children}</div>;
+  const variantSeg = VARIANTS[tool] && segmented('Tool variant', variant, setVariant, VARIANTS[tool]);
+  const brushCore = (withFlow = true) => <>
+    {num('Size', brush.size, v => setBrush({ ...brush, size: v }), { min: BRUSH_LIMITS.size[0], max: BRUSH_LIMITS.size[1], suffix: 'px' })}
+    {num('Hardness', brush.hardness, v => setBrush({ ...brush, hardness: v }), { min: 0, max: 1, scale: 100, suffix: '%' })}
+    {withFlow && num('Opacity', brush.opacity, v => setBrush({ ...brush, opacity: v }), { min: 0, max: 1, scale: 100, suffix: '%' })}
+  </>;
+  const maskTag = onMask && <span className="maskTag" role="status">On layer mask · black hides, white reveals{tool === 'eraser' ? ' · eraser paints the background colour' : ''}</span>;
   if (tool === 'brush' || tool === 'eraser') {
-    const set = (k) => v => setBrush({ ...brush, [k]: v });
-    return <div className="optionsBar" role="toolbar" aria-label={(tool === 'brush' ? 'Brush' : 'Eraser') + ' options'} onPointerDown={e => e.stopPropagation()}>
-      <strong>{tool === 'brush' ? 'Brush' : 'Eraser'}</strong>
-      {onMask && <span className="maskTag" role="status">On layer mask · black hides, white reveals{tool === 'eraser' ? ' · eraser paints the background colour' : ''}</span>}
-      {num('Size', brush.size, set('size'), { min: BRUSH_LIMITS.size[0], max: BRUSH_LIMITS.size[1], suffix: 'px' })}
-      {num('Hardness', brush.hardness, set('hardness'), { min: 0, max: 1, scale: 100, suffix: '%' })}
-      {num('Opacity', brush.opacity, set('opacity'), { min: 0, max: 1, scale: 100, suffix: '%' })}
-      {num('Flow', brush.flow, set('flow'), { min: 0, max: 1, scale: 100, suffix: '%' })}
-      {num('Spacing', brush.spacing, set('spacing'), { min: BRUSH_LIMITS.spacing[0], max: 2, scale: 100, suffix: '%' })}
-      {num('Smoothing', brush.smoothing, set('smoothing'), { min: 0, max: 0.95, scale: 100, suffix: '%' })}
-      <label className="optCheck"><input type="checkbox" checked={brush.pressureSize} onChange={e => setBrush({ ...brush, pressureSize: e.target.checked })} />Pen pressure → size</label>
-      <label className="optCheck"><input type="checkbox" checked={brush.pressureFlow} onChange={e => setBrush({ ...brush, pressureFlow: e.target.checked })} />Pen pressure → flow</label>
-    </div>;
+    const s = k => v => setBrush({ ...brush, [k]: v });
+    return bar((tool === 'brush' ? (variant === 'pencil' ? 'Pencil' : 'Brush') : 'Eraser') + ' options', <>
+      {tool === 'brush' ? variantSeg : <strong>Eraser</strong>}{maskTag}
+      {num('Size', brush.size, s('size'), { min: BRUSH_LIMITS.size[0], max: BRUSH_LIMITS.size[1], suffix: 'px' })}
+      {!(tool === 'brush' && variant === 'pencil') && num('Hardness', brush.hardness, s('hardness'), { min: 0, max: 1, scale: 100, suffix: '%' })}
+      {num('Opacity', brush.opacity, s('opacity'), { min: 0, max: 1, scale: 100, suffix: '%' })}
+      {num('Flow', brush.flow, s('flow'), { min: 0, max: 1, scale: 100, suffix: '%' })}
+      {num('Spacing', brush.spacing, s('spacing'), { min: BRUSH_LIMITS.spacing[0], max: 2, scale: 100, suffix: '%' })}
+      {num('Smoothing', brush.smoothing, s('smoothing'), { min: 0, max: 0.95, scale: 100, suffix: '%' })}
+      {check('Pen pressure → size', brush.pressureSize, s('pressureSize'))}
+      {check('Pen pressure → flow', brush.pressureFlow, s('pressureFlow'))}
+    </>);
   }
-  if (tool === 'marquee' || tool === 'lasso') {
-    const variants = tool === 'marquee' ? [['rect', 'Rectangular'], ['ellipse', 'Elliptical']] : [['free', 'Freehand'], ['polygon', 'Polygonal']];
-    return <div className="optionsBar" role="toolbar" aria-label="Selection options" onPointerDown={e => e.stopPropagation()}>
-      <div className="segmented" role="group" aria-label="Shape">{variants.map(([v, l]) => <button key={v} aria-pressed={variant === v} className={variant === v ? 'on' : ''} onClick={() => setVariant(v)}>{l}</button>)}</div>
-      <div className="segmented" role="group" aria-label="Selection mode">{MODES.map(([m, l]) => <button key={m} title={l} aria-label={l} aria-pressed={sel.mode === m} className={sel.mode === m ? 'on' : ''} onClick={() => setSel({ ...sel, mode: m })}>{m === 'replace' ? 'New' : m === 'add' ? 'Add' : m === 'subtract' ? 'Subtract' : 'Intersect'}</button>)}</div>
-      {num('Feather', sel.feather, v => setSel({ ...sel, feather: v }), { min: 0, max: 250, suffix: 'px' })}
+  if (tool === 'marquee' || tool === 'lasso' || tool === 'wand') {
+    return bar('Selection options', <>
+      {tool === 'wand' ? <strong>Magic Wand</strong> : variantSeg}
+      <div className="segmented" role="group" aria-label="Selection mode">{MODES.map(([m, l]) => <button key={m} title={MODE_TITLES[m]} aria-label={MODE_TITLES[m]} aria-pressed={sel.mode === m} className={sel.mode === m ? 'on' : ''} onClick={() => setSel({ ...sel, mode: m })}>{l}</button>)}</div>
+      {tool === 'wand' ? <>
+        {num('Tolerance', o.tolerance, set('tolerance'), { min: 0, max: 255 })}
+        {check('Anti-alias', o.antiAlias, set('antiAlias'))}{check('Contiguous', o.contiguous, set('contiguous'))}{check('Sample all layers', o.allLayers, set('allLayers'))}
+      </> : num('Feather', sel.feather, v => setSel({ ...sel, feather: v }), { min: 0, max: 250, suffix: 'px' })}
       {tool === 'lasso' && variant === 'polygon' && <small className="optHint">{polyActive ? 'Click to add points · Double-click or Enter to close · Backspace removes a point · Esc cancels' : 'Click to place the first point'}</small>}
-    </div>;
+    </>);
   }
+  if (tool === 'fill') {
+    return bar(variant === 'bucket' ? 'Paint Bucket options' : 'Gradient options', <>
+      {variantSeg}{maskTag}
+      {variant === 'bucket' ? <>
+        {num('Tolerance', o.tolerance, set('tolerance'), { min: 0, max: 255 })}
+        {num('Opacity', o.opacity, set('opacity'), { min: 0, max: 1, scale: 100, suffix: '%' })}
+        {check('Anti-alias', o.antiAlias, set('antiAlias'))}{check('Contiguous', o.contiguous, set('contiguous'))}{check('All layers', o.allLayers, set('allLayers'))}
+      </> : <>
+        {segmented('Gradient type', o.type, set('type'), [['linear', 'Linear'], ['radial', 'Radial'], ['angle', 'Angle'], ['reflected', 'Reflected'], ['diamond', 'Diamond']])}
+        {pick('Colours', o.colors, set('colors'), [['fgbg', 'Foreground → Background'], ['fgclear', 'Foreground → Transparent'], ['bw', 'Black → White']])}
+        {num('Opacity', o.opacity, set('opacity'), { min: 0, max: 1, scale: 100, suffix: '%' })}
+        {check('Reverse', o.reverse, set('reverse'))}{check('Dither', o.dither, set('dither'))}
+      </>}
+    </>);
+  }
+  if (tool === 'eyedropper') return bar('Eyedropper options', <><strong>Eyedropper</strong>
+    {pick('Sample size', String(o.size), v => set('size')(+v), [['1', 'Point sample'], ['3', '3 × 3 average'], ['5', '5 × 5 average'], ['11', '11 × 11 average'], ['31', '31 × 31 average']])}
+    {pick('Sample', o.sample, set('sample'), [['all', 'All layers'], ['layer', 'Current layer']])}
+    <small className="optHint">Click sets the foreground colour · Alt-click sets the background</small></>);
+  if (tool === 'clone') return bar('Clone Stamp options', <><strong>Clone Stamp</strong>{brushCore()}{check('Aligned', o.aligned, set('aligned'))}
+    <small className="optHint">{o.source ? `Source set at ${Math.round(o.source.x)}, ${Math.round(o.source.y)}` : 'Alt-click to set the source point'}</small></>);
+  if (tool === 'heal') return bar('Healing options', <>{variantSeg}{brushCore(false)}
+    <small className="optHint">{variant === 'spot' ? 'Paint over a blemish; texture is taken from nearby and blended in' : o.source ? `Source set at ${Math.round(o.source.x)}, ${Math.round(o.source.y)}` : 'Alt-click to set the source point'}</small></>);
+  if (tool === 'tone') return bar('Toning options', <>{variantSeg}{brushCore(false)}
+    {variant === 'sponge' ? pick('Mode', o.sponge, set('sponge'), [['desaturate', 'Desaturate'], ['saturate', 'Saturate']]) : pick('Range', o.range, set('range'), [['shadows', 'Shadows'], ['midtones', 'Midtones'], ['highlights', 'Highlights']])}
+    {num(variant === 'sponge' ? 'Flow' : 'Exposure', o.exposure, set('exposure'), { min: 0.01, max: 1, scale: 100, suffix: '%' })}
+    {variant !== 'sponge' && check('Protect tones', o.protect, set('protect'))}</>);
+  if (tool === 'focus') return bar('Blur / Sharpen / Smudge options', <>{variantSeg}{brushCore(false)}
+    {num('Strength', o.strength, set('strength'), { min: 0.01, max: 1, scale: 100, suffix: '%' })}</>);
+  if (tool === 'crop') return bar('Crop options', <><strong>Crop</strong>
+    {pick('Ratio', o.ratio, set('ratio'), [['free', 'Free'], ['original', 'Original ratio'], ['1:1', '1 : 1 (square)'], ['4:5', '4 : 5'], ['3:2', '3 : 2'], ['16:9', '16 : 9']])}
+    {crop && <span className="optHint">{Math.round(crop.w)} × {Math.round(crop.h)} px</span>}
+    <button className="optButton" onClick={crop?.cancel} disabled={!crop}>Cancel</button><button className="optButton primary" onClick={crop?.apply} disabled={!crop}>Apply crop ⏎</button></>);
+  if (tool === 'zoom') return bar('Zoom options', <><strong>Zoom</strong><small className="optHint">Click to zoom in · Alt-click to zoom out · drag left/right for scrubby zoom</small></>);
   return null;
 }
