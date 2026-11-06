@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { developDefaults, autoTone } from '../engine/develop.js';
 import { histogram } from '../engine/adjust.js';
+import { resample } from '../engine/geometry.js';
+import { createOpsClient } from './opsClient.js';
 import { DevelopPanelStack, ProfileControls, sampleForPick, pickHint, PANELS_OPEN_DEFAULT } from './DevelopPanels.jsx';
 
 // Filter › Camera Raw Filter: full-screen develop workspace with the Light, Color, Effects, Curve,
@@ -20,27 +22,43 @@ export default function CameraRaw({ source, initial, run, onCancel, onApply, off
   const setIn = (k, patch) => setS(v => ({ ...v, [k]: { ...v[k], ...patch } }));
   const toggle = id => setOpen(o => ({ ...o, [id]: !o[id] }));
 
-  // down-scaled preview source (once)
+  // Preview pipeline. Two proxies: `small` (≤1100 px, the quality preview) and `tiny` (≤480 px) that
+  // is rendered while a slider is moving so the image follows the hand. Jobs never cancel each other:
+  // while one renders, newer changes coalesce into a single follow-up job with the latest settings,
+  // and the quality render starts once the sliders have rested for a moment.
+  const client = useState(() => createOpsClient())[0];
+  const sRef = useRef(s); sRef.current = s;
+  const tiny = useRef(null), job = useRef({ busy: false, want: null }), alive = useRef(true);
+  useEffect(() => () => { alive.current = false; clearTimeout(timer.current); client.cancel(); }, []);
+  const pump = async () => {
+    const j = job.current; if (j.busy || !j.want || !small.current) return;
+    const kind = j.want; j.want = null;
+    const src = kind === 'tiny' && tiny.current ? tiny.current : small.current;
+    j.busy = true; setBusy(true); setErr(null);
+    try { const r = await client.run('cameraRaw', src.buf, { settings: sRef.current }, { scale: src.scale, offsetX, offsetY }); if (alive.current) { setPreview(r); if (src === small.current) setHist(histogram(r)); } }
+    catch (e) { if (!e.cancelled && alive.current) setErr(e.message); }
+    j.busy = false; if (!alive.current) return; if (j.want) pump(); else setBusy(false);
+  };
+  const request = kind => { const j = job.current; j.want = kind === 'full' || j.want !== 'full' ? kind : j.want; pump(); };
+  const kick = () => { if (!small.current) return; request(tiny.current ? 'tiny' : 'full'); clearTimeout(timer.current); timer.current = setTimeout(() => request('full'), 260); };
+  // down-scaled preview sources (once)
   useEffect(() => {
+    const ready = sm => { small.current = sm; const kt = Math.min(1, 480 / Math.max(sm.buf.w, sm.buf.h)); if (kt < 1) { const t = resample(sm.buf, Math.max(1, Math.round(sm.buf.w * kt)), Math.max(1, Math.round(sm.buf.h * kt)), 'bilinear'); tiny.current = { buf: t, scale: sm.scale * t.w / sm.buf.w }; } request('full'); };
     const k = Math.min(1, 1100 / Math.max(source.width, source.height));
-    if (k >= 1) { small.current = { buf: { w: source.width, h: source.height, data: source.data }, scale: 1 }; setPreview(p => p); kick(); return; }
+    if (k >= 1) { ready({ buf: { w: source.width, h: source.height, data: source.data }, scale: 1 }); return; }
     run('resample', { w: source.width, h: source.height, data: source.data }, { w: Math.round(source.width * k), h: Math.round(source.height * k), method: 'bilinear' }, {})
-      .then(r => { small.current = { buf: r, scale: r.w / source.width }; kick(); }).catch(e => setErr(e.message));
+      .then(r => ready({ buf: r, scale: r.w / source.width })).catch(e => setErr(e.message));
   }, []);
-  const kick = () => { clearTimeout(timer.current); timer.current = setTimeout(async () => {
-    const sm = small.current; if (!sm) return;
-    setBusy(true); setErr(null);
-    try { const r = await run('cameraRaw', sm.buf, { settings: s }, { scale: sm.scale, offsetX, offsetY }); setPreview(r); setHist(histogram(r)); setBusy(false); }
-    catch (e) { if (!e.cancelled) { setErr(e.message); setBusy(false); } }
-  }, 90); };
   useEffect(kick, [s]);
   // draw
   useEffect(() => {
     const c = canvas.current, sm = small.current; if (!c || !sm) return;
-    const img = before ? sm.buf : preview || sm.buf; c.width = img.w; c.height = img.h;
+    const img = before ? sm.buf : preview || sm.buf; c.width = sm.buf.w; c.height = sm.buf.h;
     const out = new ImageData(new Uint8ClampedArray(img.data), img.w, img.h);
     if (clipWarn && !before) for (let i = 0; i < out.data.length; i += 4) { const d = out.data; if (d[i] >= 254 || d[i + 1] >= 254 || d[i + 2] >= 254) { d[i] = 255; d[i + 1] = 0; d[i + 2] = 0; } else if (d[i] <= 1 && d[i + 1] <= 1 && d[i + 2] <= 1) { d[i] = 0; d[i + 1] = 80; d[i + 2] = 255; } }
-    c.getContext('2d').putImageData(out, 0, 0);
+    const ctx = c.getContext('2d');
+    if (img.w === c.width && img.h === c.height) ctx.putImageData(out, 0, 0);
+    else { const t = document.createElement('canvas'); t.width = img.w; t.height = img.h; t.getContext('2d').putImageData(out, 0, 0); ctx.imageSmoothingQuality = 'high'; ctx.drawImage(t, 0, 0, c.width, c.height); }
   }, [preview, before, clipWarn]);
 
   const sampleAt = e => {

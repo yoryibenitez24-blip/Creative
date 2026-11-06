@@ -139,7 +139,6 @@ export function develop(buf, settings = {}, ctx = {}) {
   const { w, h, data } = buf, N = w * h, sc = ctx.scale || 1, minDim = Math.min(w, h) / sc;
   let R = new Float32Array(N), G = new Float32Array(N), B = new Float32Array(N);
   for (let i = 0; i < N; i++) { R[i] = lin[data[i * 4]]; G[i] = lin[data[i * 4 + 1]]; B[i] = lin[data[i * 4 + 2]]; }
-  const before = [Float32Array.from(R), Float32Array.from(G), Float32Array.from(B)];
   let touched = false;
   const cx = w / 2, cy = h / 2, rmax = Math.hypot(cx, cy);
 
@@ -385,7 +384,6 @@ export function develop(buf, settings = {}, ctx = {}) {
 
   if (!touched) return buf;
   for (let i = 0; i < N; i++) { data[i * 4] = Math.round(clamp01(R[i]) * 255); data[i * 4 + 1] = Math.round(clamp01(G[i]) * 255); data[i * 4 + 2] = Math.round(clamp01(B[i]) * 255); }
-  void before;
   return buf;
 }
 

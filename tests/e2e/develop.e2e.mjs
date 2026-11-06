@@ -110,6 +110,23 @@ await step('Display is colour-managed: pure red converted to Display P3 has new 
   await page.keyboard.press('Control+y'); await settle();
 });
 
+await step('Camera Raw preview follows a moving slider (median latency under 250 ms)', async () => {
+  await app().getByTitle('New design').click(); await app().getByLabel('New width').fill('2400'); await app().getByLabel('New height').fill('1600');
+  await app().getByRole('button', { name: /Create design/ }).click(); await settle();
+  await app().locator('.leftFooter').getByTitle('Create a new layer').click(); await settle();
+  await app().locator('input.fgSwatch').fill('#5a6a7a'); await app().locator('input.fgSwatch').blur(); await page.keyboard.press('Control+a'); await page.keyboard.press('Alt+Backspace'); await settle(); await page.keyboard.press('Control+d'); await settle();
+  await page.keyboard.press('Shift+Control+a'); await page.waitForFunction(() => document.querySelector('.crsStatus')?.textContent.includes('ready'), null, { timeout: 30000 }); await page.waitForTimeout(500);
+  const lat = await page.evaluate(async () => {
+    const el = document.querySelector('input[type=range][aria-label="Exposure"]'), cv = document.querySelector('.cameraRaw canvas'), ctx = cv.getContext('2d', { willReadFrequently: true });
+    const px = () => ctx.getImageData(cv.width >> 1, cv.height >> 1, 1, 1).data[0], set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set, out = [];
+    for (let k = 1; k <= 9; k++) { const b = px(), t0 = performance.now(); set.call(el, String(k * 0.2)); el.dispatchEvent(new Event('input', { bubbles: true }));
+      while (px() === b && performance.now() - t0 < 5000) await new Promise(r => requestAnimationFrame(r)); out.push(performance.now() - t0); await new Promise(r => setTimeout(r, 40)); }
+    return out.sort((a, b) => a - b);
+  });
+  assert.ok(lat[lat.length >> 1] < 250, 'median latency ' + Math.round(lat[lat.length >> 1]) + ' ms: ' + lat.map(Math.round));
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click(); await settle();
+});
+
 await step('no uncaught page errors', async () => assert.deepEqual(errors, []));
 await browser.close(); server.close();
 const failed = results.filter(r => !r.ok);

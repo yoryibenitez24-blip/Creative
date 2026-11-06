@@ -1,3 +1,4 @@
+import { resample } from '../engine/geometry.js';
 import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { developDefaults, autoTone, autoWhiteBalance } from '../engine/develop.js';
 import { histogram } from '../engine/adjust.js';
@@ -50,7 +51,11 @@ async function encodeBuf(buf, mime, quality) {
   if (c.convertToBlob) return c.convertToBlob({ type: mime, quality });
   return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(Error('Encoding failed')), mime, quality));
 }
-const drawBuf = (canvas, buf) => { if (!canvas || !buf) return; canvas.width = buf.w; canvas.height = buf.h; canvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(buf.data), buf.w, buf.h), 0, 0); };
+const drawBuf = (canvas, buf, W = buf?.w, H = buf?.h) => {
+  if (!canvas || !buf) return; canvas.width = W; canvas.height = H; const im = new ImageData(new Uint8ClampedArray(buf.data), buf.w, buf.h), ctx = canvas.getContext('2d');
+  if (buf.w === W && buf.h === H) return ctx.putImageData(im, 0, 0);
+  const t = document.createElement('canvas'); t.width = buf.w; t.height = buf.h; t.getContext('2d').putImageData(im, 0, 0); ctx.imageSmoothingQuality = 'high'; ctx.drawImage(t, 0, 0, W, H);
+};
 
 // One worker client runs one job at a time and a new run() cancels the running one, so jobs are
 // serialised here: export > preview > background thumbnails. A new preview supersedes a running
@@ -73,7 +78,7 @@ function createScheduler(runOp) {
     const job = { kind, op, buf, params, ctx, resolve, reject };
     if (kind === 'preview') {
       for (let i = queue.length - 1; i >= 0; i--) if (queue[i].kind === 'preview') queue.splice(i, 1)[0].reject(cancelled());
-      if (active?.kind === 'preview') { const old = active; active = null; old.reject(cancelled()); start(job); return; }
+      // a running preview is never killed (that restarts the worker); the newest request waits for it
     }
     queue.push(job); pump();
   });
@@ -285,14 +290,18 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
   }, [module, active?.assetId]);
   useEffect(() => {
     if (module !== 'develop' || !src) return;
-    clearTimeout(previewTimer.current);
-    previewTimer.current = setTimeout(async () => {
+    // fast low-resolution pass right away, full preview once the sliders rest
+    const render = async (b, scale, full) => {
       setRendering(true);
-      try { const r = await sched.run('preview', 'cameraRaw', src.buf, { settings: sRef.current }, { scale: src.scale }); setPreview(r); setHist(histogram(r)); setRendering(false); }
+      try { const r = await sched.run('preview', 'cameraRaw', b, { settings: sRef.current }, { scale }); setPreview(r); if (full) setHist(histogram(r)); setRendering(false); }
       catch (e) { if (!e.cancelled) { setMsg('Preview failed: ' + e.message); setRendering(false); } }
-    }, 50);
+    };
+    if (!src.tiny) { const k = Math.min(1, 480 / Math.max(src.buf.w, src.buf.h)); src.tiny = k < 1 ? resample(src.buf, Math.max(1, Math.round(src.buf.w * k)), Math.max(1, Math.round(src.buf.h * k)), 'bilinear') : null; }
+    if (src.tiny) render(src.tiny, src.scale * src.tiny.w / src.buf.w, false);
+    clearTimeout(previewTimer.current);
+    previewTimer.current = setTimeout(() => render(src.buf, src.scale, true), src.tiny ? 260 : 0);
   }, [s, src, module]);
-  useEffect(() => { if (module === 'develop' && src) { drawBuf(afterCanvas.current, ba === 'before' ? src.buf : preview || src.buf); if (ba === 'split') drawBuf(beforeCanvas.current, src.buf); } }, [preview, src, ba, module]);
+  useEffect(() => { if (module === 'develop' && src) { drawBuf(afterCanvas.current, ba === 'before' ? src.buf : preview || src.buf, src.buf.w, src.buf.h); if (ba === 'split') drawBuf(beforeCanvas.current, src.buf); } }, [preview, src, ba, module]);
   const sampleAt = e => {
     if (!pick || !src) return;
     const r = e.currentTarget.getBoundingClientRect(), x = Math.floor((e.clientX - r.left) / r.width * src.buf.w), y = Math.floor((e.clientY - r.top) / r.height * src.buf.h);
