@@ -30,6 +30,14 @@ npm run ledger       # regenerate docs/CAPABILITY_LEDGER.csv and docs/LEDGER_SUM
 * **Selections.** Select › Modify (Expand, Contract, Border, Smooth, Feather) and Load mask as selection.
 * **History panel.** Every step is named; click any step to go back or forward.
 * **Navigation.** Zoom tool (click, Alt-click, drag to scrub), Ctrl/⌘ wheel zooms around the pointer, the wheel pans, and holding Space gives a temporary hand.
+* **Camera Raw Filter** (Shift+Ctrl+A). Panels: Profile, Auto, B&W, Light, Color (white balance with eyedropper), Effects (Texture, Clarity, Dehaze, Vignette, Grain), Curve, Color Mixer, Color Grading, Detail (sharpening and noise reduction), Optics (Distortion, Remove Chromatic Aberration, Defringe), Lens Blur and Calibration. Settings are saved with the layer, so it reopens editable.
+* **Layer styles.** The full Layer Style dialog: Blending Options (Fill Opacity, channels, Knockout, Blend If), Bevel & Emboss, Stroke, Inner Shadow, Inner/Outer Glow, Satin, Color/Gradient/Pattern Overlay and Drop Shadow, with multiple instances, Global Light and saved styles. Also clipping masks (Ctrl+Alt+G).
+* **Adjustment and fill layers.** Levels, Curves, Hue/Saturation and the other adjustments as editable layers, plus Solid Color, Gradient and Pattern fill layers.
+* **Transform.** Free Transform (Ctrl+T: scale, rotate, skew, distort, perspective) and Warp for paint layers.
+* **Retouching.** Content-Aware Fill (Shift+Backspace), the Patch tool and Quick Selection.
+* **More filters.** Filter Gallery families (Artistic, Brush Strokes, Sketch, Texture) and Glass.
+* **Right-click menus** across the app. Layer via Copy/Cut (Ctrl+J / Shift+Ctrl+J with a selection) and Select Pixels.
+* **PSD export.** Editable layers, masks, clipping and layer effects, with a compatibility report.
 * **Composition.** Rectangles, ellipses, text, images, move/resize, numeric transform, opacity, 7 blend modes in the menu, lock/visibility, grid, and PNG/JPEG/SVG export at full resolution. Paint layers are embedded as PNG in SVG exports.
 * **PSD import.** Native, in a worker with cancel, a timeout and size limits. Raster layers, names, positions, order, visibility, opacity and supported blend modes are imported. The compatibility report lists masks, effects, clipping, adjustments, smart objects and vectors, which are **not** reproduced. Group compositing may differ. Text arrives as pixels, with an explicit, undoable conversion to editable text.
 * **Filter gallery.** 18 original looks and 13 pixel sliders on image layers. The original pixels are kept. This is a legacy creative panel, **not** a Lightroom-style Develop module. Texture, Clarity, Dehaze, curves, HSL and photographic grain are Milestone 2 items.
@@ -66,7 +74,7 @@ Main shortcuts:
 
 ## Known limits
 
-PSD only (no PSB), up to 100 MB and 8000 px per side. There is no PSD export. All work is 8-bit sRGB with no ICC handling. Groups are flat, and group opacity is applied per child. There are no vector masks, adjustment layers, layer styles, RAW, Develop or photo library yet. Selection masks are computed on the main thread. Clearing browser data deletes locally saved work, so download `.zertake` projects to keep them. See the ledger for the full list and [`docs/MILESTONE_REPORT.md`](docs/MILESTONE_REPORT.md) for the current milestone.
+PSD only (no PSB), up to 100 MB and 8000 px per side. All work is 8-bit sRGB with no ICC handling. Groups are flat, and group opacity is applied per child. There are no vector masks, adjustment layers, layer styles, RAW, Develop or photo library yet. Selection masks are computed on the main thread. Clearing browser data deletes locally saved work, so download `.zertake` projects to keep them. See the ledger for the full list and [`docs/MILESTONE_REPORT.md`](docs/MILESTONE_REPORT.md) for the current milestone.
 
 ## Architecture
 

@@ -1,5 +1,46 @@
 # Milestone report: M0 + M1 vertical slices
 
+## Slice 4: Camera Raw, layer styles, adjustment layers, transform, content-aware (ledger v0.4.x)
+
+**What was added.**
+* **Camera Raw Filter**, with every panel from the user's screenshots: Light, Color, Effects, Curve, Color Mixer, Color Grading, Detail, Optics with Remove Chromatic Aberration and Defringe, Lens Blur and Calibration.
+* **Layer Style dialog** with all options, including Blend If on the Underlying Layer.
+* **Clipping masks.**
+* **Adjustment and fill layers.**
+* **Free Transform and Warp** for paint layers.
+* **Content-Aware Fill** (PatchMatch) and the **Patch** tool.
+* **Quick Selection.**
+* **Filter Gallery families.**
+* **Right-click menus** everywhere.
+* **The + layer button** now creates an empty layer.
+* **PSD export.**
+
+**Bugs found and fixed.**
+* **PSD import order (baseline bug).** ag-psd lists layers bottom-first; the original importer reversed them, so every imported PSD was upside down. The original test fixture shared the wrong assumption and is corrected.
+* **Filter menu groups** were hard-coded and hid the new groups.
+
+**Tests.**
+* `npm test`: 110 passed.
+* Browser suites:
+  * slice: 11/11
+  * masks: 12/12
+  * toolset: 17/17
+  * styles: 11/11
+  * transform: 9/9
+
+**Still missing from the user's list.**
+* **Smart objects and smart filters.** These need a standalone document renderer for embedded contents.
+* **Pen tool, paths and vector masks.**
+* **Advanced text:** paragraph text, character runs, OpenType, type on a path.
+* **Select and Mask.**
+* **Liquify.**
+* **Colour management:** ICC, CMYK/Lab, 16/32-bit.
+* **A Lightroom-style Develop workspace with library.** Camera Raw covers the editing panels, but not the library or filmstrip.
+
+These rows remain `missing` in the ledger.
+
+---
+
 ## Slice 3: Photoshop toolset (ledger v0.3.0)
 
 **What was added.**
