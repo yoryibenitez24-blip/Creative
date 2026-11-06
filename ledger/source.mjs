@@ -662,7 +662,7 @@ AREAS.push(
 // Current state. Rows absent here are `missing`.
 // evidence: test name or file proving it. note: limitations.
 const T_TF = 'tests/e2e/transform.e2e.mjs (docs/evidence/m1-transform-e2e-results.json); tests/warp.test.js', T_DEV = 'tests/develop.test.js', T_STY = 'tests/e2e/styles.e2e.mjs (docs/evidence/m1-styles-e2e-results.json)', T_STU = 'tests/styles.test.js', T_TOOLSET = 'tests/e2e/toolset.e2e.mjs (docs/evidence/m1-toolset-e2e-results.json)', T_OPS = 'tests/ops.test.js', T_TOOLS = 'tests/tools.test.js', T_MASKS = 'tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json)', T_ENGINE = 'tests/engine.test.js', T_E2E = 'tests/e2e/slice.e2e.mjs (docs/evidence/m1-e2e-results.json)', T_MODEL = 'src/model.test.js', T_IMPORT = 'tests/import.test.js';
-const T_DEVW = 'tests/e2e/develop.e2e.mjs', T_SMART = 'tests/e2e/smart.e2e.mjs', T_PRO = 'tests/e2e/pro.e2e.mjs', T_PATHS = 'tests/e2e/paths.e2e.mjs';
+const T_T2 = 'tests/e2e/tools2.e2e.mjs', T_DEVW = 'tests/e2e/develop.e2e.mjs', T_SMART = 'tests/e2e/smart.e2e.mjs', T_PRO = 'tests/e2e/pro.e2e.mjs', T_PATHS = 'tests/e2e/paths.e2e.mjs';
 export const STATUS = {
 
   'M0-LAYOUT': ['verified', 'npm run build + node --test (docs/MILESTONE_REPORT.md)'],
@@ -1063,6 +1063,20 @@ export const STATUS = {
   'TEXT-WARP': ['verified', T_PRO + ' Warp Text (Arc) renders; tests/textlayout.test.js', 'Warped text is rasterised (not vector) in exports'],
   'TEXT-FONT-LOAD': ['partial', '16 web-safe/system families in the Character panel', 'No web-font upload yet'],
   'TEXT-OPENTYPE': ['partial', 'Standard ligatures toggle', 'Per-glyph positioning limits ligatures in Chrome'],
+  // ---- slice 6: remaining tools ----
+  'SEL-MARQ-ROW': ['verified', T_T2 + ' single row'], 'SEL-MARQ-COL': ['implemented-unverified', 'Single Column marquee (same code path as Single Row)'],
+  'SEL-LASSO-MAG': ['verified', T_T2 + ' magnetic lasso snaps to an edge; tests/tools2.test.js live wire', 'Slower (~45 ms) on pure noise'],
+  'NAV-ROTATE-VIEW': ['verified', T_T2 + ' rotate view; clicks map through the rotation'], 'NAV-RESET-VIEW': ['implemented-unverified', 'Rotate View › Reset View'],
+  'NAV-SAMPLER': ['verified', T_T2 + ' Color Sampler + Info panel'], 'NAV-RULER-TOOL': ['verified', T_T2 + ' ruler length; Straighten Layer'], 'NAV-COUNT': ['verified', T_T2 + ' count markers'],
+  'CROP-PERSPECTIVE': ['verified', T_T2 + ' perspective crop; tests/tools2.test.js rectification', 'Every layer becomes a pixel layer'], 'CROP-STRAIGHTEN': ['implemented-unverified', 'Ruler › Straighten Layer'],
+  'PAINT-BG-ERASER': ['verified', T_T2 + ' background eraser'], 'PAINT-MAGIC-ERASER': ['verified', T_T2 + ' magic eraser'],
+  'PAINT-MIXER': ['implemented-unverified', 'Mixer Brush (wet / load / mix); tests/tools2.test.js', 'Simplified paint model'], 'PAINT-COLOR-REPLACE': ['verified', T_T2 + ' color replacement'],
+  'PAINT-HISTORY-BRUSH': ['verified', T_T2 + ' history brush restores an earlier state'],
+  'BRUSH-ANGLE': ['implemented-unverified', 'tests/tools2.test.js elliptical footprint; Brush Preset picker'], 'BRUSH-ROUNDNESS': ['implemented-unverified', 'tests/tools2.test.js; Brush Preset picker'],
+  'BRUSH-BLEND': ['verified', T_T2 + ' Multiply mode; tests/tools2.test.js W3C formulas'], 'BRUSH-PRESETS': ['implemented-unverified', 'Brush Preset picker with 7 original presets'],
+  'GRAD-STOPS': ['verified', T_T2 + ' Gradient Editor preset stops; tests/tools2.test.js'],
+  'RETOUCH-PATTERN-STAMP': ['verified', T_T2 + ' pattern stamp'], 'RETOUCH-CA-MOVE': ['verified', T_T2 + ' content-aware move'], 'RETOUCH-RED-EYE': ['verified', T_T2 + ' red eye'],
+  'VEC-TRIANGLE': ['implemented-unverified', 'Shape tool › Triangle'], 'VEC-POLYGON': ['verified', T_T2 + ' polygon and star'], 'VEC-LINE': ['verified', T_T2 + ' line weight'], 'VEC-CUSTOM': ['verified', T_T2 + ' custom shape layer'],
 };
 
 export const STATES = ['missing', 'partial', 'implemented-unverified', 'verified', 'blocked'];
