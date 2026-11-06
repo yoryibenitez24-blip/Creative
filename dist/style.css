@@ -73,3 +73,4 @@
 .crsScroll{min-height:0}.crsSide{height:100%}.crsFooter{flex-shrink:0}
 .crsFooter,.opDialog footer{height:auto;min-height:0;background:none;color:inherit;font-size:11px;position:static}.crsFooter{border-top:1px solid #333338;padding:10px}
 .crsFooter .primary,.opDialog footer .primary{margin:0;width:auto;height:auto}
+.headerLooks{border:1px solid #5a5066;border-radius:5px;color:#c8bcd6;padding:8px;font-size:10px;white-space:nowrap}.headerRight .proLaunch+.proLaunch{margin-left:6px}
