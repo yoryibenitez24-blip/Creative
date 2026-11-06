@@ -1,3 +1,4 @@
+import AngleDial from './AngleDial.jsx';
 import React, { useState } from 'react';
 import { FX_LABELS, FX_TYPES, MULTI, newEffect, normalizeStyle, CONTOURS, PATTERNS, GLOBAL_LIGHT } from '../engine/styles.js';
 
@@ -14,7 +15,9 @@ const BUILTIN_STYLES = {
 };
 const loadUserStyles = () => { try { return JSON.parse(localStorage.getItem('zertake-styles') || '{}'); } catch { return {}; } };
 
-const Num = ({ label, value, set, min = 0, max = 100, step = 1, unit }) => <label className="lsField"><span>{label}</span><input type="range" aria-label={label} min={min} max={max} step={step} value={value} style={{ '--hi': ((value - min) / (max - min) * 100) + '%' }} onChange={e => set(+e.target.value)} /><input type="number" aria-label={label + ' value'} min={min} max={max} step={step} value={value} onChange={e => { const v = +e.target.value; if (Number.isFinite(v)) set(Math.max(min, Math.min(max, v))); }} />{unit && <small>{unit}</small>}</label>;
+const Num = ({ label, value, set, min = 0, max = 100, step = 1, unit }) => unit === '°' && max - min === 360
+  ? <label className="lsField dialField"><span>{label}</span><AngleDial label={label} value={value} onChange={set} min={min} max={max} /><input type="number" aria-label={label + ' value'} min={min} max={max} step={step} value={value} onChange={e => { const v = +e.target.value; if (Number.isFinite(v)) set(Math.max(min, Math.min(max, v))); }} /><small>°</small></label>
+  : <label className="lsField"><span>{label}</span><input type="range" aria-label={label} min={min} max={max} step={step} value={value} style={{ '--hi': ((value - min) / (max - min) * 100) + '%' }} onChange={e => set(+e.target.value)} /><input type="number" aria-label={label + ' value'} min={min} max={max} step={step} value={value} onChange={e => { const v = +e.target.value; if (Number.isFinite(v)) set(Math.max(min, Math.min(max, v))); }} />{unit && <small>{unit}</small>}</label>;
 const Sel = ({ label, value, set, options }) => <label className="lsField"><span>{label}</span><select aria-label={label} value={value} onChange={e => set(e.target.value)}>{options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>;
 const Col = ({ label, value, set }) => <label className="lsField"><span>{label}</span><input type="color" aria-label={label} value={value} onChange={e => set(e.target.value)} /></label>;
 const Chk = ({ label, value, set, disabled, title }) => <label className="optCheck" title={title}><input type="checkbox" aria-label={label} disabled={disabled} checked={!!value} onChange={e => set(e.target.checked)} />{label}</label>;

@@ -112,6 +112,19 @@ await step('Type: Character panel tracking widens text; Warp Text applies; on-ca
   assert.equal(await app().getByLabel('Text content').inputValue(), 'Hello type');
 });
 
+await step('Angle wheel: clicking the wheel sets the angle; layer thumbnails show real pixels', async () => {
+  await rowOf('Paint layer 1').click({ position: { x: 10, y: 10 } }); await settle();
+  await menu('Filter', 'Blur', 'Motion Blur…');
+  const dial = page.getByRole('slider', { name: 'Angle', exact: true }); await dial.waitFor();
+  const b = await dial.boundingBox(); await page.mouse.click(b.x + b.width / 2, b.y + 2); // top of the wheel = 90°
+  assert.equal(await page.getByLabel('Angle value', { exact: true }).inputValue(), '90');
+  await dial.focus(); await page.keyboard.press('ArrowUp');
+  assert.equal(await page.getByLabel('Angle value', { exact: true }).inputValue(), '91');
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click(); await settle();
+  const px = await rowOf('Paint layer 1').locator('canvas.thumbCanvas').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 200) n++; return n; });
+  assert.ok(px > 10, 'the paint layer thumbnail shows its painted square: ' + px);
+});
+
 await step('no uncaught page errors', async () => assert.deepEqual(errors, []));
 await browser.close(); server.close();
 const failed = results.filter(r => !r.ok);

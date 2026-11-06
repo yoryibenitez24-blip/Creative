@@ -255,3 +255,46 @@ input[type=range][style*="background"]::-moz-range-thumb { width: 12px; height: 
 .lsList .lsPlus { min-height: 0 !important; height: 22px !important; }
 .lsList { border-radius: 0 !important; }
 .lsActions { border-radius: 0 !important; }
+
+/* ---------- white highlights (instead of purple) ---------- */
+:root { --z-accent: #f2f2f4; --z-accent-2: #ffffff; }
+.layerStyle input[type=checkbox]:checked, .opDialog input[type=checkbox]:checked { background: #f2f2f4; }
+.layerStyle input[type=checkbox]:checked::after, .opDialog input[type=checkbox]:checked::after { background: #18181b; }
+.lsActions button.primary, .opDialog footer button.primary, .crsFooter button.primary, .optButton.primary { background: #f2f2f4 !important; color: #111113 !important; }
+.lsActions button.primary:hover, .opDialog footer button.primary:hover, .crsFooter button.primary:hover { background: #ffffff !important; }
+.crsSlider input[type=range]:not([style*="background"]):focus-visible::-webkit-slider-thumb, .lsField > input[type=range]:focus-visible::-webkit-slider-thumb, .opField > input[type=range]:focus-visible::-webkit-slider-thumb { border-color: #fff; box-shadow: 0 0 0 4px #1a1a1d, 0 0 0 6px rgba(255,255,255,.25); }
+.insMore { color: #d9d9de; }
+.layerList .layer.selected { background: #2a2a2e; box-shadow: inset 0 0 0 1px #4a4a50; }
+.lsList .selected, .lsList [aria-current="true"], .lsList [aria-selected="true"] { background: #2a2a2e !important; box-shadow: inset 0 0 0 1px #45454b; }
+.segmented button.on, .segmented button[aria-pressed="true"] { background: #e9e9ec; color: #111; }
+
+/* ---------- angle wheel ---------- */
+.dialField { grid-template-columns: 1fr auto auto auto !important; }
+.dialField > span { grid-column: 1 !important; }
+.dialField > .angleDial { grid-column: 2; grid-row: 1; }
+.dialField > input[type=number] { grid-column: 3 !important; width: 44px !important; }
+.dialField > small { grid-column: 4 !important; }
+.angleDial { display: inline-grid; place-items: center; color: #d6d6dc; border-radius: 50%; cursor: grab; touch-action: none; margin: 4px 6px 4px 0; }
+.angleDial:hover { color: #fff; background: rgba(255,255,255,.04); }
+.angleDial:active { cursor: grabbing; }
+.angleDial:focus-visible { outline: 2px solid rgba(255,255,255,.5); outline-offset: 2px; }
+
+/* ---------- real layer thumbnails ---------- */
+.layerThumb.real { width: 30px !important; height: 30px !important; padding: 0 !important; overflow: hidden; position: relative; background: #2a2a2e; }
+.thumbReal { position: absolute; inset: 0; display: block; }
+.thumbFrame { position: absolute; background-color: #fff; background-image: linear-gradient(45deg, #cfcfcf 25%, transparent 25%, transparent 75%, #cfcfcf 75%), linear-gradient(45deg, #cfcfcf 25%, transparent 25%, transparent 75%, #cfcfcf 75%); background-size: 6px 6px; background-position: 0 0, 3px 3px; }
+.thumbCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.thumbSwatch { position: absolute; inset: 3px; border-radius: 3px; }
+.thumbBadge { position: absolute; right: 1px; bottom: 1px; width: 11px; height: 11px; border-radius: 3px; background: rgba(20,20,22,.85); color: #fff; display: grid; place-items: center; }
+.lsList .on, .lsList .lsItem.on { background: #2a2a2e !important; box-shadow: inset 0 0 0 1px #45454b; color: #fff; }
+.lsList .lsItem.on button { color: #fff; background: transparent !important; }
+.lsField.dialField, .opField.dialField { grid-template-columns: 1fr auto auto auto !important; }
+.lsField.dialField > span, .opField.dialField > span { grid-column: 1 !important; grid-row: 1 !important; }
+.lsField.dialField > .angleDial, .opField.dialField > .angleDial { grid-column: 2 !important; grid-row: 1 !important; }
+.lsField.dialField > input[type=number], .opField.dialField > input[type=number] { grid-column: 3 !important; grid-row: 1 !important; width: 44px !important; }
+.lsField.dialField > small, .opField.dialField > small { grid-column: 4 !important; grid-row: 1 !important; }
+.layerThumb.real { width: 30px; height: 30px; border-radius: 6px; }
+.layerThumb.real > .thumbReal { position: absolute; inset: 0; width: auto; height: auto; display: block; }
+.layerThumb.real .thumbReal > .thumbFrame { position: absolute; display: block; }
+.layerThumb.real .thumbReal > .thumbBadge { width: 11px; height: 11px; }
+.layerThumb > .thumbSwatch { width: 18px; height: 18px; position: static; }
