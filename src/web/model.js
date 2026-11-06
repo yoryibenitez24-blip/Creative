@@ -453,9 +453,9 @@ export function pasteSubtrees(doc, clip, parentId = null, index = null, dx = 0, 
 export function duplicateNodes(doc, ids) {
   let cur = doc; const out = [];
   for (const id of outermost(doc.nodes, ids)) {
-    const n = cur.nodes[id]; if (!n) continue;
-    const pid = n.ref ? null : n.parent;
-    const src = n.ref ? { nodes: cur.nodes, roots: [id] } : { nodes: cur.nodes, roots: [id] };
+    const n = cur.nodes[id]; if (!n || n.ref) continue;
+    const pid = n.parent || null;
+    const src = { nodes: cur.nodes, roots: [id] };
     const idx = childrenOf(cur, pid).indexOf(id);
     const top = !pid;
     const par = pid && cur.nodes[pid];
@@ -516,7 +516,7 @@ export function addAutoLayout(doc, ids) {
   ids = outermost(doc.nodes, ids);
   const one = ids.length === 1 && doc.nodes[ids[0]];
   if (one && one.type === 'frame' && !one.layout && !one.ref && !isInstanceRoot(one)) {
-    return { doc: patchNode(doc, one.id, { layout: inferLayout(doc.nodes, one) }), id: one.id };
+    return { doc: setLayout(doc, one.id, inferLayout(doc.nodes, one)), id: one.id };
   }
   const kids = ids.map(id => doc.nodes[id]);
   const b = boundsInParent(doc.nodes, ids);
@@ -524,7 +524,7 @@ export function addAutoLayout(doc, ids) {
   if (!r.id) return r;
   const wrapper = { ...r.doc.nodes[r.id], w: b.w, h: b.h, children: kids.map(k => k.id) };
   const layout = inferLayout(r.doc.nodes, wrapper, true);
-  return { doc: patchNode(r.doc, r.id, { layout, sizing: { h: 'hug', v: 'hug' } }), id: r.id };
+  return { doc: patchNode(setLayout(r.doc, r.id, layout), r.id, { sizing: { h: 'hug', v: 'hug' } }), id: r.id };
 }
 
 /** Guess direction / gap / padding from how the children are currently placed. */
@@ -634,6 +634,7 @@ export function emptyDoc(name = 'Untitled design') {
 /** Accept a stored doc (or anything else) and return a valid web doc. */
 export function migrateWebDoc(doc) {
   if (!doc || doc.kind !== 'web') return emptyDoc();
+  if (doc.version === WEB_DOC_VERSION && doc.nodes && doc.root && doc.styles?.colors && doc.styles?.texts && doc.images) return doc;
   if ((doc.version || 1) > WEB_DOC_VERSION) throw new Error('This web design was saved by a newer version of Zertake Studio.');
   const base = emptyDoc(doc.name);
   return { ...base, ...doc, styles: { colors: [], texts: [], ...(doc.styles || {}) }, images: doc.images || {}, version: WEB_DOC_VERSION };
