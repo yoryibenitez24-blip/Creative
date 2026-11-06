@@ -11,7 +11,7 @@ Inputs (kept unchanged in `docs/baseline/`): INVENTARIO_BRECHAS.csv sha256 `9e40
 | Capas | Grupos | Parcial | missing 2, partial 2: LAYER-GROUPS, LAYER-GROUP-ISOLATED, LAYER-GROUP-PASSTHROUGH, PSD-IMPORT-GROUPS |  |
 | Capas | Blend modes | Parcial | missing 1, partial 3, implemented-unverified 7: BLEND-NORMAL, BLEND-MULTIPLY, BLEND-SCREEN, BLEND-OVERLAY, BLEND-DARKEN, BLEND-LIGHTEN, BLEND-DIFFERENCE, BLEND-COLOR-DODGE, BLEND-SOFT-LIGHT, BLEND-HUE, BLEND-UI-COMPLETE |  |
 | Capas | Máscaras raster/vector y clipping | Pendiente | missing 3, verified 2: MASK-RASTER, MASK-VECTOR, LAYER-CLIPPING, PSD-IMPORT-MASKS, PSD-IMPORT-CLIP |  |
-| Capas | Ajustes y estilos | Pendiente | missing 5, verified 3: ADJ-LEVELS, ADJ-CURVES, FX-DROP, FX-STROKE, FX-BLEND-IF, SMART-SF-STACK, PSD-IMPORT-FX, PSD-IMPORT-ADJ |  |
+| Capas | Ajustes y estilos | Pendiente | missing 3, implemented-unverified 1, verified 4: ADJ-LEVELS, ADJ-CURVES, FX-DROP, FX-STROKE, FX-BLEND-IF, SMART-SF-STACK, PSD-IMPORT-FX, PSD-IMPORT-ADJ |  |
 | Pintura | Pincel, lápiz, borradores y mixer | Pendiente | missing 4, verified 5: PAINT-BRUSH, PAINT-ERASER, PAINT-PENCIL, PAINT-BG-ERASER, PAINT-MAGIC-ERASER, PAINT-MIXER, BRUSH-PRESS-SIZE, BRUSH-SHAPE-DYN, CMD-UNDO-STROKE | Brush and eraser are now implemented; pencil, background/magic eraser, mixer and dynamics remain missing. |
 | Selección | Marquee, lazos y varita | Pendiente | missing 3, implemented-unverified 2, verified 4: SEL-MARQ-RECT, SEL-MARQ-ELLI, SEL-LASSO-FREE, SEL-LASSO-POLY, SEL-LASSO-MAG, SEL-WAND, SEL-QUICK, SEL-FEATHER-OPT, SAM-EDGE-BRUSH | Marquee and lassos with pixel selection masks are now implemented; wand, magnetic lasso, quick selection and refinement remain missing. |
 | Retoque | Clone, heal, patch, remove | Pendiente | missing 3, implemented-unverified 1, verified 2: RETOUCH-CLONE, RETOUCH-HEAL, RETOUCH-SPOT-HEAL, RETOUCH-PATCH, RETOUCH-REMOVE, RETOUCH-NONDESTRUCT |  |
@@ -26,8 +26,8 @@ Inputs (kept unchanged in `docs/baseline/`): INVENTARIO_BRECHAS.csv sha256 `9e40
 | Develop | Dehaze | Pendiente | verified 1: DEV-EFFECTS-DEHAZE |  |
 | Develop | Grain | Parcial | partial 2, verified 4: FILT-LEG-GRAIN, DEV-EFFECTS-LEGACY-GRAIN, DEV-EFFECTS-GRAIN-AMOUNT, DEV-EFFECTS-GRAIN-SIZE, DEV-EFFECTS-GRAIN-ROUGH, DEV-EFFECTS-GRAIN-SEED | The legacy grain is partial. The required Amount/Size/Roughness/seed grain is missing. |
 | Develop | Vignette | Parcial | partial 1, implemented-unverified 3, verified 2: FILT-LEG-VIGNETTE, DEV-EFFECTS-VIG-AMOUNT, DEV-EFFECTS-VIG-MID, DEV-EFFECTS-VIG-ROUND, DEV-EFFECTS-VIG-FEATHER, DEV-EFFECTS-VIG-HIGHLIGHTS |  |
-| Develop | Curvas y Levels | Pendiente | missing 2, implemented-unverified 2, verified 1: DEV-CURVE-POINT, DEV-CURVE-PARAMETRIC, DEV-CURVE-CHANNELS, ADJ-LEVELS, ADJ-CURVES |  |
-| Develop | HSL, Point Color, B&W mixer | Pendiente | missing 2, verified 2: DEV-COLOR-HSL, DEV-COLOR-POINT-COLOR, DEV-COLOR-BW, ADJ-BW |  |
+| Develop | Curvas y Levels | Pendiente | implemented-unverified 3, verified 2: DEV-CURVE-POINT, DEV-CURVE-PARAMETRIC, DEV-CURVE-CHANNELS, ADJ-LEVELS, ADJ-CURVES |  |
+| Develop | HSL, Point Color, B&W mixer | Pendiente | missing 1, implemented-unverified 1, verified 2: DEV-COLOR-HSL, DEV-COLOR-POINT-COLOR, DEV-COLOR-BW, ADJ-BW |  |
 | Develop | Color grading y calibration | Pendiente | verified 2: DEV-COLOR-GRADING, DEV-COLOR-CALIBRATION |  |
 | Develop | Sharpening y denoise | Pendiente | partial 1, verified 3: DEV-DETAIL-SHARP-AMOUNT, DEV-DETAIL-SHARP-MASK, DEV-DETAIL-NR-LUM, DEV-DETAIL-NR-COLOR |  |
 | Develop | Óptica y geometría | Pendiente | missing 3, verified 1: DEV-OPTICS-PROFILE, DEV-OPTICS-DEFRINGE, DEV-OPTICS-UPRIGHT, DEV-OPTICS-TRANSFORM |  |

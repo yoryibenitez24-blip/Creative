@@ -135,6 +135,23 @@ await step('Camera Raw Filter: every panel present; Exposure +1 brightens; setti
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
 });
 
+await step('Fill layer (Solid Color) and adjustment layers (Invert, Levels) affect layers below; undo removes them', async () => {
+  await app().getByRole('button', { name: 'Layer', exact: true }).click(); await menuItem('New Fill Layer').hover(); await menuItem('Solid Color…').click(); await settle();
+  near((await exportPx()).at(40, 40), [255, 0, 0], 2, 'solid fill uses the foreground colour');
+  await page.getByLabel('Fill color', { exact: true }).fill('#0000ff'); await settle();
+  near((await exportPx()).at(40, 40), [0, 0, 255], 2, 'fill colour edited from the inspector');
+  await page.keyboard.press('Control+z'); await settle(); await page.keyboard.press('Control+z'); await settle();
+  near((await exportPx()).at(40, 40), BG, 2, 'fill layer undone');
+  await app().getByRole('button', { name: 'Layer', exact: true }).click(); await menuItem('New Adjustment Layer').hover(); await menuItem('Invert').click(); await settle(); await page.waitForTimeout(500); await settle();
+  const inv = await exportPx('m1-adjustment-invert.png'); near(inv.at(40, 40), BG.map(v => 255 - v), 3, 'background inverted'); near(inv.at(150, 100), [255, 255, 255], 3, 'black square inverted');
+  await page.keyboard.press('Control+z'); await settle();
+  await app().getByRole('button', { name: 'Layer', exact: true }).click(); await menuItem('New Adjustment Layer').hover(); await menuItem('Levels…').click(); await settle();
+  await setNum('Input black value', 200); await settle(); await page.waitForTimeout(500); await settle();
+  const lv = await exportPx(); near(lv.at(40, 40), [204, 190, 158], 3, 'levels (input black 200) remaps the background');
+  await page.keyboard.press('Control+z'); await settle(); await page.keyboard.press('Control+z'); await settle();
+  near((await exportPx()).at(40, 40), BG, 2, 'adjustment removed');
+});
+
 await step('no uncaught page errors', async () => assert.deepEqual(errors, []));
 await page.screenshot({ path: join(evidence, 'm1-styles-ui.png') });
 await browser.close(); server.close();

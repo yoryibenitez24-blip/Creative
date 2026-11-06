@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-06T09:49:17.149Z",
+  "date": "2026-11-06T09:51:39.564Z",
   "browser": "chromium (Playwright)",
   "results": [
     {
@@ -32,6 +32,10 @@
     },
     {
       "name": "Camera Raw Filter: every panel present; Exposure +1 brightens; settings reopen with the layer",
+      "ok": true
+    },
+    {
+      "name": "Fill layer (Solid Color) and adjustment layers (Invert, Levels) affect layers below; undo removes them",
       "ok": true
     },
     {

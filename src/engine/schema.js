@@ -15,7 +15,7 @@
 // layer fields are carried through untouched, so a later version can still read them.
 
 export const SCHEMA_VERSION = 3;
-export const LAYER_TYPES = ['rect', 'ellipse', 'text', 'image', 'raster'];
+export const LAYER_TYPES = ['rect', 'ellipse', 'text', 'image', 'raster', 'adjustment', 'fill'];
 export const PROJECT_FORMAT = 'zertake-project';
 
 const newId = () => globalThis.crypto?.randomUUID?.() || 'doc-' + Date.now().toString(36) + Math.random().toString(36).slice(2);
