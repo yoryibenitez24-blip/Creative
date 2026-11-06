@@ -159,7 +159,7 @@ await step('Export › PSD writes editable layers in Photoshop order with masks 
   await rowOf('Paint layer 1').locator('.layerThumb').click();
   await app().getByRole('button', { name: 'Layer', exact: true }).click(); await menuItem('Layer Style').hover(); await menuItem('Drop Shadow…').click();
   await page.getByLabel('Drop Shadow', { exact: true }).check(); await page.getByRole('button', { name: 'OK', exact: true }).click(); await settle();
-  await app().locator('button.export').click(); await app().locator('select').filter({ has: page.locator('option[value="psd"]') }).selectOption('psd');
+  await app().locator('button.export').click(); await app().getByRole('button', { name: 'Format PSD' }).click();
   const [dl] = await Promise.all([page.waitForEvent('download'), app().getByRole('button', { name: /Download PSD/ }).click()]);
   const buf = readFileSync(await dl.path()); writeFileSync(join(evidence, 'm1-export.psd'), buf);
   const psd = readPsd(new Uint8Array(buf), { useImageData: true });

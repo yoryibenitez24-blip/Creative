@@ -92,6 +92,7 @@ export default function ToolOptions({ pen, onMask, tool, brush, setBrush, sel, s
   if (tool === 'focus') return bar('Blur / Sharpen / Smudge options', <>{variantSeg}{brushCore(false)}
     {num('Strength', o.strength, set('strength'), { min: 0.01, max: 1, scale: 100, suffix: '%' })}</>);
   if (tool === 'crop') return bar('Crop options', <><strong>Crop</strong>
+    <div className="segmented icons ratioIcons" role="group" aria-label="Aspect ratio">{[['1:1', 'Square 1 : 1', 14, 14], ['3:2', 'Landscape 3 : 2', 18, 12], ['4:5', 'Portrait 4 : 5', 11, 15], ['free', 'Free ratio', 0, 0]].map(([v, n, w, h]) => <button key={v} aria-label={n} title={n} aria-pressed={o.ratio === v} className={o.ratio === v ? 'on' : ''} onClick={() => set('ratio')(v)}>{w ? <span className="rIcon" style={{ width: w, height: h }} /> : '⋯'}</button>)}</div>
     {pick('Ratio', o.ratio, set('ratio'), [['free', 'Free'], ['original', 'Original ratio'], ['1:1', '1 : 1 (square)'], ['4:5', '4 : 5'], ['3:2', '3 : 2'], ['16:9', '16 : 9']])}
     {crop && <span className="optHint">{Math.round(crop.w)} × {Math.round(crop.h)} px</span>}
     <button className="optButton" onClick={crop?.cancel} disabled={!crop}>Cancel</button><button className="optButton primary" onClick={crop?.apply} disabled={!crop}>Apply crop ⏎</button></>);

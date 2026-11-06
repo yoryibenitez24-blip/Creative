@@ -97,6 +97,7 @@ await step('Type: Character panel tracking widens text; Warp Text applies; on-ca
   const w0 = await width();
   const tr = app().getByLabel('Tracking', { exact: true }); await tr.fill('400'); await tr.press('Enter'); await settle();
   const w1 = await width(); assert.ok(w1 > w0 * 1.2, `tracking widened the text ${w0} → ${w1}`);
+  await app().getByRole('button', { name: /More type options/ }).click();
   await app().getByRole('button', { name: 'Warp Text…' }).click();
   await page.getByLabel('Warp style').selectOption('arc');
   await page.getByRole('dialog', { name: 'Warp Text' }).getByRole('button', { name: 'OK', exact: true }).click().catch(async () => page.getByRole('button', { name: 'OK', exact: true }).click());

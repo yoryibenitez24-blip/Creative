@@ -95,8 +95,8 @@ await step('Gaussian Blur smart filter is editable after the fact (double-click)
 await step('scaling a Smart Object down and back up is lossless', async () => {
   await rowOf('Paint layer 1').click({ position: { x: 10, y: 10 } });
   const before = await exportPx();
-  const wField = app().locator('.fieldGrid label.field').filter({ hasText: /^W/ }).locator('input');
-  const hField = app().locator('.fieldGrid label.field').filter({ hasText: /^H/ }).locator('input');
+  const wField = app().getByLabel('Width', { exact: true });
+  const hField = app().getByLabel('Height', { exact: true });
   await wField.fill('10'); await hField.fill('8'); await settle();
   const small = await exportPx(); near(small.at(150, 100), BG, 0, 'shrunk');
   await wField.fill('100'); await hField.fill('80'); await settle();
