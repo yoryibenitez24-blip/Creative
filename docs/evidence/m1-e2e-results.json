@@ -1,21 +1,21 @@
 {
-  "date": "2026-11-06T21:49:14.192Z",
+  "date": "2026-11-06T23:31:58.855Z",
   "browser": "chromium (Playwright)",
   "results": [
     {
       "name": "create a new 400×300 document in its own tab",
       "ok": true,
-      "ms": 177
+      "ms": 172
     },
     {
       "name": "A1: brush stroke at 100% zoom paints a new paint layer in document space",
       "ok": true,
-      "ms": 2786
+      "ms": 2701
     },
     {
       "name": "A1: undo removes exactly the stroke and keeps the layer",
       "ok": true,
-      "ms": 2481
+      "ms": 2342
     },
     {
       "name": "zoom comparison metrics",
@@ -26,7 +26,7 @@
     {
       "name": "A1: the same document-space stroke at 200% zoom matches the 100% result",
       "ok": true,
-      "ms": 3555
+      "ms": 3305
     },
     {
       "name": "export boundary metrics",
@@ -36,22 +36,22 @@
     {
       "name": "A2: feathered marquee restricts the brush; fill and export keep the same alpha boundary",
       "ok": true,
-      "ms": 4635
+      "ms": 4312
     },
     {
       "name": "selection commands: deselect, reselect, inverse, clear, lasso",
       "ok": true,
-      "ms": 4150
+      "ms": 3772
     },
     {
       "name": "persistence: paint layer pixels survive reload from local storage",
       "ok": true,
-      "ms": 1713
+      "ms": 1515
     },
     {
       "name": "native project: .zertake envelope stores pixels once and reopens identically",
       "ok": true,
-      "ms": 629
+      "ms": 541
     },
     {
       "name": "no uncaught page errors",
