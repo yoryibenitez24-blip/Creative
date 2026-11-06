@@ -48,7 +48,7 @@ function CurvePath({ pts }) { const lut = curveLut(pts); return <path d={'M' + A
 
 export function Field({ p, value, onChange }) {
   if (p.type === 'range') return <label className="opField"><span>{p.label}</span>
-    <input type="range" aria-label={p.label} min={p.min} max={p.max} step={p.step} value={value} onChange={e => onChange(+e.target.value)} />
+    <input type="range" aria-label={p.label} min={p.min} max={p.max} step={p.step} value={value} style={{ '--hi': ((value - p.min) / (p.max - p.min) * 100) + '%' }} onChange={e => onChange(+e.target.value)} />
     <input type="number" aria-label={p.label + ' value'} min={p.min} max={p.max} step={p.step} value={value} onChange={e => { const v = +e.target.value; if (Number.isFinite(v)) onChange(Math.min(p.max, Math.max(p.min, v))); }} />{p.unit && <small>{p.unit}</small>}</label>;
   if (p.type === 'select') return <label className="opField"><span>{p.label}</span><select aria-label={p.label} value={value} onChange={e => onChange(e.target.value)}>{p.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>;
   if (p.type === 'checkbox') return <label className="optCheck"><input type="checkbox" aria-label={p.label} checked={!!value} onChange={e => onChange(e.target.checked)} />{p.label}</label>;

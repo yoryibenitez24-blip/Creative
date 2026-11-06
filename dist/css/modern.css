@@ -200,3 +200,58 @@ input[type=range][style*="background"]::-moz-range-thumb { width: 12px; height: 
 .crsSlider input[type=range]:not([style*="background"]) { box-shadow: none !important; }
 .crsBody .crsSlider, .crsSlider { margin: 0 !important; padding: 0 0 2px !important; gap: 0 !important; }
 .crsSlider .crsRow { margin: 0; min-height: 20px; }
+
+/* ---------- Layer Style and filter / adjustment dialogs ---------- */
+.layerStyle, .opDialog { background: #1a1a1d !important; border: 1px solid #2c2c31 !important; border-radius: 14px !important; box-shadow: 0 24px 80px rgba(0,0,0,.6) !important; overflow: hidden; font-family: inherit; }
+.layerStyle > header, .opDialog > header { background: #1a1a1d !important; border-bottom: 1px solid #26262b !important; padding: 14px 18px !important; }
+.layerStyle > header h2, .opDialog > header h2, .layerStyle > header strong { font-size: 14px; font-weight: 600; letter-spacing: 0; }
+/* slider rows: label + value on top, slider underneath */
+.lsField, .opField:not(.column) { display: grid !important; grid-template-columns: 1fr auto auto; align-items: center; column-gap: 4px; row-gap: 0; margin: 0 0 6px; }
+.lsField > span, .opField > span { grid-column: 1; grid-row: 1; color: #c4c4cc; font-size: 12.5px; min-width: 0; }
+.lsField > input[type=number], .opField > input[type=number] { grid-column: 2; grid-row: 1; width: 58px; background: transparent !important; border: 0 !important; color: #e4e4ea; text-align: right; font: 400 12.5px inherit; font-family: inherit; padding: 2px 0; -moz-appearance: textfield; box-shadow: none !important; }
+.lsField > input[type=number]::-webkit-inner-spin-button, .opField > input[type=number]::-webkit-inner-spin-button { display: none; }
+.lsField > input[type=number]:focus, .opField > input[type=number]:focus { outline: none; color: var(--z-accent); }
+.lsField > small, .opField > small { grid-column: 3; grid-row: 1; color: #77777f; font-size: 11px; min-width: 10px; }
+.lsField > input[type=range], .opField > input[type=range] { grid-column: 1 / -1; grid-row: 2; width: 100%; margin: 0; height: 22px; border: 0; background: transparent; box-shadow: none; }
+.lsField > input[type=range]::-webkit-slider-runnable-track, .opField > input[type=range]::-webkit-slider-runnable-track { height: 2px; border-radius: 1px; background: linear-gradient(90deg, #d2d2d8 0 var(--hi, 0%), #45454b var(--hi, 0%)); }
+.lsField > input[type=range]::-moz-range-track, .opField > input[type=range]::-moz-range-track { height: 2px; background: #45454b; }
+.lsField > input[type=range]::-moz-range-progress, .opField > input[type=range]::-moz-range-progress { height: 2px; background: #d2d2d8; }
+.lsField > input[type=range]::-webkit-slider-thumb, .opField > input[type=range]::-webkit-slider-thumb { width: 18px; height: 18px; margin-top: -8px; border-radius: 50%; background: #1a1a1d; border: 2px solid #c2c2c8; box-shadow: 0 0 0 4px #1a1a1d; transform: none; }
+.lsField > input[type=range]::-moz-range-thumb, .opField > input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #1a1a1d; border: 2px solid #c2c2c8; box-shadow: 0 0 0 4px #1a1a1d; }
+.lsField > input[type=range]:hover::-webkit-slider-thumb, .opField > input[type=range]:hover::-webkit-slider-thumb { border-color: #fff; }
+.lsField > input[type=range]:focus-visible::-webkit-slider-thumb, .opField > input[type=range]:focus-visible::-webkit-slider-thumb { border-color: var(--z-accent); }
+/* selects and colours inside rows */
+.lsField > select, .opField > select { grid-column: 2 / -1; grid-row: 1; min-width: 150px; height: 32px; appearance: none; -webkit-appearance: none; background: #26262b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='14' viewBox='0 0 10 14'%3E%3Cpath d='M2 5l3-3 3 3M2 9l3 3 3-3' fill='none' stroke='%238d8d96' stroke-width='1.4'/%3E%3C/svg%3E") no-repeat right 10px center !important; border: 1px solid transparent !important; border-radius: 8px !important; color: #e8e8ee; padding: 0 30px 0 12px !important; font: inherit; font-size: 12.5px; }
+.lsField > select:hover, .opField > select:hover { background-color: #2d2d33 !important; }
+.lsField > select:focus, .opField > select:focus { outline: none; border-color: #55555e !important; }
+.lsField > input[type=color], .opField > input[type=color] { grid-column: 2 / -1; grid-row: 1; justify-self: end; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 8px; background: none; cursor: pointer; }
+.lsField > input[type=color]::-webkit-color-swatch-wrapper, .opField > input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+.lsField > input[type=color]::-webkit-color-swatch, .opField > input[type=color]::-webkit-color-swatch { border: 1px solid rgba(255,255,255,.14); border-radius: 8px; }
+/* checkboxes as switches inside dialogs */
+.layerStyle .optCheck, .opDialog .optCheck { display: flex; align-items: center; gap: 9px; color: #c4c4cc; font-size: 12.5px; margin: 6px 0; cursor: pointer; }
+.layerStyle input[type=checkbox], .opDialog input[type=checkbox] { -webkit-appearance: none; appearance: none; width: 28px; height: 16px; border-radius: 8px; background: #3a3a40; position: relative; flex: none; cursor: pointer; transition: background .15s; margin: 0; }
+.layerStyle input[type=checkbox]::after, .opDialog input[type=checkbox]::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #d9d9de; transition: transform .15s; }
+.layerStyle input[type=checkbox]:checked, .opDialog input[type=checkbox]:checked { background: var(--z-accent); }
+.layerStyle input[type=checkbox]:checked::after, .opDialog input[type=checkbox]:checked::after { transform: translateX(12px); background: #fff; }
+.layerStyle input[type=checkbox]:disabled, .opDialog input[type=checkbox]:disabled { opacity: .4; }
+.layerStyle input[type=checkbox]:focus-visible, .opDialog input[type=checkbox]:focus-visible { outline: 2px solid rgba(169,139,255,.6); outline-offset: 2px; }
+/* left effect list */
+.lsList { background: #151517 !important; border-right: 1px solid #26262b !important; padding: 10px 8px !important; }
+.lsList > * { border-radius: 8px !important; }
+.lsList button, .lsList label, .lsList > div { min-height: 32px; }
+.lsList .selected, .lsList [aria-current="true"], .lsList [aria-selected="true"] { background: #26262b !important; box-shadow: inset 0 0 0 1px #33333a; }
+.lsPlus { width: 22px !important; height: 22px !important; border-radius: 6px !important; background: transparent !important; border: 1px solid #3a3a41 !important; color: #a9a9b3 !important; display: grid !important; place-items: center; font-size: 13px; }
+.lsPlus:hover { background: #2a2a30 !important; color: #fff !important; }
+/* body, section titles, action column */
+.lsPanel, .lsBody { padding: 16px 20px !important; }
+.lsPanel h3, .lsPanel h4, .lsBody h3, .lsBody h4 { font-size: 13.5px; font-weight: 600; color: #f0f0f4; margin: 2px 0 12px; }
+.lsPanel h5, .lsBody h5 { font-size: 10.5px; letter-spacing: .08em; color: #7d7d86; margin: 16px 0 8px; font-weight: 600; }
+.lsActions { padding: 16px !important; gap: 8px !important; display: flex; flex-direction: column; border-left: 1px solid #26262b !important; background: #151517 !important; }
+.lsActions button, .opDialog footer button { height: 34px; border-radius: 9px !important; border: 1px solid #34343a !important; background: #222226 !important; color: #e6e6ec !important; font-weight: 500; }
+.lsActions button:hover, .opDialog footer button:hover { background: #2a2a2f !important; }
+.lsActions button.primary, .opDialog footer button.primary { background: var(--z-accent) !important; border-color: transparent !important; color: #141218 !important; font-weight: 600; }
+.lsActions button.primary:hover, .opDialog footer button.primary:hover { background: #b9a0ff !important; }
+.layerStyle .lsBody { padding: 0 !important; gap: 0 !important; background: #1a1a1d; }
+.lsList .lsPlus { min-height: 0 !important; height: 22px !important; }
+.lsList { border-radius: 0 !important; }
+.lsActions { border-radius: 0 !important; }
