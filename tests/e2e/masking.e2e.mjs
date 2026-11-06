@@ -98,7 +98,7 @@ await step('setup: open a 1800 × 1200 photo-like PNG as a document', async () =
 
 await step('Camera Raw: Subject mask (automatic, non-AI) + Exposure +1 brightens the object, not the background; overlay shows the object', async () => {
   await openCrs();
-  await crs().getByRole('button', { name: 'Masking', exact: true }).click();
+  await crs().getByRole('button', { name: 'Masking tool', exact: true }).click();
   await create(crs(), 'Subject'); await ready();
   assert.match(await crs().locator('.mkPanel').innerText(), /non-AI/);
   assert.ok(await overlayAt(...OBJ) > 60, 'overlay covers the object'); assert.ok(await overlayAt(...SKY) < 20 && await overlayAt(...GROUND) < 20, 'overlay off the background');
@@ -119,7 +119,7 @@ await step('Camera Raw: Subject mask (automatic, non-AI) + Exposure +1 brightens
 let before = {};
 await step('Camera Raw reopens with the mask; Sky mask darkens the sky only', async () => {
   await openCrs();
-  await crs().getByRole('button', { name: 'Masking', exact: true }).click();
+  await crs().getByRole('button', { name: 'Masking tool', exact: true }).click();
   assert.equal(await crs().getByRole('button', { name: 'Select Mask 1', exact: true }).count(), 1, 'mask kept with the layer');
   const s0 = await prev(...SKY), g0 = await prev(...GROUND);
   await create(crs(), 'Sky'); await ready();
@@ -208,7 +208,7 @@ await step('Library · Develop: Masking with history — a Radial mask brightens
   const cell = dvw.locator('.dvwCell').first(); await cell.waitFor(); await cell.click(); await page.keyboard.press('d');
   const cv = '.dvw canvas[aria-label="Develop preview"]';
   await page.waitForFunction(() => document.querySelector('.dvw .crsStatus')?.textContent.includes('ready'), null, { timeout: 30000 }); await page.waitForTimeout(400);
-  await dvw.getByRole('button', { name: 'Masking', exact: true }).click(); await ensureCss();
+  await dvw.getByRole('button', { name: 'Masking tool', exact: true }).click(); await ensureCss();
   const histBefore = await dvw.getByRole('list', { name: 'Develop history' }).getByRole('button').count();
   const c0 = await prev(0.5, 0.66, cv), out0 = await prev(0.1, 0.1, cv);
   await create(dvw, 'Radial Gradient'); await dragOn([[0.5, 0.66], [0.56, 0.74]], {}, cv);

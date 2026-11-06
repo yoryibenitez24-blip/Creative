@@ -93,7 +93,13 @@ export const PANELS = {
   lensBlur: { name: 'Lens Blur', keys: ['lensBlur'] },
   effects: { name: 'Effects (Vignette, Grain)', keys: ['vignetteAmount', 'vignetteMidpoint', 'vignetteRoundness', 'vignetteFeather', 'vignetteHighlights', 'grainAmount', 'grainSize', 'grainRoughness', 'grainSeed'] },
   calibration: { name: 'Calibration', keys: ['calibration'] },
+  pointColor: { name: 'Point Color', keys: ['pointColor'] },
+  geometry: { name: 'Geometry', keys: ['geometry'] },
+  crop: { name: 'Crop', keys: ['crop'] },
+  remove: { name: 'Remove (spots)', keys: ['spots'] },
 };
+/** Panels selected by default in Copy / Sync / Save Preset (Lightroom leaves spot removal out). */
+export const DEFAULT_SYNC_PANELS = Object.keys(PANELS).filter(p => p !== 'remove');
 export const ALL_PANELS = Object.keys(PANELS);
 
 /** Partial settings holding only the keys of the chosen panels (deep copies). */
@@ -109,6 +115,7 @@ const KEY_LABELS = {
   texture: 'Texture', clarity: 'Clarity', dehaze: 'Dehaze', vibrance: 'Vibrance', saturation: 'Saturation',
   vignetteAmount: 'Vignette Amount', vignetteMidpoint: 'Vignette Midpoint', vignetteRoundness: 'Vignette Roundness', vignetteFeather: 'Vignette Feather', vignetteHighlights: 'Vignette Highlights',
   grainAmount: 'Grain Amount', grainSize: 'Grain Size', grainRoughness: 'Grain Roughness', grainSeed: 'Grain Seed',
+  spots: 'Remove', pointColor: 'Point Color', geometry: 'Geometry', crop: 'Crop', masks: 'Masking', versions: 'Versions',
   curve: 'Tone Curve', mixer: 'Color Mixer', grading: 'Color Grading', lensBlur: 'Lens Blur', calibration: 'Calibration', bypass: 'Panel Visibility',
   sharpenAmount: 'Sharpening', sharpenRadius: 'Sharpening Radius', sharpenDetail: 'Sharpening Detail', sharpenMasking: 'Sharpening Masking',
   nrLuminance: 'Noise Reduction', nrDetail: 'Noise Detail', nrContrast: 'Noise Contrast', nrColor: 'Color Noise Reduction', nrColorDetail: 'Color Noise Detail', nrColorSmoothness: 'Color Smoothness',
@@ -268,6 +275,7 @@ export function applySnapshot(cat, id, index) {
   const p = byId(cat, id), snap = p?.snapshots[index]; if (!snap) return cat;
   return setDevelop(cat, id, expandSettings(snap.settings), 'Snapshot: ' + snap.name);
 }
+export function renameSnapshot(cat, id, index, name) { const n = String(name).trim(); return n ? mapPhotos(cat, id, p => ({ ...p, snapshots: p.snapshots.map((sn, i) => i === index ? { ...sn, name: n } : sn) })) : cat; }
 export function deleteSnapshot(cat, id, index) { return mapPhotos(cat, id, p => ({ ...p, snapshots: p.snapshots.filter((_, i) => i !== index) })); }
 
 /** Paste partial settings (from pickPanels) onto photos, one history step each. */
@@ -298,6 +306,21 @@ export const BUILTIN_PRESETS = [
 
 /** Apply a preset: deep-merges ONLY the preset's keys into the settings. */
 export function applyPreset(settings, preset) { return mergeDeep(expandSettings(settings), preset.settings); }
+/**
+ * Preset with an Amount (Lightroom Mobile): `base` + (applyPreset(base) − base) · amount/100 for every
+ * numeric value the preset changes (nested objects and equal-length numeric arrays such as curve
+ * points included); non-numeric values switch at 50 %. amount 0..200.
+ */
+export function blendPreset(base, preset, amount = 100) {
+  const b = expandSettings(base), t = applyPreset(b, preset), k = amount / 100;
+  const mix = (x, y) => {
+    if (typeof x === 'number' && typeof y === 'number') return x + (y - x) * k;
+    if (Array.isArray(x) && Array.isArray(y) && x.length === y.length) return x.map((v, i) => mix(v, y[i]));
+    if (isObj(x) && isObj(y)) { const o = { ...x }; for (const key of Object.keys(y)) o[key] = key in x ? mix(x[key], y[key]) : (k >= 0.5 ? clone(y[key]) : undefined); return o; }
+    return same(x, y) ? x : k >= 0.5 ? clone(y) : clone(x);
+  };
+  return mix(b, t);
+}
 export function allPresets(cat) { return [...BUILTIN_PRESETS, ...cat.presets]; }
 /** Save a user preset from the chosen panels of `settings`. → { cat, id } */
 export function savePreset(cat, name, settings, panels = ALL_PANELS) {

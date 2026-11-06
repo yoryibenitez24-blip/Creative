@@ -662,7 +662,7 @@ AREAS.push(
 // Current state. Rows absent here are `missing`.
 // evidence: test name or file proving it. note: limitations.
 const T_TF = 'tests/e2e/transform.e2e.mjs (docs/evidence/m1-transform-e2e-results.json); tests/warp.test.js', T_DEV = 'tests/develop.test.js', T_STY = 'tests/e2e/styles.e2e.mjs (docs/evidence/m1-styles-e2e-results.json)', T_STU = 'tests/styles.test.js', T_TOOLSET = 'tests/e2e/toolset.e2e.mjs (docs/evidence/m1-toolset-e2e-results.json)', T_OPS = 'tests/ops.test.js', T_TOOLS = 'tests/tools.test.js', T_MASKS = 'tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json)', T_ENGINE = 'tests/engine.test.js', T_E2E = 'tests/e2e/slice.e2e.mjs (docs/evidence/m1-e2e-results.json)', T_MODEL = 'src/model.test.js', T_IMPORT = 'tests/import.test.js';
-const T_T2 = 'tests/e2e/tools2.e2e.mjs', T_DEVW = 'tests/e2e/develop.e2e.mjs', T_SMART = 'tests/e2e/smart.e2e.mjs', T_PRO = 'tests/e2e/pro.e2e.mjs', T_PATHS = 'tests/e2e/paths.e2e.mjs';
+const T_MASK = 'tests/e2e/masking.e2e.mjs', T_CRT = 'tests/e2e/crtools.e2e.mjs', T_T2 = 'tests/e2e/tools2.e2e.mjs', T_DEVW = 'tests/e2e/develop.e2e.mjs', T_SMART = 'tests/e2e/smart.e2e.mjs', T_PRO = 'tests/e2e/pro.e2e.mjs', T_PATHS = 'tests/e2e/paths.e2e.mjs';
 export const STATUS = {
 
   'M0-LAYOUT': ['verified', 'npm run build + node --test (docs/MILESTONE_REPORT.md)'],
@@ -1077,6 +1077,19 @@ export const STATUS = {
   'GRAD-STOPS': ['verified', T_T2 + ' Gradient Editor preset stops; tests/tools2.test.js'],
   'RETOUCH-PATTERN-STAMP': ['verified', T_T2 + ' pattern stamp'], 'RETOUCH-CA-MOVE': ['verified', T_T2 + ' content-aware move'], 'RETOUCH-RED-EYE': ['verified', T_T2 + ' red eye'],
   'VEC-TRIANGLE': ['implemented-unverified', 'Shape tool › Triangle'], 'VEC-POLYGON': ['verified', T_T2 + ' polygon and star'], 'VEC-LINE': ['verified', T_T2 + ' line weight'], 'VEC-CUSTOM': ['verified', T_T2 + ' custom shape layer'],
+  // ---- slice 7: Lightroom Mobile parity in Camera Raw / Develop ----
+  'DEV-MASK-BRUSH': ['verified', T_MASK], 'DEV-MASK-LINEAR': ['verified', T_MASK], 'DEV-MASK-RADIAL': ['verified', T_MASK],
+  'DEV-MASK-COLOR-RANGE': ['implemented-unverified', 'tests/masks.test.js'], 'DEV-MASK-LUM-RANGE': ['implemented-unverified', 'tests/masks.test.js'],
+  'DEV-MASK-OPS': ['verified', T_MASK + ' Entire Image − Subject'], 'DEV-MASK-OVERLAY': ['verified', T_MASK + ' overlay'], 'DEV-MASK-MANAGE': ['implemented-unverified', 'Rename / duplicate / delete / invert / Amount'],
+  'DEV-MASK-SUBJECT': ['partial', T_MASK + '; tests/masks.test.js IoU ≥ 0.75', 'Classical saliency + colour models (no AI, D-001); weak on camouflaged subjects'],
+  'DEV-MASK-SKY': ['partial', T_MASK + '; tests/masks.test.js IoU ≥ 0.85', 'Classical detection (no AI); assumes sky touches the top edge'],
+  'DEV-MASK-BACKGROUND': ['partial', T_MASK + ' (inverse of Subject)', 'Inherits Subject limits'],
+  'DEV-MASK-LOCAL-ADJ': ['verified', T_MASK + ' Light / Color / Effects / Detail per mask'],
+  'DEV-COLOR-POINT-COLOR': ['verified', T_CRT + ' point colour shifts one hue only'],
+  'DEV-OPTICS-UPRIGHT': ['verified', T_CRT + ' Upright Level; tests/develop2.test.js', 'Classical line detection; Auto damped'],
+  'DEV-OPTICS-TRANSFORM': ['implemented-unverified', 'Geometry sliders; tests/develop2.test.js'], 'DEV-OPTICS-CONSTRAIN': ['implemented-unverified', 'tests/develop2.test.js constrainCrop'],
+  'DEV-OPTICS-CROP': ['verified', T_CRT + ' 1:1 crop resizes the layer'], 'DEV-OPTICS-HEAL': ['verified', T_CRT + ' Remove deletes a dot', 'PatchMatch, not generative'],
+  'DEV-PRESETS': ['verified', T_CRT + ' preset with amount'], 'DEV-HISTORY': ['implemented-unverified', 'Develop history; Versions in Camera Raw (' + T_CRT + ')'],
 };
 
 export const STATES = ['missing', 'partial', 'implemented-unverified', 'verified', 'blocked'];

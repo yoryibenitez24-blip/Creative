@@ -27,11 +27,11 @@ Inputs (kept unchanged in `docs/baseline/`): INVENTARIO_BRECHAS.csv sha256 `9e40
 | Develop | Grain | Parcial | partial 2, verified 4: FILT-LEG-GRAIN, DEV-EFFECTS-LEGACY-GRAIN, DEV-EFFECTS-GRAIN-AMOUNT, DEV-EFFECTS-GRAIN-SIZE, DEV-EFFECTS-GRAIN-ROUGH, DEV-EFFECTS-GRAIN-SEED | The legacy grain is partial. The required Amount/Size/Roughness/seed grain is missing. |
 | Develop | Vignette | Parcial | partial 1, implemented-unverified 3, verified 2: FILT-LEG-VIGNETTE, DEV-EFFECTS-VIG-AMOUNT, DEV-EFFECTS-VIG-MID, DEV-EFFECTS-VIG-ROUND, DEV-EFFECTS-VIG-FEATHER, DEV-EFFECTS-VIG-HIGHLIGHTS |  |
 | Develop | Curvas y Levels | Pendiente | implemented-unverified 3, verified 2: DEV-CURVE-POINT, DEV-CURVE-PARAMETRIC, DEV-CURVE-CHANNELS, ADJ-LEVELS, ADJ-CURVES |  |
-| Develop | HSL, Point Color, B&W mixer | Pendiente | missing 1, implemented-unverified 1, verified 2: DEV-COLOR-HSL, DEV-COLOR-POINT-COLOR, DEV-COLOR-BW, ADJ-BW |  |
+| Develop | HSL, Point Color, B&W mixer | Pendiente | implemented-unverified 1, verified 3: DEV-COLOR-HSL, DEV-COLOR-POINT-COLOR, DEV-COLOR-BW, ADJ-BW |  |
 | Develop | Color grading y calibration | Pendiente | verified 2: DEV-COLOR-GRADING, DEV-COLOR-CALIBRATION |  |
 | Develop | Sharpening y denoise | Pendiente | partial 1, verified 3: DEV-DETAIL-SHARP-AMOUNT, DEV-DETAIL-SHARP-MASK, DEV-DETAIL-NR-LUM, DEV-DETAIL-NR-COLOR |  |
-| Develop | Óptica y geometría | Pendiente | missing 3, verified 1: DEV-OPTICS-PROFILE, DEV-OPTICS-DEFRINGE, DEV-OPTICS-UPRIGHT, DEV-OPTICS-TRANSFORM |  |
-| Develop | Máscaras locales | Pendiente | missing 6: DEV-MASK-BRUSH, DEV-MASK-LINEAR, DEV-MASK-RADIAL, DEV-MASK-COLOR-RANGE, DEV-MASK-LUM-RANGE, DEV-MASK-OPS |  |
+| Develop | Óptica y geometría | Pendiente | missing 1, implemented-unverified 1, verified 2: DEV-OPTICS-PROFILE, DEV-OPTICS-DEFRINGE, DEV-OPTICS-UPRIGHT, DEV-OPTICS-TRANSFORM |  |
+| Develop | Máscaras locales | Pendiente | implemented-unverified 2, verified 4: DEV-MASK-BRUSH, DEV-MASK-LINEAR, DEV-MASK-RADIAL, DEV-MASK-COLOR-RANGE, DEV-MASK-LUM-RANGE, DEV-MASK-OPS |  |
 | Develop | Lens blur | Pendiente | verified 1: DEV-OPTICS-LENS-BLUR |  |
 | Archivos | PSD import | Parcial | missing 3, partial 1, verified 2: PSD-IMPORT-RASTER, PSD-IMPORT-REPORT, PSD-IMPORT-TEXT, PSD-IMPORT-FX, PSD-IMPORT-MASKS, PSD-IMPORT-SO |  |
 | Archivos | PSD export y PSB | Pendiente | missing 1, verified 1: PSD-EXPORT, PSD-PSB |  |

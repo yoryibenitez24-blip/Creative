@@ -7,11 +7,12 @@ import {
   setRating, setFlag, setLabel, setKeywords, parseKeywords, allKeywords, filterPhotos, sortPhotos,
   addCollection, renameCollection, deleteCollection, addToCollection, removeFromCollection, removePhotos, createVirtualCopy,
   setDevelop, goToHistory, addSnapshot, applySnapshot, deleteSnapshot, pickPanels, pasteSettings, syncSettings, resetDevelop,
-  describeChange, applyPreset, allPresets, savePreset, deletePreset, PANELS, ALL_PANELS,
+  describeChange, applyPreset, allPresets, savePreset, deletePreset, PANELS, ALL_PANELS, DEFAULT_SYNC_PANELS, renameSnapshot,
   previewCacheKey, cachePut, fitLongEdge, planExport, settingsHash, LABELS,
 } from '../engine/catalog.js';
 import { DevelopPanelStack, ProfileControls, RgbHistogram, sampleForPick, pickHint, PANELS_OPEN_DEFAULT } from './DevelopPanels.jsx';
-import { useMasking, MaskingPanel, MaskCanvasLayer, MaskModeBar } from './MaskingPanel.jsx';
+import { useMasking, MaskingPanel, MaskCanvasLayer } from './MaskingPanel.jsx';
+import { useDevelopTools, ToolRail, viewSettings, previewSize } from './CrTools.jsx';
 
 // Library + Develop workspace (Lightroom-style). A photo catalog with non-destructive develop
 // settings: originals are stored once in the AssetStore and never modified; settings, history,
@@ -112,7 +113,7 @@ function Badges({ p }) {
 }
 
 function PanelPicker({ title, okLabel, withName, onOk, onCancel }) {
-  const [sel, setSel] = useState(() => new Set(ALL_PANELS)), [name, setName] = useState('');
+  const [sel, setSel] = useState(() => new Set(DEFAULT_SYNC_PANELS)), [name, setName] = useState('');
   const flip = k => setSel(s => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
   return <div className="dvwModalBack"><div className="opDialog dvwModal" role="dialog" aria-label={title}>
     <h3>{title}</h3>
@@ -285,6 +286,18 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
   const [ba, setBa] = useState('after'), [pick, setPick] = useState(null), [open, setOpen] = useState(() => ({ ...PANELS_OPEN_DEFAULT }));
   const afterCanvas = useRef(), beforeCanvas = useRef(), previewTimer = useRef(0);
   const mk = useMasking({ masks: s.masks, setMasks: (masks, label) => change({ ...sRef.current, masks }, label || 'Masks', false), getSource: () => src?.buf, resetKey: active?.id });
+  // Lightroom-Mobile tools (CrTools.jsx). Presets = catalog presets, Versions = catalog snapshots.
+  const ct = useDevelopTools({
+    s, replace: (next, label) => change(next, label || 'Settings', false), getSource: () => src?.buf, mk, imageSize: active ? [active.w, active.h] : null,
+    presets: cat ? allPresets(cat) : [],
+    savePreset: (name, panels) => setCat(c => savePreset(c, name, sRef.current, panels).cat), deletePreset: id => setCat(c => deletePreset(c, id)),
+    versions: active?.snapshots || [],
+    createVersion: name => active && act(c => addSnapshot(c, active.id, name)),
+    applyVersion: i => active && act(c => applySnapshot(c, active.id, i)),
+    renameVersion: (i, name) => active && act(c => renameSnapshot(c, active.id, i, name)),
+    deleteVersion: i => active && act(c => deleteSnapshot(c, active.id, i)),
+  });
+  const rview = useMemo(() => viewSettings(s, ct.tool, pick), [s, ct.tool, pick]), viewRef = useRef(rview); viewRef.current = rview;
   useEffect(() => {
     if (module !== 'develop' || !active) { return; }
     if (src && src.assetId === active.assetId) return;
@@ -297,7 +310,7 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
     // fast low-resolution pass right away, full preview once the sliders rest
     const render = async (b, scale, full) => {
       setRendering(true);
-      try { const r = await sched.run('preview', 'cameraRaw', b, { settings: sRef.current }, { scale }); setPreview(r); if (full) setHist(histogram(r)); setRendering(false); }
+      try { const r = await sched.run('preview', 'cameraRaw', b, { settings: viewRef.current }, { scale }); setPreview(r); if (full) setHist(histogram(r)); setRendering(false); }
       catch (e) { if (!e.cancelled) { setMsg('Preview failed: ' + e.message); setRendering(false); } }
     };
     // interactive proxy sized to this machine (largest that renders in ~70 ms; none if the full preview is that fast)
@@ -307,8 +320,8 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
     if (src.tiny) render(src.tiny, src.scale * src.tiny.w / src.buf.w, false);
     clearTimeout(previewTimer.current);
     previewTimer.current = setTimeout(async () => { const t0 = performance.now(); await render(src.buf, src.scale, true); const d = performance.now() - t0; src.fullMs = src.fullMs ? src.fullMs * 0.6 + d * 0.4 : d; }, src.tiny ? 220 : 0);
-  }, [s, src, module]);
-  useEffect(() => { if (module === 'develop' && src) { drawBuf(afterCanvas.current, ba === 'before' ? src.buf : preview || src.buf, src.buf.w, src.buf.h); if (ba === 'split') drawBuf(beforeCanvas.current, src.buf); } }, [preview, src, ba, module]);
+  }, [rview, src, module]);
+  useEffect(() => { if (module === 'develop' && src) { drawBuf(afterCanvas.current, ba === 'before' ? src.buf : preview || src.buf, ...(ba === 'before' ? [src.buf.w, src.buf.h] : previewSize(rview, src.buf.w, src.buf.h))); if (ba === 'split') drawBuf(beforeCanvas.current, src.buf); } }, [preview, src, ba, module, rview.bypass?.crop, JSON.stringify(rview.crop)]);
   const sampleAt = e => {
     if (!pick || !src) return;
     const r = e.currentTarget.getBoundingClientRect(), x = Math.floor((e.clientX - r.left) / r.width * src.buf.w), y = Math.floor((e.clientY - r.top) / r.height * src.buf.h);
@@ -408,7 +421,8 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
   useEffect(() => {
     // Capture phase on window: runs before the editor's window listeners. Keys typed into our own
     // inputs pass through untouched (the editor ignores typing); all other keys stop here.
-    const h = e => { if (typing(e.target)) { if (e.key === 'Escape') keyRef.current(e, true); return; } e.stopPropagation(); keyRef.current(e); };
+    const h = e => { if (e.target?.closest?.('.ctBox')) return; // on-canvas tool widgets handle their own keys
+      if (typing(e.target)) { if (e.key === 'Escape') keyRef.current(e, true); return; } e.stopPropagation(); keyRef.current(e); };
     window.addEventListener('keydown', h, true);
     return () => window.removeEventListener('keydown', h, true);
   }, []);
@@ -533,9 +547,8 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
     <div className="crsEdit"><strong>Edit</strong><div>
       <button disabled={!src} onClick={() => src && change({ ...sRef.current, ...autoTone(src.buf) }, 'Auto Tone')}>Auto</button>
       <button aria-pressed={mono} className={mono ? 'on' : ''} onClick={() => set({ profile: mono ? 'color' : 'monochrome' })}>B&amp;W</button></div></div>
-    <MaskModeBar mk={mk} />
-    {!mk.on && <ProfileControls s={s} set={set} />}
-    <div className="crsScroll">{mk.on ? (active ? <MaskingPanel mk={mk} /> : null) : <DevelopPanelStack s={s} set={set} setIn={setIn} open={open} toggle={id => setOpen(o => ({ ...o, [id]: !o[id] }))} hist={hist} pick={pick} setPick={setPick} getSource={() => src?.buf} />}</div>
+    {ct.tool === 'edit' && <ProfileControls s={s} set={set} />}
+    <div className="crsScroll">{ct.tool === 'masking' ? (active ? <MaskingPanel mk={mk} /> : null) : ct.tool !== 'edit' ? (active ? <div className="ctPanelWrap">{ct.panel}</div> : null) : <DevelopPanelStack s={s} set={set} setIn={setIn} open={open} toggle={id => setOpen(o => ({ ...o, [id]: !o[id] }))} hist={hist} pick={pick} setPick={setPick} getSource={() => src?.buf} />}</div>
     <footer className="crsFooter dvwDevFoot">
       <button disabled={!prevId || !active || prevId === active.id || !getPhoto(cat, prevId)} title="Apply all settings of the previously selected photo" onClick={() => { const pv = getPhoto(catRef.current, prevId); if (pv) change(structuredClone(pv.develop), 'Previous Settings'); }}>Previous</button>
       <button disabled={!active} onClick={() => change(developDefaults(), 'Reset Settings')}>Reset</button>
@@ -556,7 +569,8 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
         {ba === 'split' && <figure key="before"><canvas ref={beforeCanvas} aria-label="Before preview" /><figcaption>Before</figcaption></figure>}
         <figure key="after" onClick={sampleAt}><canvas ref={afterCanvas} aria-label="Develop preview" />{ba === 'split' && <figcaption>After</figcaption>}{ba === 'before' && <figcaption>Before</figcaption>}</figure>
         {pick && <div className="crsHint">{pickHint(pick)}</div>}
-        {mk.on && ba !== 'split' && <MaskCanvasLayer key={active.id} mk={mk} canvasRef={afterCanvas} />}</>}
+        {mk.on && ba !== 'split' && <MaskCanvasLayer key={active.id} mk={mk} canvasRef={afterCanvas} />}
+        {ba === 'after' && <React.Fragment key={'ct' + active.id}>{ct.overlay(afterCanvas)}</React.Fragment>}</>}
     </div>
   </div>;
 
@@ -589,7 +603,7 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
       {module === 'library' ? <>{libraryLeft}<main className="dvwCenter">{filterBar}{view === 'grid' ? grid : loupe}
         <div className="dvwViewBar"><div className="segmented" role="group" aria-label="Library view"><button aria-pressed={view === 'grid'} className={view === 'grid' ? 'on' : ''} onClick={() => setView('grid')}>Grid (G)</button><button aria-pressed={view === 'loupe'} className={view === 'loupe' ? 'on' : ''} onClick={() => { if (!sel.active && visible[0]) selectOnly(visible[0].id); setView('loupe'); }}>Loupe (E)</button></div>
           <span>{visible.length} of {cat.photos.length} photos · {selectedIds.length} selected</span></div>
-      </main>{libraryRight}</> : <>{devLeft}<main className="dvwCenter">{devCenter}</main>{devRight}</>}
+      </main>{libraryRight}</> : <>{devLeft}<main className="dvwCenter">{devCenter}</main><ToolRail ct={ct} />{devRight}</>}
     </div>
     {filmstrip}
     {dragOver && <div className="dvwDrop">Drop photos to import</div>}

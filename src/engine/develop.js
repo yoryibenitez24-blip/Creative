@@ -17,6 +17,7 @@
 import { curveLut, rgbToHsl, hslToRgb, hash2 } from './color.js';
 import { boxRadii } from './selection.js';
 import { prepareMasks, applyMaskJobs } from './masks.js';
+import { applySpots, pointColor, applyGeometry, geometryMatrix, isGeometryIdentity, applyCrop, isCropIdentity, GEOMETRY_DEFAULTS, CROP_DEFAULTS } from './develop2.js';
 
 export const BANDS = ['red', 'orange', 'yellow', 'green', 'aqua', 'blue', 'purple', 'magenta'];
 const BAND_HUES = [0, 30, 60, 120, 180, 225, 270, 315];
@@ -50,6 +51,8 @@ export const DEVELOP_DEFAULTS = Object.freeze({
   defringePurple: 0, purpleHueLo: 30, purpleHueHi: 70, defringeGreen: 0, greenHueLo: 40, greenHueHi: 60,
   lensBlur: { enabled: false, amount: 50, bokeh: 'circle', depth: 'radial', focusX: 0.5, focusY: 0.5, angle: 90, focalNear: 0, focalFar: 20, boost: 0 },
   calibration: { shadowTint: 0, redHue: 0, redSat: 0, greenHue: 0, greenSat: 0, blueHue: 0, blueSat: 0 },
+  // develop2.js tools: Remove/Heal/Clone spots, Point Color, Geometry (Upright + transform), Crop
+  spots: [], pointColor: { swatches: [] }, geometry: { ...GEOMETRY_DEFAULTS, guides: [] }, crop: { ...CROP_DEFAULTS },
   bypass: {},
 });
 export const developDefaults = () => structuredClone(DEVELOP_DEFAULTS);
@@ -138,6 +141,8 @@ const isDefault = (v, d) => JSON.stringify(v) === JSON.stringify(d);
 export function develop(buf, settings = {}, ctx = {}) {
   const s = mergeProfile({ ...developDefaults(), ...settings });
   const by = s.bypass || {};
+  // Remove / Heal / Clone spots work on the input pixels; everything else (masks included) sees the result.
+  if (!by.spots && s.spots?.length) buf = applySpots(buf, s.spots, ctx);
   const { w, h, data } = buf, N = w * h, sc = ctx.scale || 1, minDim = Math.min(w, h) / sc;
   let R = new Float32Array(N), G = new Float32Array(N), B = new Float32Array(N);
   for (let i = 0; i < N; i++) { R[i] = lin[data[i * 4]]; G[i] = lin[data[i * 4 + 1]]; B[i] = lin[data[i * 4 + 2]]; }
@@ -289,6 +294,9 @@ export function develop(buf, settings = {}, ctx = {}) {
     }
   }
 
+  // ---- Point Color (encoded values, after vibrance / mixer / grading) ----
+  if (!by.color && s.pointColor?.swatches?.length && pointColor(R, G, B, w, h, s.pointColor, { encoded: true })) touched = true;
+
   // ---- Detail: noise reduction (edge-preserving guided filter) and sharpening ----
   if (!by.detail && (s.nrLuminance || s.nrColor || s.sharpenAmount)) {
     touched = true;
@@ -363,9 +371,33 @@ export function develop(buf, settings = {}, ctx = {}) {
     for (let i = 0; i < N; i++) { R[i] = enc(oR[i]); G[i] = enc(oG[i]); B[i] = enc(oB[i]); }
   }
 
-  // ---- Effects: post-crop vignette and grain (document space) ----
-  if (!by.effects && s.vignetteAmount) {
-    touched = true;
+  // ---- Local adjustment masks ----
+  if (maskJobs) applyMaskJobs(R, G, B, w, h, maskJobs, ctx);
+
+  // ---- Geometry (Upright / transform) and Crop & Straighten: new buffer, possibly a new size.
+  // Post-crop vignette and grain then run on the cropped picture (Lightroom semantics).
+  const geoOn = !by.geometry && !isGeometryIdentity(s.geometry), cropOn = !by.crop && !isCropIdentity(s.crop);
+  if (geoOn || cropOn) {
+    for (let i = 0; i < N; i++) { data[i * 4] = Math.round(clamp01(R[i]) * 255); data[i * 4 + 1] = Math.round(clamp01(G[i]) * 255); data[i * 4 + 2] = Math.round(clamp01(B[i]) * 255); }
+    if (geoOn) buf = applyGeometry(buf, geometryMatrix(s.geometry, w, h));
+    if (cropOn) buf = applyCrop(buf, s.crop);
+    if (by.effects || !(s.vignetteAmount || s.grainAmount)) return buf;
+    const o = { ...buf, data: buf.data }, M = o.w * o.h, r = new Float32Array(M), g = new Float32Array(M), b = new Float32Array(M);
+    for (let i = 0; i < M; i++) { r[i] = o.data[i * 4] / 255; g[i] = o.data[i * 4 + 1] / 255; b[i] = o.data[i * 4 + 2] / 255; }
+    postEffects(r, g, b, o.w, o.h, s, ctx);
+    for (let i = 0; i < M; i++) { o.data[i * 4] = Math.round(clamp01(r[i]) * 255); o.data[i * 4 + 1] = Math.round(clamp01(g[i]) * 255); o.data[i * 4 + 2] = Math.round(clamp01(b[i]) * 255); }
+    return o;
+  }
+  if (!by.effects && (s.vignetteAmount || s.grainAmount)) { touched = true; postEffects(R, G, B, w, h, s, ctx); }
+  if (!touched) return buf;
+  for (let i = 0; i < N; i++) { data[i * 4] = Math.round(clamp01(R[i]) * 255); data[i * 4 + 1] = Math.round(clamp01(G[i]) * 255); data[i * 4 + 2] = Math.round(clamp01(B[i]) * 255); }
+  return buf;
+}
+
+/** Post-crop vignette and grain on encoded planes (in place); radii / grain in document space. */
+function postEffects(R, G, B, w, h, s, ctx) {
+  const sc = ctx.scale || 1;
+  if (s.vignetteAmount) {
     const a = s.vignetteAmount / 100, mid = s.vignetteMidpoint / 100, round = s.vignetteRoundness / 100, feather = Math.max(0.02, s.vignetteFeather / 100), hp = s.vignetteHighlights / 100;
     const ax = w / 2, ay = h / 2, circ = Math.min(ax, ay);
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
@@ -374,8 +406,7 @@ export function develop(buf, settings = {}, ctx = {}) {
       for (const ch of [R, G, B]) { const v = ch[i]; ch[i] = a < 0 ? v * (1 + a * f * (1 - hp * smooth(0.6, 1, v))) : v + (1 - v) * a * f; }
     }
   }
-  if (!by.effects && s.grainAmount) {
-    touched = true;
+  if (s.grainAmount) {
     const amt = s.grainAmount / 100 * 0.18, size = 0.5 + s.grainSize / 100 * 3.5, rough = s.grainRoughness / 100, seed = s.grainSeed | 0;
     const ox = ctx.offsetX || 0, oy = ctx.offsetY || 0;
     const noise = (u, v, sd) => { const x0 = Math.floor(u), y0 = Math.floor(v), fx = u - x0, fy = v - y0; const a = hash2(x0, y0, sd), b = hash2(x0 + 1, y0, sd), c = hash2(x0, y0 + 1, sd), d = hash2(x0 + 1, y0 + 1, sd); const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy); return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy - 0.5; };
@@ -387,10 +418,6 @@ export function develop(buf, settings = {}, ctx = {}) {
     }
   }
 
-  if (maskJobs) applyMaskJobs(R, G, B, w, h, maskJobs, ctx);
-  if (!touched) return buf;
-  for (let i = 0; i < N; i++) { data[i * 4] = Math.round(clamp01(R[i]) * 255); data[i * 4 + 1] = Math.round(clamp01(G[i]) * 255); data[i * 4 + 2] = Math.round(clamp01(B[i]) * 255); }
-  return buf;
 }
 
 /** Apply the profile's parameter deltas (scaled by Amount) and flag monochrome. */

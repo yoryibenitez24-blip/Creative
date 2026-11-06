@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { developDefaults, autoWhiteBalance, wbFromRgb, PROFILES, BANDS } from '../engine/develop.js';
 import { rgbToHsl } from '../engine/color.js';
 import { CurveEditor } from './OpDialog.jsx';
+import { samplePointColor } from '../engine/develop2.js';
+import { PointColorPanel } from './GeometryTools.jsx';
 
 // Shared develop-panel UI used by the Camera Raw Filter (CameraRaw.jsx) and the Develop module of
 // the Library/Develop workspace (DevelopWorkspace.jsx). Controls and aria-labels are part of the
@@ -53,6 +55,7 @@ export function ProfileControls({ s, set }) {
  * pick: 'wb' | 'fringe' | 'focus'. Returns { patch } for set(), or { setIn: [key, patch] } for focus.
  */
 export function sampleForPick(pick, buf, x, y, s) {
+  if (pick === 'pointColor') { const sw = [...(s.pointColor?.swatches || [])]; if (sw.length < 8) sw.push(samplePointColor(buf, (x + 0.5) / buf.w, (y + 0.5) / buf.h)); return { patch: { pointColor: { ...(s.pointColor || {}), swatches: sw } } }; }
   if (pick === 'focus') return { setIn: ['lensBlur', { focusX: (x + 0.5) / buf.w, focusY: (y + 0.5) / buf.h, enabled: true }] };
   let R = 0, G = 0, B = 0, n = 0;
   for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) { const xx = Math.min(buf.w - 1, Math.max(0, x + i)), yy = Math.min(buf.h - 1, Math.max(0, y + j)), q = (yy * buf.w + xx) * 4; R += buf.data[q]; G += buf.data[q + 1]; B += buf.data[q + 2]; n++; }
@@ -61,7 +64,7 @@ export function sampleForPick(pick, buf, x, y, s) {
   if (pick === 'fringe') { const [hh] = rgbToHsl(R, G, B); return { patch: hh >= 240 ? { defringePurple: Math.max(s.defringePurple, 8), purpleHueLo: Math.max(0, Math.round((hh - 240) / 1.2) - 15), purpleHueHi: Math.min(100, Math.round((hh - 240) / 1.2) + 15) } : { defringeGreen: Math.max(s.defringeGreen, 8), greenHueLo: Math.max(0, Math.round((hh - 40) / 1.6) - 10), greenHueHi: Math.min(100, Math.round((hh - 40) / 1.6) + 10) } }; }
   return {};
 }
-export const pickHint = pick => pick === 'wb' ? 'Click a neutral grey or white area' : pick === 'focus' ? 'Click the point that should stay in focus' : 'Click a purple or green fringe';
+export const pickHint = pick => pick === 'pointColor' ? 'Click the colour you want to change' : pick === 'wb' ? 'Click a neutral grey or white area' : pick === 'focus' ? 'Click the point that should stay in focus' : 'Click a purple or green fringe';
 
 /** The ten develop panels (Light … Calibration). */
 export function DevelopPanelStack({ s, set, setIn, open, toggle, hist, pick, setPick, getSource }) {
@@ -81,6 +84,7 @@ export function DevelopPanelStack({ s, set, setIn, open, toggle, hist, pick, set
       <Slider label="Tint" value={s.tint} min={-100} max={100} onChange={v => set({ tint: v, wb: 'custom' })} gradient="linear-gradient(90deg,#3adf5a,#ddd,#e04adf)" />
       <Slider label="Vibrance" value={s.vibrance} min={-100} max={100} onChange={v => set({ vibrance: v })} />
       <Slider label="Saturation" value={s.saturation} min={-100} max={100} onChange={v => set({ saturation: v })} />
+      <PointColorPanel value={s.pointColor || { swatches: [] }} onChange={v => set({ pointColor: v })} picking={pick === 'pointColor'} onPick={() => setPick(pick === 'pointColor' ? null : 'pointColor')} />
     </Panel>
     <Panel id="effects" title="Effects" open={open.effects} toggle={toggle} bypass={bp('effects')[0]} setBypass={bp('effects')[1]}>
       <Slider label="Texture" value={s.texture} min={-100} max={100} onChange={v => set({ texture: v })} />
