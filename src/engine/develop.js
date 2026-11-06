@@ -7,7 +7,8 @@
 // guided-filter base, whites, blacks, contrast) → dehaze (dark-channel prior) → clarity
 // (large-scale local contrast) → texture (mid-frequency band) → curves → colour (vibrance,
 // saturation, mixer, grading, profile/B&W) → detail (noise reduction, sharpening) → defringe →
-// lens blur (depth from a user-defined focus map) → post-crop vignette → grain.
+// lens blur (depth from a user-defined focus map) → post-crop vignette → grain → local adjustment
+// masks (masks.js; evaluated on the input pixels, see settings.masks).
 //
 // ctx.scale = (preview pixels) / (document pixels) so radii and grain stay in document space;
 // ctx.offsetX/offsetY place the buffer in the document for stable grain/noise seeds.
@@ -15,6 +16,7 @@
 
 import { curveLut, rgbToHsl, hslToRgb, hash2 } from './color.js';
 import { boxRadii } from './selection.js';
+import { prepareMasks, applyMaskJobs } from './masks.js';
 
 export const BANDS = ['red', 'orange', 'yellow', 'green', 'aqua', 'blue', 'purple', 'magenta'];
 const BAND_HUES = [0, 30, 60, 120, 180, 225, 270, 315];
@@ -54,10 +56,10 @@ export const developDefaults = () => structuredClone(DEVELOP_DEFAULTS);
 
 // ---------------- float helpers ----------------
 const lin = new Float32Array(256); for (let i = 0; i < 256; i++) { const c = i / 255; lin[i] = c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }
-const enc = l => l <= 0 ? 0 : l >= 1 ? 1 : l <= 0.0031308 ? 12.92 * l : 1.055 * l ** (1 / 2.4) - 0.055;
-const dec = e => e <= 0 ? 0 : e <= 0.04045 ? e / 12.92 : ((e + 0.055) / 1.055) ** 2.4;
-const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
-const smooth = (a, b, x) => { const t = clamp01((x - a) / (b - a || 1e-6)); return t * t * (3 - 2 * t); };
+export const enc = l => l <= 0 ? 0 : l >= 1 ? 1 : l <= 0.0031308 ? 12.92 * l : 1.055 * l ** (1 / 2.4) - 0.055;
+export const dec = e => e <= 0 ? 0 : e <= 0.04045 ? e / 12.92 : ((e + 0.055) / 1.055) ** 2.4;
+export const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+export const smooth = (a, b, x) => { const t = clamp01((x - a) / (b - a || 1e-6)); return t * t * (3 - 2 * t); };
 
 function boxH(s, d, w, h, r) { const n = 2 * r + 1; for (let y = 0; y < h; y++) { const o = y * w; let a = 0; for (let x = -r - 1; x < r; x++) a += s[o + Math.min(w - 1, Math.max(0, x))]; for (let x = 0; x < w; x++) { a += s[o + Math.min(w - 1, x + r)] - s[o + Math.max(0, x - r - 1)]; d[o + x] = a / n; } } }
 function boxV(s, d, w, h, r) { const n = 2 * r + 1; for (let x = 0; x < w; x++) { let a = 0; for (let y = -r - 1; y < r; y++) a += s[Math.min(h - 1, Math.max(0, y)) * w + x]; for (let y = 0; y < h; y++) { a += s[Math.min(h - 1, y + r) * w + x] - s[Math.max(0, y - r - 1) * w + x]; d[y * w + x] = a / n; } } }
@@ -80,7 +82,7 @@ export function guided(I, p, w, h, r, eps) {
   for (let i = 0; i < n; i++) q[i] = ma[i] * I[i] + mb[i];
   return q;
 }
-function minFilter(src, w, h, r) {
+export function minFilter(src, w, h, r) {
   const t = new Float32Array(src.length), o = new Float32Array(src.length);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { let m = Infinity; for (let i = -r; i <= r; i++) { const v = src[y * w + Math.min(w - 1, Math.max(0, x + i))]; if (v < m) m = v; } t[y * w + x] = m; }
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { let m = Infinity; for (let j = -r; j <= r; j++) { const v = t[Math.min(h - 1, Math.max(0, y + j)) * w + x]; if (v < m) m = v; } o[y * w + x] = m; }
@@ -91,7 +93,7 @@ function bilinear(ch, w, h, x, y) {
   const x0 = Math.floor(x), y0 = Math.floor(y), x1 = Math.min(w - 1, x0 + 1), y1 = Math.min(h - 1, y0 + 1), fx = x - x0, fy = y - y0;
   return (ch[y0 * w + x0] * (1 - fx) + ch[y0 * w + x1] * fx) * (1 - fy) + (ch[y1 * w + x0] * (1 - fx) + ch[y1 * w + x1] * fx) * fy;
 }
-const lumOf = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+export const lumOf = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
 // ---------------- analysis helpers (Auto, eyedropper, CA) ----------------
 /** Gray-world white balance (ignoring clipped and very dark pixels) → {temp, tint} that neutralise the cast. */
@@ -107,7 +109,7 @@ export function wbFromRgb(R, G, B) {
   const rb = Math.sqrt(R * B) * 2 ** 0, tn = Math.log2(Math.max(1e-6, G) / Math.max(1e-6, rb)) / 0.6;
   return { temp: Math.round(temp), tint: Math.round(Math.max(-100, Math.min(100, tn * 100))) };
 }
-const wbMul = (temp, tint) => { const t = temp / 100, n = tint / 100; return [2 ** (t * 0.6 + n * 0.3), 2 ** (-n * 0.3), 2 ** (-t * 0.6 + n * 0.3)]; };
+export const wbMul = (temp, tint) => { const t = temp / 100, n = tint / 100; return [2 ** (t * 0.6 + n * 0.3), 2 ** (-n * 0.3), 2 ** (-t * 0.6 + n * 0.3)]; };
 
 /** Auto tone: exposure to put mean luminance near 18 % grey, stretch 0.5/99.5 percentiles, recover clipping. */
 export function autoTone(buf) {
@@ -141,6 +143,9 @@ export function develop(buf, settings = {}, ctx = {}) {
   for (let i = 0; i < N; i++) { R[i] = lin[data[i * 4]]; G[i] = lin[data[i * 4 + 1]]; B[i] = lin[data[i * 4 + 2]]; }
   let touched = false;
   const cx = w / 2, cy = h / 2, rmax = Math.hypot(cx, cy);
+  // Local adjustment masks (masks.js): evaluated on the input pixels, applied after the global pipeline.
+  const maskJobs = settings.masks?.length ? prepareMasks(settings.masks, buf) : null;
+  if (maskJobs) touched = true;
 
   // ---- Optics: distortion and chromatic aberration (geometric) ----
   if (!by.optics && (s.distortion || s.removeCA)) {
@@ -382,6 +387,7 @@ export function develop(buf, settings = {}, ctx = {}) {
     }
   }
 
+  if (maskJobs) applyMaskJobs(R, G, B, w, h, maskJobs, ctx);
   if (!touched) return buf;
   for (let i = 0; i < N; i++) { data[i * 4] = Math.round(clamp01(R[i]) * 255); data[i * 4 + 1] = Math.round(clamp01(G[i]) * 255); data[i * 4 + 2] = Math.round(clamp01(B[i]) * 255); }
   return buf;
