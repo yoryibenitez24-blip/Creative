@@ -156,16 +156,16 @@ MOVE-NUDGE,Move & arrange,core,1,Photoshop 27.6,Arrow-key nudge,1px / 10px with 
 MOVE-ALIGN,Move & arrange,core,1,Photoshop 27.6,Align layers,Left/centre/right/top/middle/bottom to selection or canvas,partial,,E2E drag + numeric checks,Align left/centre/right to canvas,No vertical align or align-to-selection
 MOVE-DISTRIBUTE,Move & arrange,core,1,Photoshop 27.6,Distribute layers,Even spacing across selection,missing,,E2E drag + numeric checks,,
 MOVE-MOVE-SELECTION-PIXELS,Move & arrange,core,1,Photoshop 27.6,Move selected pixels,Move tool inside a selection lifts and moves pixels,missing,,E2E drag + numeric checks,,
-XFORM-SCALE,Transform,core,1,Photoshop 27.6,Free Transform: scale,Corner/edge handles with aspect constraint,partial,,Matrix unit tests + E2E,Corner handles for shapes/images/text,No aspect lock; not for paint layers
-XFORM-ROTATE,Transform,core,1,Photoshop 27.6,Free Transform: rotate,Rotation handle with 15° snapping,partial,,Matrix unit tests + E2E,Numeric and 90° button,No rotation handle
-XFORM-SKEW,Transform,core,1,Photoshop 27.6,Skew,Ctrl+Shift edge drag,missing,,Matrix unit tests + E2E,,
-XFORM-DISTORT,Transform,core,1,Photoshop 27.6,Distort,Independent corner movement,missing,,Matrix unit tests + E2E,,
-XFORM-PERSPECTIVE,Transform,core,1,Photoshop 27.6,Perspective,Symmetric corner movement,missing,,Matrix unit tests + E2E,,
+XFORM-SCALE,Transform,core,1,Photoshop 27.6,Free Transform: scale,Corner/edge handles with aspect constraint,verified,,Matrix unit tests + E2E,tests/e2e/transform.e2e.mjs (docs/evidence/m1-transform-e2e-results.json); tests/warp.test.js proportional and Shift-free corner scaling on paint layers,
+XFORM-ROTATE,Transform,core,1,Photoshop 27.6,Free Transform: rotate,Rotation handle with 15° snapping,verified,,Matrix unit tests + E2E,tests/e2e/transform.e2e.mjs (docs/evidence/m1-transform-e2e-results.json); tests/warp.test.js rotate with 15° Shift snapping,
+XFORM-SKEW,Transform,core,1,Photoshop 27.6,Skew,Ctrl+Shift edge drag,implemented-unverified,,Matrix unit tests + E2E,Ctrl+edge drag,
+XFORM-DISTORT,Transform,core,1,Photoshop 27.6,Distort,Independent corner movement,verified,,Matrix unit tests + E2E,tests/e2e/transform.e2e.mjs (docs/evidence/m1-transform-e2e-results.json); tests/warp.test.js Ctrl+corner,
+XFORM-PERSPECTIVE,Transform,core,1,Photoshop 27.6,Perspective,Symmetric corner movement,implemented-unverified,,Matrix unit tests + E2E,Ctrl+Shift+corner drag (mirrored),
 XFORM-FLIP,Transform,core,1,Photoshop 27.6,Flip horizontal/vertical,Mirror layer,implemented-unverified,,Matrix unit tests + E2E,tests/tools.test.js docxform; Edit › Transform › Flip,
 XFORM-PIVOT,Transform,core,1,Photoshop 27.6,Reference point / pivot,Movable pivot for rotate/scale,missing,,Matrix unit tests + E2E,,
 XFORM-NUMERIC,Transform,core,1,Photoshop 27.6,Numeric transform entry,X/Y/W/H/angle fields (baseline for shapes/images),verified,,Matrix unit tests + E2E,"src/model.test.js ""numeric inspector rejects invalid transforms""",
-XFORM-RASTER-RESAMPLE,Transform,core,1,Photoshop 27.6,Raster layer transform with resampling,Scale/rotate paint layers with bicubic/bilinear/nearest,missing,,Matrix unit tests + E2E,,
-XFORM-WARP,Transform,core,1,Photoshop 27.6,Warp mesh,Grid warp with presets,missing,,Matrix unit tests + E2E,,
+XFORM-RASTER-RESAMPLE,Transform,core,1,Photoshop 27.6,Raster layer transform with resampling,Scale/rotate paint layers with bicubic/bilinear/nearest,verified,,Matrix unit tests + E2E,tests/e2e/transform.e2e.mjs (docs/evidence/m1-transform-e2e-results.json); tests/warp.test.js bilinear/nearest resampling,
+XFORM-WARP,Transform,core,1,Photoshop 27.6,Warp mesh,Grid warp with presets,verified,,Matrix unit tests + E2E,tests/e2e/transform.e2e.mjs (docs/evidence/m1-transform-e2e-results.json); tests/warp.test.js 4×4 Bézier mesh,"No warp presets (arc, flag…) yet"
 XFORM-PERSP-WARP,Transform,core,1,Photoshop 27.6,Perspective Warp,Layout/warp planes,missing,,Matrix unit tests + E2E,,
 XFORM-PUPPET,Transform,core,1,Photoshop 27.6,Puppet Warp,Pins with mesh deformation,missing,,Matrix unit tests + E2E,,
 XFORM-CA-SCALE,Transform,core,1,Photoshop 27.6,Content-Aware Scale,Seam-carving style scale with protect mask,missing,,Matrix unit tests + E2E,,

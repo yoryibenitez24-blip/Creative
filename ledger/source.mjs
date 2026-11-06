@@ -661,7 +661,7 @@ AREAS.push(
 
 // Current state. Rows absent here are `missing`.
 // evidence: test name or file proving it. note: limitations.
-const T_DEV = 'tests/develop.test.js', T_STY = 'tests/e2e/styles.e2e.mjs (docs/evidence/m1-styles-e2e-results.json)', T_STU = 'tests/styles.test.js', T_TOOLSET = 'tests/e2e/toolset.e2e.mjs (docs/evidence/m1-toolset-e2e-results.json)', T_OPS = 'tests/ops.test.js', T_TOOLS = 'tests/tools.test.js', T_MASKS = 'tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json)', T_ENGINE = 'tests/engine.test.js', T_E2E = 'tests/e2e/slice.e2e.mjs (docs/evidence/m1-e2e-results.json)', T_MODEL = 'src/model.test.js', T_IMPORT = 'tests/import.test.js';
+const T_TF = 'tests/e2e/transform.e2e.mjs (docs/evidence/m1-transform-e2e-results.json); tests/warp.test.js', T_DEV = 'tests/develop.test.js', T_STY = 'tests/e2e/styles.e2e.mjs (docs/evidence/m1-styles-e2e-results.json)', T_STU = 'tests/styles.test.js', T_TOOLSET = 'tests/e2e/toolset.e2e.mjs (docs/evidence/m1-toolset-e2e-results.json)', T_OPS = 'tests/ops.test.js', T_TOOLS = 'tests/tools.test.js', T_MASKS = 'tests/e2e/masks.e2e.mjs (docs/evidence/m1-masks-e2e-results.json)', T_ENGINE = 'tests/engine.test.js', T_E2E = 'tests/e2e/slice.e2e.mjs (docs/evidence/m1-e2e-results.json)', T_MODEL = 'src/model.test.js', T_IMPORT = 'tests/import.test.js';
 export const STATUS = {
   'M0-LAYOUT': ['verified', 'npm run build + node --test (docs/MILESTONE_REPORT.md)'],
   'M0-BASE-TESTS': ['verified', 'npm test'],
@@ -731,8 +731,7 @@ export const STATUS = {
   'MOVE-MULTI': ['implemented-unverified', 'Baseline shift-click'],
   'MOVE-NUDGE': ['implemented-unverified', 'Baseline'],
   'MOVE-ALIGN': ['partial', 'Align left/centre/right to canvas', 'No vertical align or align-to-selection'],
-  'XFORM-SCALE': ['partial', 'Corner handles for shapes/images/text', 'No aspect lock; not for paint layers'],
-  'XFORM-ROTATE': ['partial', 'Numeric and 90° button', 'No rotation handle'],
+'XFORM-ROTATE': ['partial', 'Numeric and 90° button', 'No rotation handle'],
   'XFORM-NUMERIC': ['verified', T_MODEL + ' "numeric inspector rejects invalid transforms"'],
   'CROP-CANVAS-SIZE': ['partial', 'W/H fields in document inspector', 'No anchor; paint layers keep their size'],
 
@@ -946,6 +945,13 @@ export const STATUS = {
   'PSD-EXPORT': ['verified', 'tests/psd-export.test.js; ' + T_STY + ' PSD export read back by ag-psd', 'Validated with an independent reader (ag-psd), not yet in Photoshop itself; shapes/text/fills/adjustments exported as pixels'],
   'PSD-EXPORT-REPORT': ['verified', T_STY + ' compatibility notes'],
   'PSD-IMPORT-RASTER': ['verified', 'tests/import.test.js', 'Layer order fixed in slice 4: ag-psd children are bottom-first; the baseline importer reversed them'],
+  'XFORM-SCALE': ['verified', T_TF + ' proportional and Shift-free corner scaling on paint layers'],
+  'XFORM-ROTATE': ['verified', T_TF + ' rotate with 15° Shift snapping'],
+  'XFORM-DISTORT': ['verified', T_TF + ' Ctrl+corner'],
+  'XFORM-RASTER-RESAMPLE': ['verified', T_TF + ' bilinear/nearest resampling'],
+  'XFORM-WARP': ['verified', T_TF + ' 4×4 Bézier mesh', 'No warp presets (arc, flag…) yet'],
+  'XFORM-SKEW': ['implemented-unverified', 'Ctrl+edge drag'],
+  'XFORM-PERSPECTIVE': ['implemented-unverified', 'Ctrl+Shift+corner drag (mirrored)'],
   'LAYER-OPACITY': ['implemented-unverified', 'Baseline'], 'LAYER-VISIBILITY': ['implemented-unverified', 'Baseline'],
   'LAYER-LOCK-POS': ['partial', 'Single lock flag', 'No separate pixel/transparency locks'],
   'LAYER-RENAME': ['implemented-unverified', 'Baseline'], 'LAYER-REORDER': ['implemented-unverified', 'Baseline'], 'LAYER-DUPLICATE': ['implemented-unverified', 'Ctrl+J; paint copies share asset ids'], 'LAYER-DELETE': ['implemented-unverified', 'Baseline'],

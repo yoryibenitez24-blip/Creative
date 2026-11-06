@@ -9,6 +9,7 @@ import * as F from './filters.js';
 import * as G from './geometry.js';
 import { BW_DEFAULTS } from './adjust.js';
 import { develop } from './develop.js';
+import { projectiveTransform, meshWarp } from './warp.js';
 
 const r = (key, label, min, max, def, step = 1, unit = '') => ({ key, label, type: 'range', min, max, default: def, step, unit });
 const sel = (key, label, options, def) => ({ key, label, type: 'select', options, default: def });
@@ -79,6 +80,8 @@ export const OPS = [
   { id: 'rotate90ccw', name: 'Rotate 90° counter-clockwise', menu: 'geometry', geometry: true, params: [], run: b => G.rotate90(b, false) },
   { id: 'rotate180', name: 'Rotate 180°', menu: 'geometry', geometry: true, params: [], run: G.rotate180 },
   { id: 'resample', name: 'Resample', menu: 'geometry', geometry: true, params: [], run: (b, p) => G.resample(b, p.w, p.h, p.method) },
+  { id: 'projective', name: 'Free Transform', menu: 'geometry', geometry: true, params: [], run: (b, p) => projectiveTransform(b, p.quad, p.method) },
+  { id: 'meshWarp', name: 'Warp', menu: 'geometry', geometry: true, params: [], run: (b, p) => meshWarp(b, p.grid, p.method) },
   { id: 'place', name: 'Place', menu: 'geometry', geometry: true, params: [], run: (b, p) => G.placeInto(b, p.w, p.h, p.dx, p.dy) },
 ];
 

@@ -8,7 +8,7 @@ export function createOpsClient() {
     worker.onmessage = ({ data }) => {
       if (!current || data.id !== current.id) return;
       const job = current; current = null;
-      if (data.error) job.reject(Error(data.error)); else job.resolve({ w: data.w, h: data.h, data: new Uint8ClampedArray(data.buffer) });
+      if (data.error) job.reject(Error(data.error)); else job.resolve({ w: data.w, h: data.h, x: data.x, y: data.y, data: new Uint8ClampedArray(data.buffer) });
     };
     worker.onerror = e => { const job = current; current = null; worker.terminate(); worker = null; job?.reject(Error('The filter worker stopped unexpectedly' + (e.message ? ': ' + e.message : '') + '. Your image is unchanged.')); };
   };

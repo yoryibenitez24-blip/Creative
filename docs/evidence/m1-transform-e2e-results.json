@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-06T09:58:26.682Z",
+  "browser": "chromium (Playwright)",
+  "results": [
+    {
+      "name": "setup: black 100×30 bar on a paint layer",
+      "ok": true
+    },
+    {
+      "name": "Ctrl+T, drag the bottom-right corner: proportional ×1.5 scale about the opposite corner",
+      "ok": true
+    },
+    {
+      "name": "rotate 90° (Shift snaps to 15°) turns the bar vertical around its centre",
+      "ok": true
+    },
+    {
+      "name": "Ctrl+drag a corner distorts only that corner",
+      "ok": true
+    },
+    {
+      "name": "Edit › Warp: dragging a top-edge control point bulges the bar; Escape cancels nothing committed",
+      "ok": true
+    },
+    {
+      "name": "no uncaught page errors",
+      "ok": true
+    }
+  ]
+}
