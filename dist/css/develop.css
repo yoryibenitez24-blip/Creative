@@ -1,0 +1,120 @@
+/* Library + Develop workspace (src/editor/DevelopWorkspace.jsx). Reuses crs*, segmented, opDialog, optCheck from style.css. */
+.dvw{position:fixed;inset:0;z-index:70;background:#1a1a1c;color:#d8d8dc;font-size:11px;display:flex;flex-direction:column}
+.dvw button{cursor:pointer}
+.dvw button:disabled{opacity:.4;cursor:default}
+.dvwLoading{margin:auto;color:#8d8d96}
+.dvwTop{height:40px;flex-shrink:0;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid #2e2e33;background:#202023}
+.dvwTop strong{font-size:13px}
+.dvwTop>button{border:1px solid #444;border-radius:5px;padding:4px 10px}
+.dvwMsg{color:#a5a5ad;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.dvwSpacer{flex:1}
+.dvwModules{display:flex;gap:2px}
+.dvwModules button{font-size:13px;padding:4px 10px;color:#77777f;border-radius:4px}
+.dvwModules button.on{color:#f0f0f4;background:#34343a}
+.dvwBody{flex:1;display:flex;min-height:0}
+.dvwLeft,.dvwRight{width:250px;flex-shrink:0;background:#232326;overflow-y:auto;display:flex;flex-direction:column}
+.dvwLeft{border-right:1px solid #2e2e33}
+.dvwRight{border-left:1px solid #2e2e33}
+.dvwCenter{flex:1;min-width:0;display:flex;flex-direction:column;background:#141416}
+.dvwSec{border-bottom:1px solid #333338;padding:8px 10px}
+.dvwSec h4{margin:0 0 6px;font-size:11px;font-weight:600;color:#c4c4cc;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.4px}
+.dvwSec h4 em{font-style:normal;text-transform:none;color:#8d8d96;font-weight:400}
+.dvwMini{margin-left:auto;width:20px;height:20px;border:1px solid #444;border-radius:4px;font-size:11px;line-height:1;display:inline-grid;place-items:center;padding:0}
+.dvwImport{padding:10px;border-bottom:1px solid #333338}
+.dvwImport .primary{width:100%;padding:7px;border-radius:6px;background:#b5a2ef;color:#211a35;border:0;font-weight:600}
+.dvwImport .hint{margin:6px 0 0;color:#8d8d96;line-height:1.4}
+.dvw .hint{color:#8d8d96;font-size:10px}
+.dvwSrc{display:flex;width:100%;justify-content:space-between;padding:4px 6px;border-radius:4px;text-align:left}
+.dvwSrc.on{background:#3a3a42;color:#fff}
+.dvwSrc em{font-style:normal;color:#8d8d96}
+.dvwColRow{display:flex;align-items:center;gap:3px}
+.dvwColRow .dvwSrc{flex:1;min-width:0}
+.dvwColRow .dvwMini{margin-left:0}
+.dvwInline{width:100%;height:22px;margin:2px 0;padding:0 5px}
+.dvwBtnGrid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.dvwBtnGrid button,.dvwRowBtns button,.dvwExpo button,.dvwAttr button,.dvwCollAdd button,.dvwSec form button,.dvwFilterBar button,.dvwDevBar>button{border:1px solid #444;border-radius:4px;padding:3px 7px;font-size:10px}
+.dvwExpo{display:flex;align-items:center;gap:3px;margin-top:6px}
+.dvwExpo span{flex:1}
+.dvwAttr{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0}
+.dvwAttr button[aria-pressed=true]{background:#5a5a62;color:#fff}
+.dvwSwatch{width:20px;height:18px;padding:0!important;border-radius:4px}
+.dvwSwatch[aria-pressed=true]{outline:2px solid #fff;outline-offset:1px}
+.dvwCollAdd{display:flex;flex-direction:column;gap:4px;margin:6px 0}
+.dvwCollAdd select{height:22px}
+.dvwRowBtns{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.dvwChips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.dvwChip{background:#34343a;border-radius:10px;padding:2px 4px 2px 8px;display:inline-flex;align-items:center;gap:3px}
+.dvwChip button{padding:0 3px;color:#aaa}
+.dvwSec form{display:flex;gap:4px}
+.dvwSec form input{flex:1;min-width:0;height:22px;padding:0 5px}
+.dvwMeta{display:grid;grid-template-columns:auto 1fr;gap:3px 8px;margin:0}
+.dvwMeta dt{color:#8d8d96}
+.dvwMeta dd{margin:0;word-break:break-all}
+.dvwFilterBar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#1e1e21;border-bottom:1px solid #2e2e33;flex-wrap:wrap}
+.dvwFilterBar input[type=search]{width:150px;height:22px;padding:0 6px}
+.dvwFilterBar label{display:flex;align-items:center;gap:4px;color:#a5a5ad}
+.dvwFilterBar select{height:22px}
+.dvwFilterBar input[type=range]{width:90px}
+.dvwGrid{flex:1;overflow-y:auto;display:grid;gap:8px;padding:8px;align-content:start}
+.dvwCell{position:relative;background:#2a2a2e;border:1px solid #333338;border-radius:4px;display:flex;flex-direction:column;padding:6px 6px 4px;user-select:none}
+.dvwCell.sel{background:#3b3b42;border-color:#6b6b75}
+.dvwCell.active{border-color:#b5a2ef;box-shadow:0 0 0 1px #b5a2ef}
+.dvwIdx{position:absolute;top:2px;left:5px;color:#6b6b73;font-size:16px;font-weight:700;pointer-events:none}
+.dvwImgBox{flex:1;min-height:0;display:grid;place-items:center;overflow:hidden}
+.dvwImgBox img{max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 2px 8px #0008;display:block}
+.dvwPh{width:60%;height:50%;background:#333338;border-radius:3px;display:grid;place-items:center;color:#e5484d;font-weight:700}
+.dvwBadges{height:20px;display:flex;align-items:center;gap:5px;flex-shrink:0}
+.dvwStars{color:#e8e8ee;letter-spacing:-1px;font-size:10px}
+.dvwStars i{font-style:normal;color:#4a4a52}
+.dvwFlag{font-size:11px}
+.dvwFlag.pick{color:#fff}
+.dvwFlag.reject{color:#e5484d}
+.dvwVirtual{color:#a5a5ad}
+.dvwLabel{display:inline-block;width:12px;height:10px;border-radius:2px;margin-left:auto}
+.dvwEmpty{margin:auto;padding:40px;color:#8d8d96;font-size:13px;grid-column:1/-1;text-align:center}
+.dvwViewBar{height:30px;flex-shrink:0;display:flex;align-items:center;gap:12px;padding:0 10px;border-top:1px solid #2e2e33;background:#1e1e21;color:#8d8d96}
+.dvwLoupe{flex:1;min-height:0;display:flex;flex-direction:column;padding:12px}
+.dvwLoupeImg{flex:1;min-height:0;display:flex}
+.dvwLoupeImg .dvwImgBox img{max-height:calc(100vh - 260px)}
+.dvwLoupeInfo{display:flex;align-items:center;gap:8px;padding-top:6px;color:#a5a5ad}
+.dvwLoupeInfo .dvwBadges{flex:1}
+.dvwFilm{height:92px;flex-shrink:0;display:flex;gap:4px;overflow-x:auto;padding:6px 8px;background:#1e1e21;border-top:1px solid #2e2e33}
+.dvwFilmCell{width:96px;flex-shrink:0;position:relative;display:flex;border:1px solid transparent;border-radius:3px;padding:3px;background:#28282c}
+.dvwFilmCell.sel{background:#3b3b42}
+.dvwFilmCell.active{border-color:#b5a2ef}
+.dvwFilmCell .dvwLabel{position:absolute;right:3px;bottom:3px}
+.dvwList{display:flex;flex-direction:column;gap:1px;max-height:220px;overflow-y:auto}
+.dvwHistSec .dvwList{max-height:300px}
+.dvwListRow{display:flex;align-items:center;gap:3px}
+.dvwListRow .dvwMini{margin-left:0}
+.dvwItem{flex:1;min-width:0;display:block;text-align:left;padding:3px 6px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dvwItem:hover{background:#2f2f35}
+.dvwItem em{font-style:normal;color:#6b6b73;font-size:9px}
+.dvwItem.on{background:#4a4a55;color:#fff}
+.dvwItem.undone{color:#6b6b73}
+.dvwLeft>.dvwRowBtns{padding:8px 10px}
+.dvwDevRight{width:300px;flex-shrink:0}
+.dvwDevFoot{justify-content:space-between}
+.dvwDevCenter{flex:1;min-height:0;display:flex;flex-direction:column}
+.dvwDevBar{display:flex;align-items:center;gap:10px;padding:6px 10px;border-bottom:1px solid #2e2e33;background:#1e1e21}
+.dvwDevView{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:12px;padding:14px;position:relative;background:#111113}
+.dvwDevView figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;max-width:100%;max-height:100%}
+.dvwDevView.split figure{max-width:50%}
+.dvwDevView canvas{max-width:100%;max-height:calc(100vh - 200px);box-shadow:0 10px 30px #0008;object-fit:contain}
+.dvwDevView figcaption{color:#8d8d96}
+.dvwDevView.picking canvas{cursor:crosshair}
+.dvwModalBack{position:fixed;inset:0;z-index:80;background:#0008;display:grid;place-items:center}
+.dvwModal{position:static;width:360px;max-height:90vh;overflow-y:auto;background:#26262a;border:1px solid #3a3a40;border-radius:8px;padding:14px;color:#d8d8dc;display:flex;flex-direction:column;gap:8px;box-shadow:0 20px 50px #000a}
+.dvwModal h3{margin:0;font-size:13px}
+.dvwModal footer{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.dvwModal footer button{padding:6px 14px;border:1px solid #4a4a52;border-radius:6px}
+.dvwModal footer .primary{background:#b5a2ef;color:#211a35;border-color:#b5a2ef}
+.dvwChecks{display:grid;grid-template-columns:1fr;gap:3px}
+.dvwField{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dvwField input:not([type=range]),.dvwField select{width:180px;height:24px;padding:0 6px}
+.dvwField input[type=range]{width:180px}
+.dvwStatusLine{min-height:14px;color:#a5a5ad}
+.dvwFiles{margin:0;padding-left:16px;max-height:160px;overflow-y:auto}
+.dvwFiles a{color:#c9b9ff}
+.dvwFiles span{color:#8d8d96}
+.dvwDrop{position:fixed;inset:12px;z-index:75;border:2px dashed #b5a2ef;border-radius:12px;background:#b5a2ef22;display:grid;place-items:center;font-size:18px;color:#fff;pointer-events:none}

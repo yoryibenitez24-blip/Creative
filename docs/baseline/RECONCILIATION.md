@@ -35,10 +35,10 @@ Inputs (kept unchanged in `docs/baseline/`): INVENTARIO_BRECHAS.csv sha256 `9e40
 | Develop | Lens blur | Pendiente | verified 1: DEV-OPTICS-LENS-BLUR |  |
 | Archivos | PSD import | Parcial | missing 3, partial 1, verified 2: PSD-IMPORT-RASTER, PSD-IMPORT-REPORT, PSD-IMPORT-TEXT, PSD-IMPORT-FX, PSD-IMPORT-MASKS, PSD-IMPORT-SO |  |
 | Archivos | PSD export y PSB | Pendiente | missing 1, verified 1: PSD-EXPORT, PSD-PSB |  |
-| Archivos | PNG, JPEG, SVG export | Implementado básico | missing 2, implemented-unverified 2, verified 1: FILE-PNG-EXPORT, FILE-JPEG-EXPORT, FILE-SVG-EXPORT, FILE-EXPORT-OPTS, COLOR-ICC-EMBED |  |
+| Archivos | PNG, JPEG, SVG export | Implementado básico | missing 1, implemented-unverified 2, verified 2: FILE-PNG-EXPORT, FILE-JPEG-EXPORT, FILE-SVG-EXPORT, FILE-EXPORT-OPTS, COLOR-ICC-EMBED |  |
 | Archivos | RAW/DNG | Pendiente | missing 4: RAW-DECODE, RAW-DEMOSAIC, RAW-COLOR-MATRIX, RAW-CAMERA-MATRIX |  |
-| Color | 16/32 bit, ICC, CMYK, Lab, HDR | Pendiente | missing 6: COLOR-16BIT, COLOR-32BIT, COLOR-ICC-IMPORT, COLOR-MODE-CMYK, COLOR-MODE-LAB, RAW-HDR-DISPLAY |  |
-| Catálogo | Library, metadatos y colecciones | Pendiente | missing 4: LIB-CATALOG, LIB-EXIF-IPTC-XMP, LIB-COLLECTIONS, OUT-BATCH-EXPORT |  |
+| Color | 16/32 bit, ICC, CMYK, Lab, HDR | Pendiente | missing 1, partial 4, implemented-unverified 1: COLOR-16BIT, COLOR-32BIT, COLOR-ICC-IMPORT, COLOR-MODE-CMYK, COLOR-MODE-LAB, RAW-HDR-DISPLAY |  |
+| Catálogo | Library, metadatos y colecciones | Pendiente | missing 2, implemented-unverified 2: LIB-CATALOG, LIB-EXIF-IPTC-XMP, LIB-COLLECTIONS, OUT-BATCH-EXPORT |  |
 | Output | Print, books, slideshow, web galleries | Pendiente | missing 4: OUT-PRINT, OUT-BOOK, OUT-SLIDESHOW, OUT-WEB |  |
 | Automatización | Actions, macros y plugins | Pendiente | missing 3: ADV-ACTIONS, ADV-BATCH, ADV-SCRIPTING |  |
 | Timeline | Animación y vídeo | Pendiente | missing 2: ADV-FRAME-ANIM, ADV-VIDEO |  |

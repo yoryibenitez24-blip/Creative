@@ -8,7 +8,7 @@ A browser-local creative editor written in React 19 JSX, with a native engine in
 npm install
 npm run dev          # development: http://localhost:5173, rebuilds on save and reloads the page
 npm start            # build, then serve the production bundle on http://127.0.0.1:4173
-npm run build        # bundles src/ → dist/app.js and dist/psd-worker.js
+npm run build        # bundles src/ → dist/app.js, dist/psd-worker.js and dist/ops-worker.js
 npm run serve        # http://127.0.0.1:4173 (or serve dist/ with any static server)
 npm test             # unit, PSD import and ledger tests (Node ≥ 20)
 npm run test:e2e     # browser acceptance tests (needs Playwright + Chromium)
@@ -40,7 +40,13 @@ npm run ledger       # regenerate docs/CAPABILITY_LEDGER.csv and docs/LEDGER_SUM
 * **PSD export.** Editable layers, masks, clipping and layer effects, with a compatibility report.
 * **Composition.** Rectangles, ellipses, text, images, move/resize, numeric transform, opacity, 7 blend modes in the menu, lock/visibility, grid, and PNG/JPEG/SVG export at full resolution. Paint layers are embedded as PNG in SVG exports.
 * **PSD import.** Native, in a worker with cancel, a timeout and size limits. Raster layers, names, positions, order, visibility, opacity and supported blend modes are imported. The compatibility report lists masks, effects, clipping, adjustments, smart objects and vectors, which are **not** reproduced. Group compositing may differ. Text arrives as pixels, with an explicit, undoable conversion to editable text.
-* **Filter gallery.** 18 original looks and 13 pixel sliders on image layers. The original pixels are kept. This is a legacy creative panel, **not** a Lightroom-style Develop module. Texture, Clarity, Dehaze, curves, HSL and photographic grain are Milestone 2 items.
+* **Smart Objects and Smart Filters.** Convert to Smart Object, File › Place Embedded, Edit / Replace / Export Contents, lossless scaling, and editable, toggleable, reorderable smart filters (every filter, adjustment, Camera Raw, Liquify and HDR Toning).
+* **Pen tool and paths.** Pen, Freeform, Curvature, Add/Delete Anchor and Convert Point; Path and Direct Selection; a Paths panel; Fill/Stroke Path; path ↔ selection; shape layers; vector masks; Type on Path.
+* **Advanced type.** Character and Paragraph panels (tracking, kerning, leading, baseline shift, scaling, faux styles, caps, super/subscript, underline, 7 alignments, indents, spacing), paragraph text, Warp Text and on-canvas editing.
+* **Select and Mask** (Alt+Ctrl+R) and **Liquify** (Shift+Ctrl+X).
+* **Colour management.** Image › Mode (Grayscale, Bitmap, Duotone, Indexed, RGB, CMYK, Lab), Edit › Color Settings / Assign Profile / Convert to Profile with ICC v2/v4 matrix profiles, a colour-managed canvas, View › Proof Colors and Gamut Warning, ICC embedded in PNG/JPEG exports, and HDR Toning. CMYK uses a parametric press model, not a licensed profile. The editor is still 8 bits per channel.
+* **Library · Develop.** A Lightroom-style workspace with a photo catalog (import, ratings, flags, labels, keywords, collections, filters, EXIF), the Develop panels, history, snapshots, presets, copy/paste/sync, virtual copies, export and Edit in Zertake. No RAW (decision D-002).
+* **Looks (legacy filter gallery).** 18 original looks and 13 pixel sliders on image layers. The original pixels are kept. This is a legacy creative panel, **not** a Lightroom-style Develop module. Texture, Clarity, Dehaze, curves, HSL and photographic grain are Milestone 2 items.
 
 Main shortcuts:
 
@@ -74,7 +80,7 @@ Main shortcuts:
 
 ## Known limits
 
-PSD only (no PSB), up to 100 MB and 8000 px per side. All work is 8-bit sRGB with no ICC handling. Groups are flat, and group opacity is applied per child. There are no vector masks, adjustment layers, layer styles, RAW, Develop or photo library yet. Selection masks are computed on the main thread. Clearing browser data deletes locally saved work, so download `.zertake` projects to keep them. See the ledger for the full list and [`docs/MILESTONE_REPORT.md`](docs/MILESTONE_REPORT.md) for the current milestone.
+PSD only (no PSB), up to 100 MB and 8000 px per side. Groups are flat, and group opacity is applied per child. There is no RAW decoding (D-002) or AI (D-001). Documents are 8 bits per channel; CMYK and Lab modes are simulated on RGB pixels. Selection masks are computed on the main thread. Clearing browser data deletes locally saved work, so download `.zertake` projects to keep them. See the ledger for the full list and [`docs/MILESTONE_REPORT.md`](docs/MILESTONE_REPORT.md) for the current milestone.
 
 ## Architecture
 

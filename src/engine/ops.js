@@ -12,6 +12,7 @@ import { develop } from './develop.js';
 import { projectiveTransform, meshWarp } from './warp.js';
 import { liquifyOp } from './liquify.js';
 import { refineAlphaOp } from './refine.js';
+import { opConvertProfile, opGrayscale, opIndexed, opBitmap, opDuotone, opCmykRoundTrip, opLabRoundTrip, toHighBit, toneMap, proofBuffer, gamutMask } from './colormgmt.js';
 import { contentAwareFill } from './inpaint.js';
 
 const r = (key, label, min, max, def, step = 1, unit = '') => ({ key, label, type: 'range', min, max, default: def, step, unit });
@@ -105,6 +106,16 @@ export const OPS = [
   { id: 'projective', name: 'Free Transform', menu: 'geometry', geometry: true, params: [], run: (b, p) => projectiveTransform(b, p.quad, p.method) },
   { id: 'liquify', name: 'Liquify…', menu: 'geometry', ledger: 'FILT-LIQUIFY', params: [], run: (b, p) => liquifyOp(b, p) },
   { id: 'refineEdge', name: 'Refine Layer Edge', menu: 'geometry', ledger: 'SAM-RADIUS', params: [], run: (b, p, c) => refineAlphaOp(b, p, c) },
+  { id: 'convertProfile', name: 'Convert to Profile', menu: 'geometry', ledger: 'COLOR-ICC-CONVERT', params: [], run: (b, p) => opConvertProfile(b, p) },
+  { id: 'modeGrayscale', name: 'Grayscale', menu: 'geometry', ledger: 'COLOR-MODE-GRAY', params: [], run: (b, p) => opGrayscale(b, p) },
+  { id: 'modeIndexed', name: 'Indexed Color', menu: 'geometry', ledger: 'COLOR-MODE-INDEXED', params: [], run: (b, p) => opIndexed(b, p) },
+  { id: 'modeBitmap', name: 'Bitmap', menu: 'geometry', ledger: 'COLOR-MODE-GRAY', params: [], run: (b, p) => opBitmap(b, p) },
+  { id: 'modeDuotone', name: 'Duotone', menu: 'geometry', ledger: 'COLOR-MODE-GRAY', params: [], run: (b, p) => opDuotone(b, p) },
+  { id: 'cmykRoundTrip', name: 'CMYK Color', menu: 'geometry', ledger: 'COLOR-SOFTPROOF', params: [], run: (b, p) => opCmykRoundTrip(b, p) },
+  { id: 'labRoundTrip', name: 'Lab Color', menu: 'geometry', ledger: 'COLOR-ICC-CONVERT', params: [], run: (b, p) => opLabRoundTrip(b, p) },
+  { id: 'hdrToning', name: 'HDR Toning', menu: 'geometry', ledger: 'IMGADJ-HDR-TONING', params: [], run: (b, p) => toneMap(toHighBit(b, 32), p) },
+  { id: 'proofView', name: 'Proof Colors', menu: 'geometry', ledger: 'COLOR-SOFTPROOF', params: [], run: (b, p) => proofBuffer(b, p.from, p.proof, p.opts || {}) },
+  { id: 'gamutView', name: 'Gamut Warning', menu: 'geometry', ledger: 'COLOR-GAMUT', params: [], run: (b, p) => { const m = gamutMask(b, p.from, p.cmyk || {}), o = new Uint8ClampedArray(b.w * b.h * 4); for (let i = 0; i < m.length; i++) if (m[i]) { o[i * 4] = o[i * 4 + 1] = o[i * 4 + 2] = 128; o[i * 4 + 3] = 255; } return { w: b.w, h: b.h, data: o }; } },
   { id: 'meshWarp', name: 'Warp', menu: 'geometry', geometry: true, params: [], run: (b, p) => meshWarp(b, p.grid, p.method) },
   { id: 'place', name: 'Place', menu: 'geometry', geometry: true, params: [], run: (b, p) => G.placeInto(b, p.w, p.h, p.dx, p.dy) },
 ];

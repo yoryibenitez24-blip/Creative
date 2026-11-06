@@ -268,3 +268,25 @@ No decisions are currently pending.
 7. Press **L** and draw a freehand selection. Press **Shift+L** and click points for a polygonal selection, then press Enter to close it.
 8. Reload the page: the document and pixels are restored. Press **Ctrl+S** to download a `.zertake` file, then open it from the folder icon. It opens in a new tab with identical pixels.
 9. Click **Export**, then **Download PNG**: the paint layers appear at full resolution.
+
+
+## Slice 5: Smart Objects, Pen and paths, advanced type, Select and Mask, Liquify, colour management, Library · Develop
+
+Delivered (all wired into the editor with browser tests):
+
+| Feature | Evidence |
+|---|---|
+| Smart Objects and smart filters (schema v4) | tests/e2e/smart.e2e.mjs (6/6) |
+| Liquify, Select and Mask, advanced type | tests/e2e/pro.e2e.mjs (4/4); tests/liquify.test.js, tests/refine.test.js, tests/textlayout.test.js |
+| Pen tool, Paths panel, shape layers, vector masks | tests/e2e/paths.e2e.mjs (7/7); tests/paths.test.js |
+| Library · Develop workspace, colour management | tests/e2e/develop.e2e.mjs (6/6); tests/catalog.test.js, tests/colormgmt.test.js |
+
+Unit tests: 182 passing. Browser suites: 83 passing.
+
+Honest limits:
+- The editor pipeline is 8-bit. The 16/32-bit engine exists but there are no high-bit documents.
+- CMYK is a parametric approximation.
+- Smart Object contents are a single raster.
+- Liquify edits a ≤1200 px proxy.
+- Select and Mask uses a colour-model matte, not closed-form matting.
+- There is no RAW (D-002) or AI (D-001).
