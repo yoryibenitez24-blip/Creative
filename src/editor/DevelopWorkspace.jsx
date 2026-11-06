@@ -296,10 +296,13 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
       try { const r = await sched.run('preview', 'cameraRaw', b, { settings: sRef.current }, { scale }); setPreview(r); if (full) setHist(histogram(r)); setRendering(false); }
       catch (e) { if (!e.cancelled) { setMsg('Preview failed: ' + e.message); setRendering(false); } }
     };
-    if (!src.tiny) { const k = Math.min(1, 480 / Math.max(src.buf.w, src.buf.h)); src.tiny = k < 1 ? resample(src.buf, Math.max(1, Math.round(src.buf.w * k)), Math.max(1, Math.round(src.buf.h * k)), 'bilinear') : null; }
+    // interactive proxy sized to this machine (largest that renders in ~70 ms; none if the full preview is that fast)
+    const L = Math.max(src.buf.w, src.buf.h), ms = src.fullMs || 0, want = ms ? Math.round(Math.min(L, Math.max(480, L * Math.sqrt(70 / ms)))) : 0;
+    if (!ms || want >= L * 0.92) src.tiny = null;
+    else if (!src.tiny || Math.abs(Math.max(src.tiny.w, src.tiny.h) - want) > want * 0.1) { const k = want / L; src.tiny = resample(src.buf, Math.max(1, Math.round(src.buf.w * k)), Math.max(1, Math.round(src.buf.h * k)), 'bilinear'); }
     if (src.tiny) render(src.tiny, src.scale * src.tiny.w / src.buf.w, false);
     clearTimeout(previewTimer.current);
-    previewTimer.current = setTimeout(() => render(src.buf, src.scale, true), src.tiny ? 260 : 0);
+    previewTimer.current = setTimeout(async () => { const t0 = performance.now(); await render(src.buf, src.scale, true); const d = performance.now() - t0; src.fullMs = src.fullMs ? src.fullMs * 0.6 + d * 0.4 : d; }, src.tiny ? 220 : 0);
   }, [s, src, module]);
   useEffect(() => { if (module === 'develop' && src) { drawBuf(afterCanvas.current, ba === 'before' ? src.buf : preview || src.buf, src.buf.w, src.buf.h); if (ba === 'split') drawBuf(beforeCanvas.current, src.buf); } }, [preview, src, ba, module]);
   const sampleAt = e => {

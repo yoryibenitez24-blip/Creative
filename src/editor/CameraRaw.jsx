@@ -34,16 +34,22 @@ export default function CameraRaw({ source, initial, run, onCancel, onApply, off
     const j = job.current; if (j.busy || !j.want || !small.current) return;
     const kind = j.want; j.want = null;
     const src = kind === 'tiny' && tiny.current ? tiny.current : small.current;
-    j.busy = true; setBusy(true); setErr(null);
-    try { const r = await client.run('cameraRaw', src.buf, { settings: sRef.current }, { scale: src.scale, offsetX, offsetY }); if (alive.current) { setPreview(r); if (src === small.current) setHist(histogram(r)); } }
+    j.busy = true; setBusy(true); setErr(null); const t0 = performance.now();
+    try { const r = await client.run('cameraRaw', src.buf, { settings: sRef.current }, { scale: src.scale, offsetX, offsetY }); if (src === small.current) { const ms = performance.now() - t0; fullMs.current = fullMs.current ? fullMs.current * 0.6 + ms * 0.4 : ms; } if (alive.current) { setPreview(r); if (src === small.current) setHist(histogram(r)); } }
     catch (e) { if (!e.cancelled && alive.current) setErr(e.message); }
     j.busy = false; if (!alive.current) return; if (j.want) pump(); else setBusy(false);
   };
   const request = kind => { const j = job.current; j.want = kind === 'full' || j.want !== 'full' ? kind : j.want; pump(); };
-  const kick = () => { if (!small.current) return; request(tiny.current ? 'tiny' : 'full'); clearTimeout(timer.current); timer.current = setTimeout(() => request('full'), 260); };
+  // Interactive proxy size adapts to this machine: the largest proxy that renders in ~70 ms, and no
+  // reduced pass at all when the quality preview is already that fast (so nothing looks soft).
+  const fullMs = useRef(0);
+  const sizeTiny = () => { const sm = small.current, ms = fullMs.current; if (!sm || !ms) return; const L = Math.max(sm.buf.w, sm.buf.h), want = Math.round(Math.min(L, Math.max(480, L * Math.sqrt(70 / ms))));
+    if (want >= L * 0.92) { tiny.current = null; return; } const cur = tiny.current ? Math.max(tiny.current.buf.w, tiny.current.buf.h) : 0; if (Math.abs(cur - want) < want * 0.1) return;
+    const k = want / L, t = resample(sm.buf, Math.max(1, Math.round(sm.buf.w * k)), Math.max(1, Math.round(sm.buf.h * k)), 'bilinear'); tiny.current = { buf: t, scale: sm.scale * t.w / sm.buf.w }; };
+  const kick = () => { if (!small.current) return; sizeTiny(); request(tiny.current ? 'tiny' : 'full'); clearTimeout(timer.current); timer.current = setTimeout(() => request('full'), tiny.current ? 220 : 0); };
   // down-scaled preview sources (once)
   useEffect(() => {
-    const ready = sm => { small.current = sm; const kt = Math.min(1, 480 / Math.max(sm.buf.w, sm.buf.h)); if (kt < 1) { const t = resample(sm.buf, Math.max(1, Math.round(sm.buf.w * kt)), Math.max(1, Math.round(sm.buf.h * kt)), 'bilinear'); tiny.current = { buf: t, scale: sm.scale * t.w / sm.buf.w }; } request('full'); };
+    const ready = sm => { small.current = sm; request('full'); };
     const k = Math.min(1, 1100 / Math.max(source.width, source.height));
     if (k >= 1) { ready({ buf: { w: source.width, h: source.height, data: source.data }, scale: 1 }); return; }
     run('resample', { w: source.width, h: source.height, data: source.data }, { w: Math.round(source.width * k), h: Math.round(source.height * k), method: 'bilinear' }, {})
