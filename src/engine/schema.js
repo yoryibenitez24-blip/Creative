@@ -90,6 +90,7 @@ export function referencedAssets(doc) {
   for (const l of doc.layers || []) {
     if (l.type === 'raster' && typeof l.assetId === 'string') ids.add(l.assetId);
     if (l.mask && typeof l.mask.assetId === 'string') ids.add(l.mask.assetId);
+    if (l.develop && typeof l.develop.sourceId === 'string') ids.add(l.develop.sourceId);
   }
   return [...ids];
 }

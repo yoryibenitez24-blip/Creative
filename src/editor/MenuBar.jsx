@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 
 // Menu bar with nested submenus. Items: [label, fn, shortcut, {disabled}] | {label, children:[...]} | '-' (separator).
-function Items({ items, close }) {
+export function Items({ items, close }) {
   return items.map((it, i) => {
     if (it === '-') return <div key={'sep' + i} className="menuSep" role="separator" />;
     if (!Array.isArray(it)) return <div key={it.label} className="subWrap"><button role="menuitem" aria-haspopup="menu" aria-label={it.label}>{it.label}<small aria-hidden="true">▸</small></button><div className="dropdown submenu" role="menu">{<Items items={it.children} close={close} />}</div></div>;

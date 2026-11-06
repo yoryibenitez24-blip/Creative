@@ -8,6 +8,7 @@ import * as A from './adjust.js';
 import * as F from './filters.js';
 import * as G from './geometry.js';
 import { BW_DEFAULTS } from './adjust.js';
+import { develop } from './develop.js';
 
 const r = (key, label, min, max, def, step = 1, unit = '') => ({ key, label, type: 'range', min, max, default: def, step, unit });
 const sel = (key, label, options, def) => ({ key, label, type: 'select', options, default: def });
@@ -69,6 +70,8 @@ export const OPS = [
   { id: 'clouds', name: 'Clouds', menu: 'filter', group: 'Render', ledger: 'FLT-RENDER-CLOUDS', params: [r('scale', 'Scale', 8, 1024, 128, 1, 'px'), seed], run: F.clouds },
   { id: 'differenceClouds', name: 'Difference Clouds', menu: 'filter', group: 'Render', ledger: 'FLT-RENDER-DIFFERENCE-CLOUDS', params: [r('scale', 'Scale', 8, 1024, 128, 1, 'px'), seed], run: (b, p, c) => F.clouds(b, { ...p, difference: true }, c) },
 
+  // ---- Camera Raw Filter (own full-screen dialog, src/editor/CameraRaw.jsx) ----
+  { id: 'cameraRaw', name: 'Camera Raw Filter…', menu: 'special', ledger: 'FILT-CAMERA-RAW', params: [], run: (b, p, c) => develop(b, p.settings || {}, c) },
   // ---- geometry (size-changing; no selection blending) ----
   { id: 'flipH', name: 'Flip Horizontal', menu: 'geometry', geometry: true, params: [], run: G.flipH },
   { id: 'flipV', name: 'Flip Vertical', menu: 'geometry', geometry: true, params: [], run: G.flipV },

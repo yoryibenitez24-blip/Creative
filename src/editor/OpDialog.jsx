@@ -6,14 +6,14 @@ import { curveLut } from '../engine/color.js';
 // the op in the worker on the full target (debounced) and shows it on the canvas when Preview
 // is on, like Photoshop's dialogs. OK commits one undo step; Cancel restores the pixels.
 
-function Histogram({ hist, channel = 'l' }) {
+export function Histogram({ hist, channel = 'l' }) {
   if (!hist) return null;
   const h = hist[channel === 'rgb' ? 'l' : channel] || hist.l, max = Math.max(1, ...h);
   const d = Array.from(h, (v, x) => `M${x} 100V${100 - Math.sqrt(v / max) * 100}`).join('');
   return <svg className="histogram" viewBox="0 0 256 100" preserveAspectRatio="none" aria-label="Histogram"><path d={d} stroke="currentColor" strokeWidth="1" /></svg>;
 }
 
-function CurveEditor({ value, onChange, hist }) {
+export function CurveEditor({ value, onChange, hist }) {
   const [ch, setCh] = useState('rgb');
   const svg = useRef(), drag = useRef(null);
   const pts = value[ch];
@@ -46,7 +46,7 @@ function CurveEditor({ value, onChange, hist }) {
 }
 function CurvePath({ pts }) { const lut = curveLut(pts); return <path d={'M' + Array.from(lut, (v, x) => `${x} ${255 - v}`).join('L')} stroke="#c9b8ff" strokeWidth="1.5" fill="none" />; }
 
-function Field({ p, value, onChange }) {
+export function Field({ p, value, onChange }) {
   if (p.type === 'range') return <label className="opField"><span>{p.label}</span>
     <input type="range" aria-label={p.label} min={p.min} max={p.max} step={p.step} value={value} onChange={e => onChange(+e.target.value)} />
     <input type="number" aria-label={p.label + ' value'} min={p.min} max={p.max} step={p.step} value={value} onChange={e => { const v = +e.target.value; if (Number.isFinite(v)) onChange(Math.min(p.max, Math.max(p.min, v))); }} />{p.unit && <small>{p.unit}</small>}</label>;

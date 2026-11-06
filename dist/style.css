@@ -39,3 +39,37 @@
 .optButton{padding:4px 9px;border:1px solid #3a3a41;border-radius:5px;font-size:10px}.optButton.primary{background:#b5a2ef;color:#211a35}
 .optionsBar select{height:22px;font-size:10px;padding:0 4px;width:auto}
 .tool-zoom{cursor:zoom-in}.tool-eyedropper,.tool-wand,.tool-fill,.tool-crop,.tool-clone,.tool-heal,.tool-tone,.tool-focus{cursor:crosshair}.spacePan,.spacePan *{cursor:grab!important}
+/* Camera Raw Filter */
+.cameraRaw{position:fixed;inset:0;z-index:60;background:#1a1a1c;display:flex;flex-direction:column;color:#d8d8dc;font-size:11px}
+.crsTop{height:40px;display:flex;align-items:center;gap:14px;padding:0 14px;border-bottom:1px solid #2e2e33}.crsTop strong{font-size:13px}.crsStatus{color:#8d8d96}.crsTopRight{margin-left:auto;display:flex;gap:14px}
+.crsMain{flex:1;display:flex;min-height:0}.crsView{flex:1;display:grid;place-items:center;background:#111113;position:relative;min-width:0;padding:16px}.crsView canvas{max-width:100%;max-height:calc(100vh - 80px);box-shadow:0 10px 30px #0008}.crsView.picking canvas{cursor:crosshair}.crsHint{position:absolute;top:12px;background:#000a;padding:6px 10px;border-radius:5px}
+.crsSide{width:300px;background:#232326;border-left:1px solid #2e2e33;display:flex;flex-direction:column;min-height:0}.crsHist{height:80px;width:100%;background:#151517;display:block}
+.crsEdit{display:flex;justify-content:space-between;align-items:center;padding:8px 10px}.crsEdit div{display:flex;gap:4px}.crsEdit button{border:1px solid #444;border-radius:4px;padding:3px 7px;font-size:10px}.crsEdit button.on{background:#5a5a62}.crsEdit button:disabled{opacity:.4}
+.crsProfile{display:flex;align-items:center;gap:8px;padding:0 10px 8px}.crsProfile select{flex:1;height:24px}
+.crsScroll{flex:1;overflow-y:auto}.crsPanel{border-top:1px solid #333338}.crsPanel header{display:flex;align-items:center}.crsTitle{flex:1;justify-content:flex-start;padding:9px 10px;font-weight:600;font-size:12px}.crsEye{padding:4px 10px;color:#9a9aa3}.crsEye.off{color:#55555c}
+.crsBody{padding:2px 12px 12px}.crsBody h5{margin:10px 0 4px;color:#a8a8b0;font-size:10px;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:6px}
+.crsSlider{margin:5px 0}.crsRow{display:flex;justify-content:space-between;align-items:center;gap:6px;margin:4px 0}.crsRow input[type=number]{width:52px;height:20px;padding:0 4px;font-size:10px;text-align:right}.crsRow select{flex:1;height:22px;font-size:10px}
+.crsSlider input[type=range]{width:100%;height:4px;appearance:none;background:#4a4a50;border-radius:2px}.crsSlider input[type=range]::-webkit-slider-thumb{appearance:none;width:10px;height:10px;border-radius:50%;background:#e5e5ea}
+.crsPick{width:24px;height:22px;border:1px solid #444;border-radius:4px}.crsPick.on{background:#b5a2ef;color:#211a35}.crsTabs{margin:4px 0 8px}
+.crsFooter{display:flex;justify-content:flex-end;gap:8px;padding:10px;border-top:1px solid #333338}.crsFooter button{padding:7px 16px;border:1px solid #4a4a52;border-radius:6px}.crsFooter .primary{background:#b5a2ef;color:#211a35;border-color:#b5a2ef}
+/* Layer Style dialog */
+.layerStyle{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:45;width:min(860px,96vw);height:min(600px,92vh);background:#202024;border:1px solid #3a3a42;border-radius:10px;box-shadow:0 24px 70px #000b;display:flex;flex-direction:column;color:#ddd;font-size:11px}
+.layerStyle header{display:flex;gap:16px;align-items:center;padding:10px 14px;border-bottom:1px solid #333338}.layerStyle header strong{font-size:13px}
+.lsBody{flex:1;display:grid;grid-template-columns:210px 1fr 150px;min-height:0}
+.lsList{border-right:1px solid #333338;overflow-y:auto;padding:6px}.lsList>button{width:100%;justify-content:flex-start;padding:7px 8px;border-radius:4px}.lsList>button.on,.lsItem.on{background:#393044}
+.lsItem{display:flex;align-items:center;gap:4px;padding:2px 4px;border-radius:4px}.lsItem>button:not(.lsPlus){flex:1;justify-content:flex-start;padding:5px 2px}.lsPlus{width:20px;height:20px;border:1px solid #4a4a52;border-radius:3px;padding:0}
+.lsPanel{overflow-y:auto;padding:12px 16px}.lsPanel h4{margin:0 0 8px;font-size:13px;color:#eee}.lsPanel h5{margin:12px 0 6px;color:#a6a6b0;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.lsField{display:grid;grid-template-columns:140px 1fr 54px 22px;align-items:center;gap:6px;margin:4px 0}.lsField input[type=range]{accent-color:#b5a2ef}.lsField input[type=number]{height:22px;padding:0 4px}.lsField select{height:24px;grid-column:span 3}.lsField input[type=color]{grid-column:span 1}
+.lsRow{display:flex;gap:12px;align-items:center;margin:6px 0}.lsBlendIf{margin:8px 0}.lsGrad{height:8px;border-radius:2px;background:linear-gradient(90deg,#000,#fff);margin:4px 0}
+.lsPresets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.lsPresets button{border:1px solid #444;border-radius:6px;padding:12px 4px}
+.lsActions{display:flex;flex-direction:column;gap:8px;padding:12px;border-left:1px solid #333338}.lsActions button{padding:8px;border:1px solid #4a4a52;border-radius:6px}.lsActions .primary{background:#b5a2ef;color:#211a35;border-color:#b5a2ef}
+/* context menu, layer badges */
+.contextMenu{position:fixed;z-index:70;width:230px;max-height:none;overflow:visible}
+.fxBadge{font-size:9px;font-style:italic;font-weight:700;color:#cdbaff;padding:0 4px;border:1px solid #4a3f66;border-radius:3px;height:16px}
+.layer.clipped{padding-left:18px}.clipMark{color:#9a9aa3;font-size:12px;margin-right:2px}
+/* dialog headers must not inherit the app header (64px bar) */
+.crsPanel header,.layerStyle header,.opDialog header{height:auto;background:none;border-bottom:0;gap:8px;flex-shrink:0}
+.crsPanel header{padding:0}.layerStyle header{padding:10px 14px;border-bottom:1px solid #333338}.opDialog header{padding:0}
+.crsScroll{min-height:0}.crsSide{height:100%}.crsFooter{flex-shrink:0}
+.crsFooter,.opDialog footer{height:auto;min-height:0;background:none;color:inherit;font-size:11px;position:static}.crsFooter{border-top:1px solid #333338;padding:10px}
+.crsFooter .primary,.opDialog footer .primary{margin:0;width:auto;height:auto}
