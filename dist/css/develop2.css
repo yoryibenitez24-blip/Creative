@@ -1,0 +1,65 @@
+/* Develop part 2 tools (src/editor/GeometryTools.jsx): Crop, Geometry/Upright, Remove, Point Color.
+   Reuses crsSlider/crsRow/crsPick/segmented/optCheck from style.css + modern.css. */
+
+/* ---------- overlays (mount inside a positioned box exactly covering the preview canvas) ---------- */
+.d2Overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; touch-action: none; user-select: none; -webkit-user-select: none; }
+.d2Overlay :focus { outline: none; }
+.d2Overlay :focus-visible { outline: none; stroke: var(--z-accent, #a98bff) !important; }
+
+.d2CropShade { fill: rgba(0, 0, 0, .55); cursor: alias; }
+.d2CropBox { fill: transparent; stroke: #fff; stroke-width: 1.2; cursor: move; }
+.d2CropGrid { stroke: rgba(255, 255, 255, .45); stroke-width: .8; pointer-events: none; }
+.d2Handle { fill: #fff; stroke: rgba(0, 0, 0, .55); stroke-width: 1; }
+.d2H-nw, .d2H-se { cursor: nwse-resize; } .d2H-ne, .d2H-sw { cursor: nesw-resize; }
+.d2H-n, .d2H-s { cursor: ns-resize; } .d2H-e, .d2H-w { cursor: ew-resize; }
+
+.d2Guided { cursor: crosshair; }
+.d2Guide line { stroke-width: 2; stroke: #ffd24a; cursor: pointer; }
+.d2Guide.v line { stroke: #4ad7ff; }
+.d2Guide circle { fill: #111; stroke: #fff; stroke-width: 1.5; cursor: move; }
+.d2GuideDraft { stroke: #fff; stroke-width: 1.5; stroke-dasharray: 5 4; }
+
+.d2Spots { cursor: none; }
+.d2SpotDst, .d2SpotSrc, .d2SpotDraft { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+circle.d2SpotDst, circle.d2SpotSrc, circle.d2SpotDraft { stroke-width: 1.5; }
+circle.d2SpotDst { fill: rgba(255, 255, 255, .08); stroke: #fff; cursor: pointer; }
+circle.d2SpotSrc { fill: rgba(255, 255, 255, .04); stroke: #fff; stroke-dasharray: 4 3; cursor: move; }
+path.d2SpotDst { stroke: rgba(255, 255, 255, .22); cursor: pointer; }
+path.d2SpotSrc { stroke: rgba(255, 255, 255, .12); cursor: move; }
+.d2Spot.sel circle.d2SpotDst, .d2Spot.sel circle.d2SpotSrc { stroke: var(--z-accent, #a98bff); stroke-width: 2; }
+.d2Spot.sel path.d2SpotDst { stroke: rgba(169, 139, 255, .45); }
+.d2Spot.sel path.d2SpotSrc { stroke: rgba(169, 139, 255, .25); }
+.d2SpotLink { stroke: #fff; stroke-width: 1; stroke-dasharray: 3 3; pointer-events: none; }
+path.d2SpotDraft { stroke: rgba(255, 90, 90, .45); }
+circle.d2SpotDraft { fill: rgba(255, 90, 90, .45); stroke: none; }
+.d2BrushCursor { fill: none; stroke: #fff; stroke-width: 1; filter: drop-shadow(0 0 1px #000); }
+
+/* ---------- panels ---------- */
+.d2Panel { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--z-text, #ececf1); }
+.d2Panel .segmented { align-self: flex-start; margin: 4px 0 6px; }
+.d2Upright { flex-wrap: wrap; }
+.d2Label { color: #8d8d96; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin: 8px 0 2px; }
+.d2Note { color: #9a9aa3; font-size: 11.5px; line-height: 1.4; margin: 2px 0 4px; }
+.d2Dim { color: #7d7d86; font-size: 11px; }
+.d2Row { gap: 6px; }
+.d2Row > span { color: #b9b9c2; }
+.d2Row select { flex: 1; }
+.d2Buttons { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.d2Buttons button, .d2Wide { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 30px; height: 26px; padding: 0 9px; border: 1px solid #3a3a41; border-radius: 6px; background: var(--z-field, #232326); color: #d8d8de; font-size: 11.5px; }
+.d2Buttons button:hover, .d2Wide:hover { background: var(--z-field-hover, #2b2b2f); color: #fff; }
+.d2Buttons button.on, .d2Buttons button[aria-pressed="true"] { background: #8e8e98; color: #111; border-color: #8e8e98; }
+.d2Wide { margin-top: 8px; align-self: flex-start; }
+.d2Icon { display: inline-grid; place-items: center; width: 26px; height: 24px; padding: 0; border: 1px solid #3a3a41; border-radius: 6px; background: var(--z-field, #232326); color: #d8d8de; }
+.d2Icon.on, .d2Icon[aria-pressed="true"] { background: #8e8e98; color: #111; border-color: #8e8e98; }
+.d2Icon:disabled, .d2Buttons button:disabled { opacity: .4; cursor: default; }
+.d2Link { margin-left: 6px; border: 0; background: none; color: var(--z-accent, #a98bff); font-size: 11.5px; padding: 0; cursor: pointer; }
+.d2Link:hover { text-decoration: underline; }
+
+.d2SpotList { list-style: none; margin: 6px 0 0; padding: 0; max-height: 160px; overflow: auto; border-top: 1px solid var(--z-line, #2a2a2e); }
+.d2SpotList li { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--z-line, #2a2a2e); }
+.d2SpotList li > span:first-child { flex: 1; }
+.d2SpotList .d2Icon { width: 22px; height: 20px; }
+
+.d2Swatches { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 28px; margin: 4px 0; }
+.d2Swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #2f2f34; padding: 0; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .3); cursor: pointer; }
+.d2Swatch.on { border-color: #fff; box-shadow: 0 0 0 2px var(--z-accent, #a98bff); }
