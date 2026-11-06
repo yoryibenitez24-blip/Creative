@@ -41,7 +41,7 @@ const rowOf = name => app().locator('.layerList .layer').filter({ has: page.loca
 const menuItem = name => page.getByRole('menuitem', { name, exact: true });
 
 
-await page.goto('http://127.0.0.1:' + server.address().port + '/');
+await page.goto('http://127.0.0.1:' + server.address().port + '/#design');
 await page.waitForSelector(APP);
 const dragMod = async (pts, mods) => { for (const m of mods) await page.keyboard.down(m); await drag(pts); for (const m of mods) await page.keyboard.up(m); };
 const black = p => p[0] < 40 && p[1] < 40 && p[2] < 40;

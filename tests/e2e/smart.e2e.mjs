@@ -46,7 +46,7 @@ const menuItem = name => page.getByRole('menuitem', { name, exact: true });
 const menu = async (top, ...path) => { await app().getByRole('button', { name: top, exact: true }).click(); for (const p of path.slice(0, -1)) await app().getByRole('menuitem', { name: p, exact: true }).hover(); await app().getByRole('menuitem', { name: path.at(-1), exact: true }).click(); };
 const pngFile = (w, h, paint) => { const c = createCanvas(w, h); const x = c.getContext('2d'); paint(x); return { name: 'placed.png', mimeType: 'image/png', buffer: c.toBuffer('image/png') }; };
 
-await page.goto('http://127.0.0.1:' + server.address().port + '/');
+await page.goto('http://127.0.0.1:' + server.address().port + '/#design');
 await page.waitForSelector(APP);
 
 await step('convert a paint layer to a Smart Object from the right-click menu', async () => {

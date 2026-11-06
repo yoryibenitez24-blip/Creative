@@ -41,7 +41,7 @@ const near = (a, b, tol, what) => assert.ok(a.every((v, i) => Math.abs(v - b[i])
 const rowOf = name => app().locator('.layerList .layer').filter({ has: page.locator(`input[value="${name}"]`) });
 const menuItem = name => page.getByRole('menuitem', { name, exact: true });
 
-await page.goto('http://127.0.0.1:' + server.address().port + '/');
+await page.goto('http://127.0.0.1:' + server.address().port + '/#design');
 await page.waitForSelector(APP);
 
 await step('the + button creates an empty layer (not a rectangle)', async () => {

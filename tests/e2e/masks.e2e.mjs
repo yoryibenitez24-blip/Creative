@@ -46,7 +46,7 @@ const at = (r, x, y) => r[y * W + x];
 const near = (v, want, tol, what) => assert.ok(Math.abs(v - want) <= tol, `${what}: ${v} (want ${want}±${tol})`);
 const maskLoaded = () => page.waitForFunction(sel => [...document.querySelectorAll(sel + ' image[data-mask-surface]')].every(i => (i.getAttribute('href') || '').startsWith('blob:')), APP, { timeout: 10000 });
 
-await page.goto('http://127.0.0.1:' + server.address().port + '/');
+await page.goto('http://127.0.0.1:' + server.address().port + '/#design');
 await page.waitForSelector(APP);
 
 await step('setup: black paint layer filling a 400×300 document', async () => {

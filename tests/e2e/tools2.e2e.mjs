@@ -51,7 +51,7 @@ const pngFile = (w, h, paint) => { const c = createCanvas(w, h); const x = c.get
 
 const click = async (x, y, mods) => { const p = await scr(x, y); if (mods) await page.keyboard.down(mods); await page.mouse.click(p.x, p.y); if (mods) await page.keyboard.up(mods); };
 
-await page.goto('http://127.0.0.1:' + server.address().port + '/');
+await page.goto('http://127.0.0.1:' + server.address().port + '/#design');
 await page.waitForSelector(APP);
 // full screen CTM (the view can be rotated)
 const scrR = (x, y) => page.evaluate(([sel, x, y]) => { const m = document.querySelector(sel + ' .artboardContainer svg').getScreenCTM(); const p = new DOMPoint(x, y).matrixTransform(m); return { x: p.x, y: p.y }; }, [APP, x, y]);

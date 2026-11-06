@@ -57,7 +57,7 @@ async function exportRaw() {
   return { iccp, at: (x, y) => [...ctx.getImageData(x, y, 1, 1).data.slice(0, 3)] };
 }
 
-await page.goto('http://127.0.0.1:' + server.address().port + '/');
+await page.goto('http://127.0.0.1:' + server.address().port + '/#design');
 await page.waitForSelector(APP);
 const dvw = () => page.getByRole('dialog', { name: 'Library and Develop' });
 

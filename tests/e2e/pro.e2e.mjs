@@ -47,7 +47,7 @@ const menu = async (top, ...path) => { await app().getByRole('button', { name: t
 const pngFile = (w, h, paint) => { const c = createCanvas(w, h); const x = c.getContext('2d'); paint(x); return { name: 'placed.png', mimeType: 'image/png', buffer: c.toBuffer('image/png') }; };
 
 
-await page.goto('http://127.0.0.1:' + server.address().port + '/');
+await page.goto('http://127.0.0.1:' + server.address().port + '/#design');
 await page.waitForSelector(APP);
 
 await step('Liquify: a Forward Warp stroke pushes pixels and applies as one undo step', async () => {

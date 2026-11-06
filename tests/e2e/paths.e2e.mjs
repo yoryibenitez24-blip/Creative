@@ -49,7 +49,7 @@ const pngFile = (w, h, paint) => { const c = createCanvas(w, h); const x = c.get
 
 
 const click = async (x, y, mods) => { const p = await scr(x, y); if (mods) await page.keyboard.down(mods); await page.mouse.click(p.x, p.y); if (mods) await page.keyboard.up(mods); };
-await page.goto('http://127.0.0.1:' + server.address().port + '/');
+await page.goto('http://127.0.0.1:' + server.address().port + '/#design');
 await page.waitForSelector(APP);
 
 await step('Pen tool: clicking four corners and the first point closes a work path', async () => {

@@ -76,7 +76,7 @@ async function exportPx(name) {
   return { w: img.width, h: img.height, at: (nx, ny) => avg((x, y) => [...d.slice((y * img.width + x) * 4, (y * img.width + x) * 4 + 3)], Math.round(nx * img.width), Math.round(ny * img.height), 6) };
 }
 
-await page.goto('http://127.0.0.1:' + server.address().port + '/');
+await page.goto('http://127.0.0.1:' + server.address().port + '/#design');
 await page.waitForSelector(APP); await ensureCss();
 
 // points of interest (normalised)

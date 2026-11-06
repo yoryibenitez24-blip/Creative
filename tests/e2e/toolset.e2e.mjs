@@ -51,7 +51,7 @@ const undo = async () => { await page.keyboard.press('Control+z'); await settle(
 const tool = async t => { await app().getByTitle(t, { exact: true }).click(); };
 const near = (v, want, tol, what) => assert.ok(Math.abs(v - want) <= tol, `${what}: ${v} (want ${want}±${tol})`);
 
-await page.goto('http://127.0.0.1:' + server.address().port + '/');
+await page.goto('http://127.0.0.1:' + server.address().port + '/#design');
 await page.waitForSelector(APP);
 
 await step('setup: white paint layer with a black left half', async () => {

@@ -16,7 +16,7 @@ const evidence = join(fileURLToPath(new URL('.', import.meta.url)), '../../docs/
 mkdirSync(evidence, { recursive: true });
 
 const server = await serve(0);
-const url = 'http://127.0.0.1:' + server.address().port + '/';
+const url = 'http://127.0.0.1:' + server.address().port + '/#design';
 const browser = await chromium.launch();
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, acceptDownloads: true });
 const page = await context.newPage();

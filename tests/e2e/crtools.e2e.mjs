@@ -67,7 +67,7 @@ async function exportPx(name) {
   return { w: img.width, h: img.height, at: (x, y) => [...d.slice((y * img.width + x) * 4, (y * img.width + x) * 4 + 4)] };
 }
 
-await page.goto('http://127.0.0.1:' + server.address().port + '/');
+await page.goto('http://127.0.0.1:' + server.address().port + '/#design');
 await page.waitForSelector(APP);
 const dvw = page.getByRole('dialog', { name: 'Library and Develop' });
 

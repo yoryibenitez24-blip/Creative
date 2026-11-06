@@ -167,7 +167,7 @@ function InlineName({ initial, label, onDone }) {
 }
 
 // ---------------------------------------------------------------- workspace
-export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInEditor, catalogBackend }) {
+export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInEditor, catalogBackend, headerExtra }) {
   const backend = useMemo(() => catalogBackend || idbCatalogBackend(), []);
   const [cat, setCatState] = useState(null), catRef = useRef(null), [loadErr, setLoadErr] = useState(null);
   // catRef is the synchronous source of truth so async jobs never apply updates to a stale catalog
@@ -592,7 +592,7 @@ export default function DevelopWorkspace({ assetStore, runOp, onClose, onEditInE
     onDragOver={e => { if ([...e.dataTransfer.types].includes('Files')) { e.preventDefault(); setDragOver(true); } }} onDragLeave={e => { if (e.currentTarget === e.target) setDragOver(false); }}
     onDrop={e => { e.preventDefault(); setDragOver(false); importFiles(e.dataTransfer.files); }}>
     <header className="dvwTop">
-      <strong>Library &amp; Develop</strong>
+      {headerExtra || <strong>Library &amp; Develop</strong>}
       <span className="dvwMsg" role="status">{loadErr ? 'Catalog could not be loaded (' + loadErr + '); a new one was started.' : msg}</span>
       <span className="dvwSpacer" />
       <button disabled={!selectedIds.length || busy} onClick={() => { flush(); setDialog({ type: 'export', ids: [...selectedIds] }); }}>Export…</button>
