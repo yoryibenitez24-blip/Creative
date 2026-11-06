@@ -30,7 +30,7 @@
 // image: imageId, imgW, imgH (natural size), fit: 'fill'|'fit'|'crop', crop: { scale ≥ 1, x: 0..1, y: 0..1 }
 // line: horizontal segment of length w from (0, 0) (h = 0); angle via rotation; colour = stroke.
 // Components: a main component is a frame with isComponent: true. An instance is a frame with componentId: mainId and
-//   overrides: { [mainNodeId]: { text?, fill?, fillOpacity?, visible? }, __size?: true }. Its children are generated
+//   overrides: { [mainNodeId]: { text?, fill?, fillOpacity?, visible? }, __w?: true, __h?: true (instance resized) }. Its children are generated
 //   copies of the main's subtree with ids `${instanceId}~${mainChildId}` and ref: mainChildId. The normalize pass
 //   rebuilds them from the main, so edits to the main propagate; overrides survive. Nested copies keep componentId
 //   (for "Go to main component") but carry ref, so only top-level instances are synced.
@@ -173,7 +173,8 @@ function syncInstance(d, iid) {
   for (const k in main) if (!OWN_ROOT_KEYS.has(k)) rootPatch[k] = main[k];
   for (const k in inst) if (!OWN_ROOT_KEYS.has(k) && !(k in main)) rootPatch[k] = undefined;
   const hugH = main.layout && inst.sizing?.h === 'hug', hugV = main.layout && inst.sizing?.v === 'hug';
-  if (!ov.__size) { if (!hugH) rootPatch.w = main.w; if (!hugV) rootPatch.h = main.h; }
+  if (!hugH && !ov.__size && !ov.__w) rootPatch.w = main.w;
+  if (!hugV && !ov.__size && !ov.__h) rootPatch.h = main.h;
   const ro = ov[main.id]; if (ro) for (const k of OVERRIDE_KEYS) if (k !== 'visible' && ro[k] !== undefined) { rootPatch[k] = ro[k]; if (k === 'fill') rootPatch.fillStyle = undefined; }
   d.set(iid, rootPatch);
   const keep = new Set();
@@ -194,6 +195,15 @@ function syncInstance(d, iid) {
       }
       if (kids) node.children = kids;
       const old = d.get(nid);
+      if (old) {
+        // geometry that the layout pass derives anyway is kept from the previous copy, so an unchanged instance
+        // keeps its object identities (stable rendering) instead of flip-flopping between main and laid-out values
+        const pl = d.get(srcPid)?.layout && !c.ignoreLayout;
+        if (pl) { node.x = old.x; node.y = old.y; if (c.sizing?.h === 'fill') node.w = old.w; if (c.sizing?.v === 'fill') node.h = old.h; }
+        if (c.type === 'text' && c.textMode !== 'fixed') { node.h = old.h; if (c.textMode === 'auto-width' && c.sizing?.h !== 'fill') node.w = old.w; }
+        if (c.layout && c.sizing?.h === 'hug') node.w = old.w;
+        if (c.layout && c.sizing?.v === 'hug') node.h = old.h;
+      }
       d.put(old && same(old, node) ? old : node);
       out.push(nid);
     }
@@ -321,7 +331,8 @@ export function patchNode(doc, id, patch) {
     const main = doc.nodes[n.componentId], o = { ...(n.overrides || {}) };
     const own = {}, ov = {};
     for (const k in p) { if (OWN_ROOT_KEYS.has(k)) own[k] = p[k]; else if (OVERRIDE_KEYS.includes(k)) ov[k] = p[k]; }
-    if ('w' in own || 'h' in own) o.__size = true;
+    if ('w' in own && own.w !== n.w) o.__w = true;
+    if ('h' in own && own.h !== n.h) o.__h = true;
     if (main && Object.keys(ov).length) o[main.id] = { ...(o[main.id] || {}), ...ov };
     d.set(id, { ...own, overrides: o });
     return d.done();

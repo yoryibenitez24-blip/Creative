@@ -140,14 +140,13 @@ export function wrapText(text, maxWidth, measure) {
     const words = para.split(/(\s+)/).filter(s => s !== '');
     let cur = '';
     for (const wd of words) {
-      const next = cur + wd;
-      if (cur === '' || measure(next.replace(/\s+$/, '')) <= maxWidth + 0.01) { cur = next; continue; }
-      if (/^\s+$/.test(wd)) { lines.push(cur.replace(/\s+$/, '')); cur = ''; continue; }
-      lines.push(cur.replace(/\s+$/, '')); cur = '';
-      // break a word that alone is too long
+      if (/^\s+$/.test(wd)) { cur += wd; continue; }
+      if (measure((cur + wd).replace(/\s+$/, '')) <= maxWidth + 0.01) { cur += wd; continue; }
+      if (cur.trim() !== '') lines.push(cur.replace(/\s+$/, ''));
+      // the word starts a new line; break it when it alone is too long
       let w = wd;
-      while (measure(w) > maxWidth && w.length > 1) {
-        let n = w.length - 1; while (n > 1 && measure(w.slice(0, n)) > maxWidth) n--;
+      while (measure(w) > maxWidth + 0.01 && w.length > 1) {
+        let n = w.length - 1; while (n > 1 && measure(w.slice(0, n)) > maxWidth + 0.01) n--;
         lines.push(w.slice(0, n)); w = w.slice(n);
       }
       cur = w;
