@@ -12,6 +12,7 @@ import { develop } from './develop.js';
 import { projectiveTransform, meshWarp } from './warp.js';
 import { liquifyOp } from './liquify.js';
 import { refineAlphaOp } from './refine.js';
+import { ecomCutoutOp, ecomComposeOp } from '../ecom/engine.js';
 import { opConvertProfile, opGrayscale, opIndexed, opBitmap, opDuotone, opCmykRoundTrip, opLabRoundTrip, toHighBit, toneMap, proofBuffer, gamutMask } from './colormgmt.js';
 import { contentAwareFill } from './inpaint.js';
 
@@ -116,6 +117,8 @@ export const OPS = [
   { id: 'hdrToning', name: 'HDR Toning', menu: 'geometry', ledger: 'IMGADJ-HDR-TONING', params: [], run: (b, p) => toneMap(toHighBit(b, 32), p) },
   { id: 'proofView', name: 'Proof Colors', menu: 'geometry', ledger: 'COLOR-SOFTPROOF', params: [], run: (b, p) => proofBuffer(b, p.from, p.proof, p.opts || {}) },
   { id: 'gamutView', name: 'Gamut Warning', menu: 'geometry', ledger: 'COLOR-GAMUT', params: [], run: (b, p) => { const m = gamutMask(b, p.from, p.cmyk || {}), o = new Uint8ClampedArray(b.w * b.h * 4); for (let i = 0; i < m.length; i++) if (m[i]) { o[i * 4] = o[i * 4 + 1] = o[i * 4 + 2] = 128; o[i * 4 + 3] = 255; } return { w: b.w, h: b.h, data: o }; } },
+  { id: 'ecomCutout', name: 'E-commerce cut-out', menu: 'geometry', geometry: true, ledger: 'DEV-MASK-SUBJECT', params: [], run: (b, p) => ecomCutoutOp(b, p) },
+  { id: 'ecomCompose', name: 'E-commerce compose', menu: 'geometry', geometry: true, ledger: 'DEV-MASK-SUBJECT', params: [], run: (b, p) => ecomComposeOp(b, p) },
   { id: 'meshWarp', name: 'Warp', menu: 'geometry', geometry: true, params: [], run: (b, p) => meshWarp(b, p.grid, p.method) },
   { id: 'place', name: 'Place', menu: 'geometry', geometry: true, params: [], run: (b, p) => G.placeInto(b, p.w, p.h, p.dx, p.dy) },
 ];

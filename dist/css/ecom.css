@@ -1,0 +1,112 @@
+/* Zertake Studio · E-commerce studio (src/ecom/EcomWorkspace.jsx). Dark, compact; reuses the
+   modern.css tokens (--z-*), .opField rows, .segmented pills and .optButton. */
+.ecom { position: fixed; inset: 0; z-index: 50; display: grid; grid-template-columns: 236px 1fr 330px; grid-template-rows: 48px 1fr; background: var(--z-bg, #0f0f11); color: var(--z-text, #ececf1); font: 12.5px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.ecom * { box-sizing: border-box; }
+.ecom.ecLoading { display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--z-dim, #8d8d96); }
+.ecom button { font: inherit; cursor: pointer; }
+.ecom button:disabled { opacity: .45; cursor: default; }
+.ecom .optButton { display: inline-flex; align-items: center; gap: 6px; height: 30px; white-space: nowrap; }
+.ecom .optButton.primary { width: auto; margin: 0; padding: 5px 12px; justify-content: center; border-radius: 7px; background: #f2f2f5; color: #111; border: 1px solid transparent; font-weight: 600; }
+.ecom .optButton.primary:hover:not(:disabled) { background: #fff; color: #000; }
+.ecom .optButton.primary.ecWide, .ecom .ecWide { width: 100%; justify-content: center; }
+.ecHidden { display: none; }
+.ecGrow { flex: 1; }
+.ecDim { color: var(--z-dim, #8d8d96); }
+.ecEllipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ecSpin { animation: ecSpin 1s linear infinite; vertical-align: -2px; }
+@keyframes ecSpin { to { transform: rotate(360deg); } }
+
+/* top bar */
+.ecTop { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #141416; border-bottom: 1px solid var(--z-line, #2a2a2e); }
+.ecTitle { white-space: nowrap; font-size: 13.5px; font-weight: 650; margin-right: 10px; letter-spacing: .01em; }
+.ecProject { display: flex; align-items: center; gap: 8px; }
+.ecProject select, .ecProject input { height: 30px; min-width: 200px; background: var(--z-field, #232326); color: var(--z-text, #ececf1); border: 1px solid #303035; border-radius: 7px; padding: 0 10px; font: inherit; }
+
+/* item grid */
+.ecItems { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--z-line, #2a2a2e); background: var(--z-panel, #161618); }
+.ecItemsBar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--z-line, #2a2a2e); }
+.ecItemsBar .ecDim { flex: 1; font-size: 11.5px; }
+.ecLink { background: none; border: 0; color: #fff; font-size: 11.5px; padding: 2px 4px; text-decoration: underline; text-underline-offset: 2px; }
+.ecIconBtn { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; background: transparent; border: 0; color: #c9c9d1; }
+.ecIconBtn:hover:not(:disabled) { background: var(--z-field, #232326); color: #fff; }
+.ecDrop { margin: 12px; padding: 26px 10px; border: 1.5px dashed #3a3a40; border-radius: 10px; background: transparent; color: var(--z-dim, #8d8d96); display: grid; justify-items: center; gap: 10px; text-align: center; }
+.ecDrop:hover { border-color: #8e8e98; color: #fff; }
+.ecGrid { list-style: none; margin: 0; padding: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow: auto; align-content: start; flex: 1; }
+.ecTile { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: #1f1f22; border: 2px solid transparent; cursor: pointer; user-select: none; }
+.ecTile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ecTile.sel { border-color: #8e8e98; }
+.ecTile.active { border-color: #fff; box-shadow: 0 0 0 1px #fff; }
+.ecTileMissing { display: grid; place-items: center; height: 100%; color: #ff8a80; font-size: 11px; }
+.ecTileName { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 6px 4px; font-size: 10.5px; color: #fff; background: linear-gradient(transparent, rgba(0,0,0,.75)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ecBadge { position: absolute; top: 5px; left: 5px; display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; border-radius: 9px; font-size: 10px; font-weight: 600; background: rgba(20,20,22,.8); color: #d0d0d6; }
+.ecBadge.cut { background: #f2f2f5; color: #111; }
+.ecBadge.error { background: #c62828; color: #fff; }
+
+/* stage */
+.ecStage { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: #0b0b0d; }
+.ecStageBar { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--z-line, #2a2a2e); }
+.ecCanvasWrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 18px; overflow: hidden; }
+.ecCanvasBox { position: relative; display: inline-flex; max-width: 100%; max-height: 100%; }
+.ecCanvasBox canvas { display: block; max-width: 100%; max-height: calc(100vh - 160px); box-shadow: 0 8px 30px rgba(0,0,0,.45); background: #fff0; }
+.ecCanvasWrap.brushing canvas { cursor: none; touch-action: none; }
+.ecBrushCursor { position: absolute; pointer-events: none; border: 1.5px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+.ecLive { position: absolute; left: 0; top: 0; pointer-events: none; }
+.ecEmpty { color: var(--z-dim, #8d8d96); max-width: 340px; text-align: center; }
+.ecProgress { position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%); min-width: 300px; padding: 10px 14px; border-radius: 10px; background: rgba(28,28,31,.95); border: 1px solid #333; display: grid; gap: 8px; font-size: 12px; }
+.ecProgress [role=progressbar] { height: 4px; border-radius: 2px; background: #3a3a40; overflow: hidden; }
+.ecProgress i { display: block; height: 100%; background: #f2f2f5; transition: width .2s; }
+.ecMessage { position: absolute; left: 50%; transform: translateX(-50%); bottom: 16px; max-width: calc(100% - 24px); min-width: 300px; box-shadow: 0 6px 24px rgba(0,0,0,.5); display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 14px; border-radius: 9px; background: #232326; border: 1px solid #34343a; }
+.ecMessage span { flex: 1; }
+.ecMessage.error { background: #3a1517; border-color: #6d2427; color: #ffd7d7; }
+
+/* settings panel */
+.ecPanel { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--z-line, #2a2a2e); background: var(--z-panel, #161618); }
+.ecTabs { display: flex; flex-wrap: wrap; gap: 3px; padding: 8px; border-bottom: 1px solid var(--z-line, #2a2a2e); }
+.ecTabs button { border: 0; background: transparent; color: #a9a9b3; border-radius: 6px; padding: 5px 9px; font-size: 11.5px; }
+.ecTabs button:hover { color: #fff; }
+.ecTabs button.on { background: #8e8e98; color: #111; font-weight: 600; }
+.ecPanelBody { overflow: auto; flex: 1; }
+.ecSection { padding: 12px 16px 14px; border-bottom: 1px solid var(--z-line, #2a2a2e); display: grid; gap: 8px; }
+.ecSection h3 { margin: 0 0 2px; font-size: 12.5px; font-weight: 650; color: #f2f2f5; }
+.ecSection .opField { margin: 0; }
+.ecSection .opField > select { min-width: 0; width: 190px; }
+.ecHint { margin: 0; color: var(--z-dim, #8d8d96); font-size: 11.5px; line-height: 1.5; }
+.ecWide { width: 100%; justify-content: center; }
+.ecRow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ecField { display: grid; gap: 5px; }
+.ecField > span { color: #c4c4cc; font-size: 12.5px; }
+.ecSeg { flex-wrap: wrap; }
+.ecSeg button { display: inline-flex; align-items: center; gap: 4px; }
+.ecCheck { display: flex; align-items: center; gap: 8px; color: #c4c4cc; font-size: 12.5px; }
+.ecCheck input { accent-color: #f2f2f5; width: 14px; height: 14px; margin: 0; }
+.opField.ecText { grid-template-columns: 1fr !important; row-gap: 5px !important; }
+.opField.ecText > input { grid-column: 1; grid-row: 2; height: 30px; background: var(--z-field, #232326); color: var(--z-text, #ececf1); border: 1px solid transparent; border-radius: 7px; padding: 0 10px; font: inherit; }
+.opField.ecText > input:focus { outline: none; border-color: #55555e; }
+.opField.ecNum { flex: 1; }
+.opField.ecNum > input[type=number] { width: 64px; background: var(--z-field, #232326) !important; border-radius: 6px; padding: 4px 6px; }
+
+/* presets + checklist */
+.ecPresetList { display: grid; gap: 2px; }
+.ecPreset { display: grid; grid-template-columns: 16px 1fr auto; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 7px; cursor: pointer; color: #c4c4cc; }
+.ecPreset:hover { background: var(--z-field, #232326); }
+.ecPreset.on { background: #2a2a2f; color: #fff; }
+.ecPreset input { accent-color: #f2f2f5; margin: 0; }
+.ecPreset small { color: var(--z-dim, #8d8d96); font-variant-numeric: tabular-nums; }
+.ecChecklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ecChecklist li { display: grid; grid-template-columns: 18px 1fr; gap: 8px; align-items: start; padding: 7px 9px; border-radius: 8px; background: #1d1d20; }
+.ecChecklist li div { display: grid; gap: 1px; }
+.ecChecklist li b { font-weight: 600; font-size: 12px; }
+.ecChecklist li span { color: var(--z-dim, #8d8d96); font-size: 11.5px; }
+.ecChecklist li.pass svg { color: #7ee2a8; }
+.ecChecklist li.warn svg { color: #ffcc66; }
+.ecChecklist li.fail svg { color: #ff7a7a; }
+.ecPresetChecks { display: grid; gap: 6px; }
+
+/* templates */
+.ecTplGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ecTplGrid button { display: grid; gap: 2px; text-align: left; padding: 8px 10px; border-radius: 8px; border: 1px solid #303035; background: var(--z-field, #232326); color: var(--z-text, #ececf1); }
+.ecTplGrid button small { color: var(--z-dim, #8d8d96); }
+.ecTplGrid button.on { border-color: #fff; background: #2d2d32; }
+
+.ecom.dragging .ecStage { outline: 2px dashed #8e8e98; outline-offset: -8px; }
+.ecDropOverlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 12px; background: rgba(10,10,12,.6); font-size: 16px; pointer-events: none; }

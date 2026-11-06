@@ -69,3 +69,15 @@ export async function openProjectStore(idb = globalThis.indexedDB) {
     delete: async id => { await tx('readwrite', s => s.delete(id)); },
   };
 }
+
+/** Every AssetStore id the E-commerce projects reference (originals + background images). Pass these
+ *  to AssetStore.collect() together with the documents' ids so garbage collection keeps them. */
+export async function ecomAssetIds(store) {
+  const ids = new Set();
+  for (const { id } of await store.list()) {
+    const p = await store.get(id); if (!p) continue;
+    for (const it of p.items) if (it.assetId) ids.add(it.assetId);
+    if (p.settings.background.imageId) ids.add(p.settings.background.imageId);
+  }
+  return [...ids];
+}

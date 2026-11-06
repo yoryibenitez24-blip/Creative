@@ -39,6 +39,13 @@ await step('custom size from Home', async () => {
   await page.getByLabel('Custom width').fill('640'); await page.getByLabel('Custom height').fill('480'); await page.getByRole('button', { name: 'Create', exact: true }).click();
   await page.waitForFunction(sel => document.querySelector(sel + ' .artboardLabel')?.textContent.includes('640 × 480'), APP);
 });
+await step('the E-commerce section opens the product studio and Exit returns home', async () => {
+  await page.locator(APP).getByRole('navigation', { name: 'Sections' }).getByRole('button', { name: 'E-commerce' }).click();
+  await page.locator('.ecom').waitFor({ timeout: 15000 });
+  await page.screenshot({ path: join(evidence, 'ecom-studio.png') });
+  await page.locator('.ecom').getByRole('button', { name: /^Exit/ }).first().click();
+  await page.getByRole('main', { name: 'Zertake home' }).waitFor();
+});
 await step('no uncaught page errors', async () => assert.deepEqual(errors, []));
 await browser.close(); server.close();
 const failed = results.filter(r => !r.ok).length; console.log(`\n${results.length - failed} passed, ${failed} failed`); process.exit(failed ? 1 : 0);

@@ -58,7 +58,8 @@ export function createZip(files) {
     u32(e.crc); u32(e.data.length); u32(e.data.length); u16(e.name.length); u16(0); u16(0); u16(0); u16(0); u32(0); u32(e.offset);
     out.set(e.name, p); p += e.name.length;
   }
-  u32(0x06054b50); u16(0); u16(0); u16(entries.length); u16(entries.length); u32(p - cdStart); u32(cdStart); u16(0);
+  const cdLen = p - cdStart;
+  u32(0x06054b50); u16(0); u16(0); u16(entries.length); u16(entries.length); u32(cdLen); u32(cdStart); u16(0);
   return out;
 }
 

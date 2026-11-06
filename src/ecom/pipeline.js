@@ -7,7 +7,7 @@
 // functions in ./engine.js through tryOp(): if the lead registers 'ecomCutout' / 'ecomCompose' in
 // src/engine/ops.js they run in the worker automatically; until then they run here, async.
 
-import { refineMatte, productBounds, cropBuffer, ecomCutoutOp, ecomComposeOp, placeProduct, batchScales, retouchSettings, isRetouchIdentity } from './engine.js';
+import { productBounds, cropBuffer, ecomCutoutOp, ecomComposeOp, placeProduct, batchScales, retouchSettings, isRetouchIdentity } from './engine.js';
 import { resolvePreset, backgroundStats, checkPreset, FORMATS } from './presets.js';
 
 export const WORK_MAX = 2400; // long side of the working image (originals larger than this are downscaled once)
@@ -118,7 +118,7 @@ export function createPipeline({ assetStore, runOp }) {
     let scale;
     if (s.framing.sizing === 'uniform') {
       const batch = (opts.items || [item]).filter(it => it.ai && it.bounds && it.workW);
-      const list = batch.map(it => ({ w: it.bounds.w, h: it.bounds.h, L: Math.max(it.workW, it.workH) }));
+      const list = batch.map(it => it.id === item.id ? { w: c.bounds.w, h: c.bounds.h, L } : { w: it.bounds.w, h: it.bounds.h, L: Math.max(it.workW, it.workH) });
       if (!batch.some(it => it.id === item.id)) list.push({ w: c.bounds.w, h: c.bounds.h, L });
       const scales = batchScales(list, { W: preset.w, H: preset.h }, s.framing), idx = batch.findIndex(it => it.id === item.id);
       scale = scales[idx >= 0 ? idx : scales.length - 1] * k;
@@ -130,7 +130,7 @@ export function createPipeline({ assetStore, runOp }) {
     if (s.background.type === 'image' && !bgImage) throw Error('Choose a background image first');
     const params = { canvas, place, background: s.background, shadow: s.shadow, reflection: s.reflection, bgImage };
     const buf = await q.tryOp('ecomCompose', product, params, (b, p) => ecomComposeOp(b, p));
-    return { buf, place, product, canvas, preset, upscale: place.scale / k * c.w / item.w };
+    return { buf, place, product, canvas, preset, bounds: c.bounds, workW: c.w, workH: c.h, upscale: place.scale / k * c.w / item.w };
   }
 
   /** Full-size render + encode + checklist for one item and preset. */
@@ -143,8 +143,6 @@ export function createPipeline({ assetStore, runOp }) {
 
   return {
     queue: q, workImage, retouchedImage, cutoutOf, backgroundImage, render, check,
-    /** Matte as a float view for the touch-up overlay (from the cached cut-out). */
     clear: () => { work.clear(); retouched.clear(); cuts.clear(); bgImages.clear(); },
-    refineMatte,
   };
 }

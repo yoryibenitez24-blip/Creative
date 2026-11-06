@@ -84,7 +84,7 @@ export function checkPreset(preset, info) {
   if (s && preset.white) {
     const label = 'Pure white background';
     if (s.borderFraction < 1) add('white', label, preset.white === 'required' ? 'fail' : 'warn', `only ${pct(s.borderFraction)} of the edge pixels are #FFFFFF`);
-    else if (s.whiteFraction < 0.95) add('white', label, 'warn', `${pct(s.whiteFraction)} of the background is #FFFFFF (shadow or reflection) — edges are pure white`);
+    else if (s.whiteFraction < 1) add('white', label, 'warn', `${pct(Math.min(s.whiteFraction, 0.999))} of the background is #FFFFFF — a shadow or reflection covers the rest; the edges are pure white`);
     else add('white', label, 'pass', `${pct(s.whiteFraction)} of the background is #FFFFFF`);
   } else if (s) add('white', 'Background', 'pass', `${pct(s.whiteFraction)} of the background is pure white`);
   // product fill
