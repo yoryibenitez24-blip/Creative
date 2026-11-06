@@ -74,7 +74,7 @@ export const OPS = [
 
   // ---- Camera Raw Filter (own full-screen dialog, src/editor/CameraRaw.jsx) ----
   { id: 'cameraRaw', name: 'Camera Raw Filter…', menu: 'special', ledger: 'FILT-CAMERA-RAW', params: [], run: (b, p, c) => develop(b, p.settings || {}, c) },
-  { id: 'contentAwareFill', name: 'Content-Aware Fill', menu: 'special', ledger: 'RETOUCH-CA-FILL', params: [], run: (b, p, c) => {
+  { id: 'contentAwareFill', name: 'Content-Aware Fill', menu: 'special', ledger: 'RETOUCH-CA-FILL', needsSelection: true, params: [], run: (b, p, c) => {
     if (!c.mask) throw Error('Make a selection around what should be removed first');
     const hole = new Uint8Array(b.w * b.h), ox = c.offsetX || 0, oy = c.offsetY || 0;
     for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) { const dx = x + ox, dy = y + oy; if (dx >= 0 && dy >= 0 && dx < c.docW && dy < c.docH && c.mask[dy * c.docW + dx] > 127) hole[y * b.w + x] = 255; }

@@ -28,7 +28,8 @@ test('ops: every registry op runs, keeps size (non-geometry) and never touches t
   for (const op of OPS) {
     if (op.geometry) continue;
     const src = img(), before = new Uint8ClampedArray(src.data);
-    const out = runOp(op.id, src, {}, { fg: '#102030', bg: '#f0e0d0' });
+    const mask = op.needsSelection ? Uint8Array.from({ length: 48 * 32 }, (_, i) => (i % 48 > 20 && i % 48 < 28 && i / 48 > 10 && i / 48 < 18) ? 255 : 0) : null;
+    const out = runOp(op.id, src, {}, { fg: '#102030', bg: '#f0e0d0', mask, docW: 48, docH: 32 });
     assert.equal(out.w, src.w, op.id); assert.equal(out.h, src.h, op.id);
     assert.deepEqual(src.data, before, op.id + ' mutated its input');
     assert.ok(op.ledger, op.id + ' has no ledger row');
