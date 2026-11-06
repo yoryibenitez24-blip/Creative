@@ -26,15 +26,19 @@ const ctx = await esbuild.context({
   bundle: true, outdir: out, sourcemap: true, loader: { '.jsx': 'jsx' }, define: { __ZERTAKE_BUILD__: JSON.stringify(BUILD) }, logLevel: 'error', plugins: [notify],
 });
 await ctx.watch();
+// the on-device AI worker is an ES module (onnxruntime-web loads its WASM glue with import())
+const aiCtx = await esbuild.context({ entryPoints: { 'ai-worker': join(root, 'src/ai-worker.js') }, bundle: true, format: 'esm', outdir: out, sourcemap: true, logLevel: 'error' });
+await aiCtx.watch();
+await import('./copy-models.mjs');
 // style.css and index.html are hand-edited in dist/: reload when they change
 watch(dist, (_, f) => { if (f === 'style.css' || f === 'index.html') reload(); });
 
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.map': 'application/json', '.json': 'application/json' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.map': 'application/json', '.json': 'application/json', '.wasm': 'application/wasm', '.mjs': 'text/javascript', '.onnx': 'application/octet-stream' };
 const snippet = '<script>new EventSource("/__reload").onmessage=()=>location.reload()</script>';
 const server = http.createServer(async (req, res) => {
   const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^([/\\])+/, '') || 'index.html';
   if (path === '__reload') { res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' }); res.write('\n'); clients.add(res); req.on('close', () => clients.delete(res)); return; }
-  const fromDev = /^(app|psd-worker|ops-worker)\.js(\.map)?$/.test(path);
+  const fromDev = /^(app|psd-worker|ops-worker|ai-worker)\.js(\.map)?$/.test(path);
   try {
     let body = await readFile(join(fromDev ? out : dist, path));
     if (path === 'index.html') body = body.toString().replace('</body>', snippet + '</body>');

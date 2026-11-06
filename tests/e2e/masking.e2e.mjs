@@ -96,11 +96,11 @@ await step('setup: open a 1800 × 1200 photo-like PNG as a document', async () =
   const e = await exportPx(); assert.equal(e.w, W); assert.ok(Math.abs(e.at(...OBJ)[0] - origAt(...OBJ)[0]) < 3, 'pixels as painted');
 });
 
-await step('Camera Raw: Subject mask (automatic, non-AI) + Exposure +1 brightens the object, not the background; overlay shows the object', async () => {
+await step('Camera Raw: Subject mask (on-device AI) + Exposure +1 brightens the object, not the background; overlay shows the object', async () => {
   await openCrs();
   await crs().getByRole('button', { name: 'Masking tool', exact: true }).click();
   await create(crs(), 'Subject'); await ready();
-  assert.match(await crs().locator('.mkPanel').innerText(), /non-AI/);
+  await page.waitForFunction(() => /Detected on your device with AI/.test(document.querySelector('.mkPanel')?.innerText || ''), null, { timeout: 60000 });
   assert.ok(await overlayAt(...OBJ) > 60, 'overlay covers the object'); assert.ok(await overlayAt(...SKY) < 20 && await overlayAt(...GROUND) < 20, 'overlay off the background');
   const o0 = await prev(...OBJ), g0 = await prev(...GROUND), s0 = await prev(...SKY);
   await setVal(crs(), 'Mask Exposure', 1); await ready();

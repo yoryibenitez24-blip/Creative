@@ -62,9 +62,9 @@ test('ledger: every delivered inventory row maps to existing ledger rows', () =>
   assert.equal(readFileSync(new URL('../docs/baseline/RECONCILIATION.md', import.meta.url), 'utf8'), reconciliation(), 'run npm run ledger');
 });
 
-import { isAiDependent, isDeferred, DECISIONS } from '../ledger/source.mjs';
+import { isAiDependent, isDeferred, DECISIONS, AI_ALLOWED } from '../ledger/source.mjs';
 test('ledger: AI-dependent rows are deferred, not implemented, and no enabled tool uses them', () => {
-  const ai = rows.filter(isAiDependent);
+  const ai = rows.filter(r => isAiDependent(r) && !AI_ALLOWED.has(r.id));
   assert.ok(ai.length >= 20);
   for (const r of ai) assert.match(r.note, /D-001/, r.id);
   const used = new Set(TOOLS.flatMap(t => t.ledger));
@@ -77,7 +77,7 @@ test('ledger: rows deferred by a scope decision stay missing and unused by enabl
   for (const r of rows.filter(isDeferred)) {
     assert.equal(r.state, 'missing', r.id);
     assert.ok(!used.has(r.id), r.id + ' is deferred but used by an enabled tool');
-    for (const d of DECISIONS) if (d.applies(r)) assert.match(r.note, new RegExp(d.id), r.id);
+    for (const d of DECISIONS) if (d.defers !== false && d.applies(r)) assert.match(r.note, new RegExp(d.id), r.id);
   }
 });
 

@@ -1,3 +1,4 @@
+import { aiSegment } from './aiClient.js';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   MASK_TYPES, typeLabel, LOCAL_DEFAULTS, BRUSH_DEFAULTS, createMask, createComponent, evaluateMask, normAdjust, lstar,
@@ -26,7 +27,8 @@ import { Slider, Panel } from './DevelopPanels.jsx';
 //
 // Subject / Sky / Background use automatic, deterministic, non-AI detection (decision D-001).
 
-const AUTO_TYPES = ['subject', 'sky', 'background', 'all'];
+const AUTO_TYPES = ['subject', 'people', 'sky', 'background', 'all'];
+const AI_TYPES = ['subject', 'people', 'background'];
 const DRAG_TYPES = ['linear', 'radial'];
 const OP_SIGN = { add: '+', subtract: '−', intersect: '∩' };
 const isTyping = t => t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable || (t.tagName === 'INPUT' && !['range', 'checkbox', 'radio', 'button', 'color'].includes(t.type)));
@@ -59,22 +61,33 @@ export function useMasking({ masks, setMasks, getSource, resetKey, windowKeys = 
   const updateMask = (id, fn, label) => commit(listRef.current.map(m => m.id === id ? fn(clone(m)) : m), label);
   const updateComp = (mid, cid, fn, label) => updateMask(mid, m => ({ ...m, components: m.components.map(c => c.id === cid ? fn(c) : c) }), label);
 
+  // On-device AI (aiseg.js via aiClient.js): runs once per component, the small alpha is stored in
+  // params.ai so the proxy preview and the full-resolution render use the same result.
+  const runAI = async (mid, cid, type) => {
+    const src = getSource?.(); if (!src) return;
+    setBusy('Detecting ' + (type === 'people' ? 'people' : type === 'background' ? 'the background' : 'the subject') + ' (on-device AI)…');
+    try { const ai = await aiSegment(type === 'people' ? 'people' : 'subject', src); updateMask(mid, m => ({ ...m, components: m.components.map(x => x.id === cid ? { ...x, params: { ...x.params, ai } } : x) }), null); }
+    catch (e) { setBusy('AI detection unavailable (' + e.message + '); using classical detection.'); setTimeout(() => setBusy(null), 4000); return; }
+    setBusy(null);
+  };
   const autoBusy = type => { if (AUTO_TYPES.includes(type) && type !== 'all') setBusy('Detecting ' + (type === 'background' ? 'background' : type) + '…'); };
   /** Create a component of `type`: op 'new' = new mask, otherwise added to the selected mask. Drag tools wait for a drag. */
   const start = (type, op = 'new') => {
     if (op !== 'new' && !sel) op = 'new';
     if (DRAG_TYPES.includes(type)) { setTool({ kind: type, pending: { op, type } }); return; }
     const c = createComponent(type, op === 'new' ? 'add' : op);
-    place(c, op);
+    const mid = place(c, op);
+    if (AI_TYPES.includes(type) && getSource) runAI(mid, c.id, type);
     if (type === 'brush') setTool({ kind: 'brush', compId: c.id });
     else if (type === 'color' || type === 'luminance') setTool({ kind: type, compId: c.id });
     else setTool(null);
     autoBusy(type);
   };
   const place = (c, op) => {
-    if (op === 'new') { const m = createMask(c.type, null, listRef.current); m.components = [{ ...c, op: 'add' }]; commit([...listRef.current, m], 'New ' + typeLabel(c.type) + ' Mask'); setSelId(m.id); }
+    let mid = selId;
+    if (op === 'new') { const m = createMask(c.type, null, listRef.current); m.components = [{ ...c, op: 'add' }]; commit([...listRef.current, m], 'New ' + typeLabel(c.type) + ' Mask'); setSelId(m.id); mid = m.id; }
     else updateMask(selId, m => ({ ...m, components: [...m.components, c] }), (op === 'subtract' ? 'Subtract ' : 'Add ') + typeLabel(c.type));
-    setCompId(c.id);
+    setCompId(c.id); return mid;
   };
   const deleteComp = cid => {
     if (!sel) return; const left = sel.components.filter(c => c.id !== cid);
@@ -172,8 +185,8 @@ function ComponentEditor({ mk, m, c }) {
   const p = c.params, up = (patch, label) => mk.updateComp(m.id, c.id, x => ({ ...x, params: { ...x.params, ...patch } }), label);
   const toolOn = mk.tool?.compId === c.id;
   switch (c.type) {
-    case 'subject': case 'sky': case 'background':
-      return <div className="mkEditor"><p className="mkNote">Automatic (non-AI) detection — refine with Add / Subtract.</p>
+    case 'subject': case 'sky': case 'background': case 'people':
+      return <div className="mkEditor"><p className="mkNote">{c.type === 'sky' ? 'Automatic sky detection (classical) — refine with Add / Subtract.' : c.params?.ai ? 'Detected on your device with AI (' + (c.type === 'people' ? 'MODNet' : 'U²-Net') + ') — nothing is uploaded. Refine with Add / Subtract.' : 'Detecting on your device…'}</p>
         <Slider label="Sensitivity" aria="Detection sensitivity" value={p.sensitivity ?? 50} min={0} max={100} def={50} onChange={v => up({ sensitivity: v }, typeLabel(c.type) + ' Sensitivity')} /></div>;
     case 'brush': {
       const b = mk.brush, sb = patch => mk.setBrush(x => ({ ...x, ...patch }));
@@ -228,7 +241,7 @@ export function MaskingPanel({ mk }) {
     <div className="mkHead"><strong>Masks</strong>
       <Menu label="Create New Mask" text="＋ Create New Mask" items={typeItems(t => mk.start(t, 'new'))} className="mkCreate" /></div>
     <div className="mkList" role="list" aria-label="Masks">
-      {!list.length && <p className="mkNote">No masks yet. Create one to adjust part of the image: Subject, Sky and Background are found automatically (non-AI detection).</p>}
+      {!list.length && <p className="mkNote">No masks yet. Create one to adjust part of the image: Subject, People and Background are found with on-device AI (nothing is uploaded); Sky with classical detection.</p>}
       {list.map(m => {
         const on = m.id === mk.selId;
         return <div key={m.id} role="listitem" className={'mkRow' + (on ? ' on' : '') + (m.enabled === false ? ' off' : '')}>

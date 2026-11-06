@@ -1087,6 +1087,9 @@ export const STATUS = {
   'DEV-OPTICS-TRANSFORM': ['implemented-unverified', 'Geometry sliders; tests/develop2.test.js'], 'DEV-OPTICS-CONSTRAIN': ['implemented-unverified', 'tests/develop2.test.js constrainCrop'],
   'DEV-OPTICS-CROP': ['verified', T_CRT + ' 1:1 crop resizes the layer'], 'DEV-OPTICS-HEAL': ['verified', T_CRT + ' Remove deletes a dot', 'PatchMatch, not generative'],
   'DEV-PRESETS': ['verified', T_CRT + ' preset with amount'], 'DEV-HISTORY': ['implemented-unverified', 'Develop history; Versions in Camera Raw (' + T_CRT + ')'],
+  'DEV-MASK-SUBJECT': ['verified', T_MASK + ' subject step (on-device U²-Netp); tests/aiseg.test.js IoU > 0.8', 'Salient-object model (320 px) + guided edge refinement; not as precise as large server models on hair'],
+  'DEV-MASK-BACKGROUND': ['verified', T_MASK + '; tests/aiseg.test.js background = 1 − subject'],
+  'DEV-MASK-PEOPLE': ['implemented-unverified', 'tests/aiseg.test.js MODNet runs (portrait matting)', 'Whole-person matte; no per-part (face, hair, clothes) masks'],
 };
 
 export const STATES = ['missing', 'partial', 'implemented-unverified', 'verified', 'blocked'];
@@ -1097,11 +1100,14 @@ export const isAiDependent = (r) => r.scope === 'ai' || /\bmodel\b/i.test(r.depe
 // Rows that need a camera RAW decoder (licensed third-party or in-house). JPEG/PNG/TIFF development is unaffected.
 export const RAW_DECODER_ROWS = new Set(['RAW-DECODE', 'RAW-CAMERA-MATRIX', 'RAW-METADATA', 'RAW-LEVELS', 'RAW-DEMOSAIC', 'RAW-HIGHLIGHTS', 'RAW-CAM-WB', 'RAW-COLOR-MATRIX', 'RAW-ORIENT', 'RAW-EMBEDDED-PREVIEW', 'DEV-DETAIL-DEMOSAIC-AWARE']);
 export const isRawDecoderDependent = (r) => RAW_DECODER_ROWS.has(r.id);
+// Rows unlocked by D-003 (on-device masking models).
+export const AI_ALLOWED = new Set(['DEV-MASK-SUBJECT', 'DEV-MASK-BACKGROUND', 'DEV-MASK-PEOPLE']);
 export const DECISIONS = [
-  { id: 'D-001', date: '2026-11-04', decision: 'No AI features yet. All model-dependent rows are deferred; non-AI alternatives are preferred where they exist (patch synthesis, user depth masks, classic denoise).', applies: isAiDependent },
+  { id: 'D-001', date: '2026-11-04', decision: 'No AI features yet. All model-dependent rows are deferred; non-AI alternatives are preferred where they exist (patch synthesis, user depth masks, classic denoise). Amended 2026-11-06 by D-003.', applies: r => isAiDependent(r) && !AI_ALLOWED.has(r.id) },
+  { id: 'D-003', date: '2026-11-06', decision: 'The user approved on-device AI for masking only: Subject / Background (U²-Netp) and People (MODNet), Apache-2.0 weights shipped with the app, run with onnxruntime-web in the browser; no cloud, no uploads, no runtime downloads. Every other model-dependent row stays deferred under D-001.', applies: r => AI_ALLOWED.has(r.id), defers: false },
   { id: 'D-002', date: '2026-11-04', decision: 'No RAW decoder license for now. Camera RAW/DNG decoding and RAW-only processing are deferred; Develop targets rendered images (JPEG/PNG/WebP and layers) with RAW-vs-rendered semantics kept in the design.', applies: isRawDecoderDependent },
 ];
-export const isDeferred = (r) => DECISIONS.some(d => d.applies(r));
+export const isDeferred = (r) => DECISIONS.some(d => d.defers !== false && d.applies(r));
 
 export function buildRows() {
   const rows = [];
@@ -1110,7 +1116,7 @@ export function buildRows() {
       const id = prefix + '-' + suffix;
       const [state = 'missing', evidence = '', note = ''] = STATUS[id] || [];
       const row = { id, area, scope, milestone, reference, feature, expected: behaviour || feature, state, dependency, acceptance, evidence, note };
-      const deferred = DECISIONS.filter(d => d.applies(row)).map(d => `Deferred by ${d.id}`);
+      const deferred = DECISIONS.filter(d => d.applies(row)).map(d => d.defers === false ? `Enabled by ${d.id}` : `Deferred by ${d.id}`);
       if (deferred.length) row.note = [...deferred, note].filter(Boolean).join('; ');
       rows.push(row);
     }

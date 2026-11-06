@@ -1,3 +1,4 @@
+import { decodeAlpha } from './aiseg.js';
 // Local adjustment masks for the develop pipeline (Camera Raw Filter and Library · Develop),
 // modelled on Lightroom's Masking panel. Pure JS, worker-safe, no DOM, no AI / ML (decision D-001):
 // Subject and Sky are found with classical, deterministic computer vision.
@@ -33,7 +34,7 @@ import { guided, boxBlur1, gauss1, lumOf, wbMul, minFilter, clamp01, smooth } fr
 import { hslToRgb, rgbToHsl } from './color.js';
 
 export const MASK_TYPES = [
-  ['subject', 'Subject'], ['sky', 'Sky'], ['background', 'Background'], ['brush', 'Brush'],
+  ['subject', 'Subject'], ['people', 'People'], ['sky', 'Sky'], ['background', 'Background'], ['brush', 'Brush'],
   ['linear', 'Linear Gradient'], ['radial', 'Radial Gradient'], ['color', 'Color Range'], ['luminance', 'Luminance Range'], ['all', 'Entire Image'],
 ];
 export const typeLabel = t => (MASK_TYPES.find(m => m[0] === t) || [t, t])[1];
@@ -49,7 +50,7 @@ export const BRUSH_DEFAULTS = Object.freeze({ size: 0.08, feather: 50, flow: 100
 /** Default params for a new component of `type`. */
 export function defaultParams(type) {
   switch (type) {
-    case 'subject': case 'sky': case 'background': return { sensitivity: 50 };
+    case 'subject': case 'sky': case 'background': case 'people': return { sensitivity: 50 };
     case 'brush': return { strokes: [] };
     case 'linear': return { x0: 0.5, y0: 0.15, x1: 0.5, y1: 0.55 };
     case 'radial': return { cx: 0.5, cy: 0.5, rx: 0.25, ry: 0.25, angle: 0, feather: 50, inside: true };
@@ -383,11 +384,18 @@ function luminanceAlpha(p, buf, w, h) {
 }
 
 /** Alpha (0..1) of one component, before its op / invert. Detection results are shared (read-only). */
+/** Upsample a stored model alpha to the render size and snap its edges to the image (guided filter). */
+function aiAlpha(ai, buf, p) {
+  const sens = p.sensitivity ?? 50, boost = 1 + (sens - 50) / 50 * 0.6 + 0.35;
+  return cached('ai:' + ai.b64.length + ':' + ai.b64.slice(0, 64) + ai.b64.slice(-64), buf, sens, () => refineMatte(decodeAlpha(ai), ai.w, ai.h, buf, boost));
+}
+
 export function componentAlpha(c, buf, w = buf.w, h = buf.h) {
   const p = { ...defaultParams(c.type), ...(c.params || {}) };
   switch (c.type) {
-    case 'subject': return detectSubject(buf, p);
-    case 'background': { const s = detectSubject(buf, p), o = new Float32Array(s.length); for (let i = 0; i < s.length; i++) o[i] = 1 - s[i]; return o; }
+    // on-device model result stored in params.ai (aiseg.js); classical detection is the fallback
+    case 'subject': case 'people': return p.ai ? aiAlpha(p.ai, buf, p) : detectSubject(buf, p);
+    case 'background': { const s = p.ai ? aiAlpha(p.ai, buf, p) : detectSubject(buf, p), o = new Float32Array(s.length); for (let i = 0; i < s.length; i++) o[i] = 1 - s[i]; return o; }
     case 'sky': return detectSky(buf, p);
     case 'brush': return brushAlpha(p, w, h);
     case 'linear': return linearAlpha(p, w, h);
