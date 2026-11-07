@@ -3,7 +3,8 @@
 //
 //   sitePages(store)                         → [{ route, path, title }]  every page of the exported site
 //   pagePath(store, route)                   → 'index.html' | 'collections/<slug>.html' | 'products/<slug>.html' | 'pages/about.html' | …
-//   renderPage(store, route, opts)           → full HTML document string
+//   renderPage(store, route, opts)           → full HTML document string (= composePage(renderParts(...)))
+//   renderParts / composePage / diffParts    → part-wise rendering used by the builder to patch the live preview in place
 //       route = { page, productId?, collectionId? }
 //       opts  = { mode: 'export'|'preview', imageUrl(ref) → url (root-relative path or absolute URL),
 //                 editor?: bool (builder selection overlay), script?: false (static thumbnail, no runtime),
@@ -17,6 +18,7 @@ import { FONT_STACKS, collectionProducts, activeProducts, PAGE_LABELS } from './
 import { cartKit } from './cart.js';
 import { storeRuntime } from './runtime.js';
 import { photoUrl, PHOTOS } from './photos.js';
+import { editorAgent } from './agent.js';
 
 export const ALL_COLLECTION = { id: 'all', title: 'All products', slug: 'all', description: '', image: null, rule: { type: 'all', value: '', productIds: [] } };
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -65,6 +67,7 @@ export function routeForPath(store, path) {
 
 
 // ---------- photos ('unsplash:<id>' refs, hot-linked with size-appropriate crops and 1x/2x srcset) ----------
+const PEOPLE = (PHOTOS.fashion.people || []).map(([id]) => 'unsplash:' + id);
 const PHOTO_ALT = new Map(Object.values(PHOTOS).flatMap(g => Object.values(g).flat()));
 export const isPhoto = r => typeof r === 'string' && r.startsWith('unsplash:');
 /** [width, height|null] per use; the 2x candidate doubles both. */
@@ -92,6 +95,7 @@ const ICONS = {
   at: '<circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.1"/>', sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2 2.2.8-2.2.8L19 22l-.8-2.2-2.2-.8 2.2-.8z"/>',
   box: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/>', card: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h3"/>',
   wallet: '<path d="M4 7h15a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a1 1 0 0 1-1-1z"/><path d="M4 7l11-3v3M16 13.5h2"/>', bank: '<path d="M3 10h18L12 4zM5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
+  ruler: '<path d="M3 15 15 3l6 6L9 21z"/><path d="m7 11 2 2M10 8l2 2M13 5l2 2"/>',
   cash: '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6.5 9.5v5M17.5 9.5v5"/>',
 };
 export const icon = n => `<svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ICONS.check}</svg>`;
@@ -155,7 +159,11 @@ function makeCtx(store, route, opts) {
       <div class="pcard-body"><h3><a href="${href}">${esc(p.title)}</a></h3><p class="price">${lo !== hi ? '<span class="from">From</span> ' : ''}${money(lo)}${sale ? ` <s>${money(p.compareAt)}</s>` : ''}</p>
       ${p.rating || swatches ? `<div class="pcard-meta">${p.rating ? stars(p.rating, p.reviews) : ''}${swatches}</div>` : ''}</div></article>`;
   };
-  const btn = (label, target, cls = '') => `<a class="btn ${cls}" href="${link(target)}">${esc(label)}</a>`;
+  const editor = !!opts.editor;
+  const ed = key => editor && key ? ` data-edit="${esc(key)}"` : '';
+  const blk = path => editor ? ` data-block="${esc(path)}"` : '';
+  const btn = (label, target, cls = '', key) => `<a class="btn ${cls}" href="${link(target)}"${ed(key)}>${esc(label)}</a>`;
+  const orderedCollections = ids => { const all = allCollections(); if (!ids || !ids.length) return all; const m = new Map(all.map(c => [c.id, c])); const out = ids.map(id => m.get(id)).filter(Boolean); return [...out, ...all.filter(c => !out.includes(c))]; };
   const isCurrent = t => link(t) === rel(path);
   const allCollections = () => store.collections.length ? store.collections : [ALL_COLLECTION];
   const collectionImage = c => collectionProducts(store, c).find(p => p.images[0])?.images[0] || null;
@@ -163,7 +171,7 @@ function makeCtx(store, route, opts) {
   const collection = route.page === 'collection' ? findCol(route.collectionId) || ALL_COLLECTION : null;
   const first = (store.pages[route.page] || []).find(s => !s.hidden);
   const overlayHeader = !!(store.layout.header.settings.transparent && first && first.type === 'hero' && ['image', 'carousel', 'gradient'].includes(first.settings.layout));
-  return { store, page: route.page, path, root, e: esc, t: paras, img, pic, link, money, products, card, stars, btn, icon, isCurrent, allCollections, collectionImage, collectionHref, productHref,
+  return { store, page: route.page, path, root, e: esc, t: paras, img, pic, link, money, products, card, stars, btn, icon, isCurrent, allCollections, orderedCollections, collectionImage, collectionHref, productHref, editor, ed, blk, people: PEOPLE,
     collectionProducts: c => collectionProducts(store, c), product, collection, checkoutEnabled, overlayHeader, firstSectionId: first?.id, isSwatch, colorOf };
 }
 
@@ -182,47 +190,80 @@ function pageTitle(store, ctx) {
   return `${PAGE_LABELS[ctx.page]} – ${store.name}`;
 }
 
-export function renderPage(store, route, opts) {
+/**
+ * Render a page as separate parts so the builder can patch a live preview in place:
+ * { path, root, title, desc, themeColor, css, bodyClass, bodyStyle, ann, header, footer, overlays, sections: [{ id, html }], data }
+ */
+export function renderParts(store, route, opts) {
   const ctx = makeCtx(store, route, opts);
   const sections = store.pages[route.page] || [];
-  const body = sections.map(s => renderSection(s, ctx)).join('\n');
-  const desc = ctx.product ? ctx.product.description.slice(0, 160) : store.seo.description;
-  const preview = opts.mode !== 'export';
-  const css = preview ? `<style>${storeCss(store)}</style>` : `<link rel="stylesheet" href="${ctx.root}assets/styles.css">`;
-  const js = opts.script === false ? '' : preview ? `<script>${storeScript(store, opts.imageUrl, { preview: true })}</script>` : `<script src="${ctx.root}assets/store.js"></script>`;
   const hero = ctx.overlayHeader ? sections.find(s => s.id === ctx.firstSectionId) : null;
   const overFg = hero ? hero.settings.textColor || (hero.settings.layout === 'gradient' ? store.theme.colors.primaryText : '#ffffff') : '';
   const drawer = (attr, title, id, inner) => `<div class="drawer" ${attr} hidden><div class="drawer-scrim" data-drawer-close></div>
     <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="${id}"><div class="drawer-head"><h2 id="${id}">${title}</h2><button type="button" class="hicon x" data-drawer-close aria-label="Close ${title.toLowerCase()}">${icon('close')}</button></div>${inner}</aside></div>`;
-  const cart = ctx.checkoutEnabled ? drawer('data-drawer', 'Your cart', 'drawer-title', `<div class="drawer-lines" data-drawer-lines></div><div class="drawer-foot" data-drawer-foot hidden><p class="subtotal"><span>Subtotal</span><strong data-cart-subtotal></strong></p>
+  const cart = ctx.checkoutEnabled ? drawer('data-drawer', 'Your cart', 'drawer-title', `<div class="ship-bar" data-ship-bar hidden></div><div class="drawer-lines" data-drawer-lines></div><div class="drawer-foot" data-drawer-foot hidden><p class="subtotal"><span>Subtotal</span><strong data-cart-subtotal></strong></p>
     <a class="btn btn-lg btn-wide" href="${ctx.link('checkout')}">Checkout</a><a class="link center" href="${ctx.link('cart')}">View cart</a></div>`) : '';
   const wish = drawer('data-wish-drawer', 'Wishlist', 'wish-title', '<div class="drawer-lines" data-wish-lines></div>');
   const search = `<div class="search" data-search hidden><div class="drawer-scrim" data-search-close></div><div class="search-panel" role="dialog" aria-modal="true" aria-label="Search products">
     <div class="search-bar">${icon('search')}<input type="search" data-search-input placeholder="Search products" aria-label="Search products" autocomplete="off"><button type="button" class="hicon" data-search-close aria-label="Close search">${icon('close')}</button></div>
     <div class="search-results" data-search-results aria-live="polite"></div></div></div>`;
+  const preview = opts.mode !== 'export';
+  return {
+    path: ctx.path, root: ctx.root, title: pageTitle(store, ctx), desc: ctx.product ? ctx.product.description.slice(0, 160) : store.seo.description,
+    themeColor: store.theme.colors.background, css: preview ? storeCss(store) : '',
+    bodyClass: `page-${route.page}${ctx.overlayHeader ? ' has-over' : ''}`, bodyStyle: overFg ? `--over-fg:${overFg}` : '',
+    ann: SECTIONS.announcement.render({}, ctx), header: renderSection(store.layout.header, ctx), footer: renderSection(store.layout.footer, ctx),
+    overlays: cart + wish + search,
+    sections: sections.map(s => ({ id: s.id, html: renderSection(s, ctx) })),
+    data: preview && opts.script !== false ? JSON.stringify(runtimeData(store, opts.imageUrl, true)) : '',
+    script: opts.script === false ? '' : preview ? storeScript(store, opts.imageUrl, { preview: true }) : '',
+  };
+}
+
+/** Assemble parts into an HTML document. In the editor every part is wrapped in comment markers (<!--zp:key-->…<!--/zp:key-->). */
+export function composePage(p, opts = {}) {
+  const m = (k, html) => opts.editor ? `<!--zp:${k}-->${html}<!--/zp:${k}-->` : html;
+  const preview = opts.mode !== 'export';
+  const css = preview ? `<style data-store-css>${p.css}</style>` : `<link rel="stylesheet" href="${p.root}assets/styles.css">`;
+  const js = opts.script === false ? '' : preview ? `<script>${p.script}</script>` : `<script src="${p.root}assets/store.js"></script>`;
   return `<!doctype html>
-<html lang="en" data-root="${ctx.root}" data-path="${ctx.path}">
+<html lang="en" data-root="${p.root}" data-path="${p.path}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(pageTitle(store, ctx))}</title>
-${desc ? `<meta name="description" content="${esc(desc)}">` : ''}
-<meta property="og:title" content="${esc(pageTitle(store, ctx))}">
-<meta name="theme-color" content="${store.theme.colors.background}">
+<title>${esc(p.title)}</title>
+${p.desc ? `<meta name="description" content="${esc(p.desc)}">` : ''}
+<meta property="og:title" content="${esc(p.title)}">
+<meta name="theme-color" content="${p.themeColor}">
 ${css}
 </head>
-<body class="page-${route.page}${ctx.overlayHeader ? ' has-over' : ''}"${overFg ? ` style="--over-fg:${overFg}"` : ''}>
+<body class="${p.bodyClass}"${p.bodyStyle ? ` style="${p.bodyStyle}"` : ''}>
 <a class="skip" href="#main">Skip to content</a>
-${SECTIONS.announcement.render({}, ctx)}
-${renderSection(store.layout.header, ctx)}
+${m('ann', p.ann)}
+${m('header', p.header)}
 <main id="main">
-${body}
+${p.sections.map(s => m('s:' + s.id, s.html)).join('\n')}
 </main>
-${renderSection(store.layout.footer, ctx)}
-${cart}${wish}${search}
-${js}${opts.editor ? `<script>${EDITOR_SCRIPT}</script>` : ''}
+${m('footer', p.footer)}
+${m('overlays', p.overlays)}
+${js}${opts.editor ? `<script>(${editorAgent.toString()})(window, document);</script>` : ''}
 </body>
 </html>`;
+}
+
+export function renderPage(store, route, opts) { return composePage(renderParts(store, route, opts), opts); }
+
+/** Difference between two renderParts results, as a patch for the preview agent (null = nothing changed). */
+export function diffParts(a, b) {
+  const patch = {}; let any = false;
+  for (const k of ['css', 'title', 'bodyClass', 'bodyStyle', 'ann', 'header', 'footer', 'overlays', 'data']) if (a[k] !== b[k]) { patch[k] = b[k]; any = true; }
+  const old = new Map(a.sections.map(s => [s.id, s.html]));
+  const changed = {};
+  for (const s of b.sections) if (old.get(s.id) !== s.html) { changed[s.id] = s.html; any = true; }
+  if (Object.keys(changed).length) patch.sections = changed;
+  const ao = a.sections.map(s => s.id).join(','), bo = b.sections.map(s => s.id).join(',');
+  if (ao !== bo) { patch.order = b.sections.map(s => s.id); any = true; }
+  return any ? patch : null;
 }
 
 /** Data the runtime needs on every page (only active products; image/url paths are site-root-relative). */
@@ -230,7 +271,7 @@ export function runtimeData(store, imageUrl, preview = false) {
   const thumb = ref => !ref ? '' : isPhoto(ref) ? photoSrc(ref, 'thumb').src : imageUrl(ref);
   return {
     id: store.id, name: store.name, currency: store.currency, preview,
-    checkout: { mode: store.checkout.mode, phone: store.checkout.phone.replace(/\D/g, ''), email: store.checkout.email, shippingNote: store.checkout.shippingNote },
+    checkout: { mode: store.checkout.mode, phone: store.checkout.phone.replace(/\D/g, ''), email: store.checkout.email, shippingNote: store.checkout.shippingNote, freeShipping: store.checkout.freeShipping || 0 },
     products: activeProducts(store).map(p => ({
       id: p.id, title: p.title, url: 'products/' + p.slug + '.html', image: thumb(p.images[0] || p.art), fallback: p.art ? imageUrl(p.art) : '', category: p.category, price: p.price, compareAt: p.compareAt,
       options: p.options.map(o => o.name), paymentLink: store.checkout.paymentLinks[p.id] || '',
@@ -243,16 +284,6 @@ export function storeScript(store, imageUrl, { preview = false } = {}) {
   const data = JSON.stringify(runtimeData(store, imageUrl, preview)).replace(/</g, '\\u003c').replace(/[\u2028\u2029]/g, '');
   return `/* Storefront runtime — generated by Zertake Studio */\n(function () {\n'use strict';\nvar K = (${cartKit.toString()})();\nvar D = ${data};\n(${storeRuntime.toString()})(K, D, window, document);\n})();\n`;
 }
-
-// Builder-only overlay: hover outline, click-to-select (posts {storeSelect: id}), host-driven highlight.
-const EDITOR_SCRIPT = `(function(){var mode='edit';document.documentElement.classList.add('editing');var css=document.createElement('style');css.textContent='[data-sid]{position:relative}.zsel-hover{outline:2px dashed rgba(80,140,255,.8)!important;outline-offset:-2px}.zsel-on{outline:2px solid #3b82f6!important;outline-offset:-2px}';document.head.appendChild(css);
-function sec(t){return t&&t.closest?t.closest('[data-sid]'):null}
-addEventListener('mouseover',function(e){if(mode!=='edit')return;document.querySelectorAll('.zsel-hover').forEach(function(x){x.classList.remove('zsel-hover')});var s=sec(e.target);if(s)s.classList.add('zsel-hover')});
-addEventListener('click',function(e){if(mode!=='edit')return;var s=sec(e.target);e.preventDefault();e.stopPropagation();if(s)parent.postMessage({storeSelect:s.getAttribute('data-sid')},'*')},true);
-addEventListener('submit',function(e){if(mode!=='edit')return;e.preventDefault();e.stopPropagation()},true);
-addEventListener('message',function(e){var d=e.data||{};if(d.storeMode)mode=d.storeMode;if('storeHighlight' in d){document.querySelectorAll('.zsel-on').forEach(function(x){x.classList.remove('zsel-on')});var s=d.storeHighlight&&document.querySelector('[data-sid="'+d.storeHighlight+'"]');if(s){s.classList.add('zsel-on');if(d.scroll)s.scrollIntoView({block:'nearest',behavior:'smooth'})}}});
-addEventListener('keydown',function(e){var t=e.target;if(t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))return;if((e.ctrlKey||e.metaKey)&&!e.altKey&&/^[zy]$/i.test(e.key)){e.preventDefault();parent.postMessage({storeKey:e.key.toLowerCase()==='y'||e.shiftKey?'redo':'undo'},'*')}});
-parent.postMessage({storeReady:true},'*')})();`;
 
 export function storeCss(store) {
   const t = store.theme, c = t.colors;
@@ -575,6 +606,72 @@ body.drawer-open{overflow:hidden}
 .nl-mini{display:flex;border-bottom:1.5px solid var(--text);padding-bottom:6px}.nl-mini input{flex:1;border:0;background:transparent;padding:10px 0;min-width:0}.nl-mini input:focus{outline:none}.nl-mini button{border:0;background:none;cursor:pointer;padding:0 6px}
 .ft-bottom{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;border-top:1px solid var(--border);margin-top:clamp(40px,5vw,72px);padding-top:24px;color:var(--muted);font-size:13px}.ft-bottom p{margin:0}
 .pays{display:flex!important;flex-wrap:wrap;gap:8px!important}.pays li{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:12px;color:var(--text)}.pays .ico{width:16px;height:16px}
+/* ---- round 3: header variants, wordmark hero, social proof ---- */
+.hdr-pill{background:transparent!important;border:0!important;box-shadow:none!important;padding-top:14px}.hdr-pill.over{margin-bottom:-92px}
+.hdr-pill .hdr-in{background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);border-radius:999px;height:64px;padding:0 10px 0 26px;box-shadow:0 10px 40px -18px rgba(0,0,0,.35);color:var(--text);max-width:1180px}
+.hdr-pill .nav a{padding:8px 14px;border-radius:999px}.hdr-pill .nav a::after{display:none}.hdr-pill .nav a:hover,.hdr-pill .nav a[aria-current]{background:color-mix(in srgb,var(--text) 8%,transparent)}
+.hdr-pill.over:not(.scrolled){--hfg:var(--text)}
+.hdr-search .hdr-in{grid-template-columns:auto auto 1fr auto;height:72px}.hdr-search .subnav{display:flex;justify-content:flex-start;gap:22px;padding-bottom:12px;overflow-x:auto;scrollbar-width:none}
+.hsearch{display:flex;align-items:center;gap:12px;height:48px;border-radius:999px;border:1px solid var(--border);background:var(--surface);padding:0 18px;color:var(--muted);cursor:pointer;font-size:15px;width:100%;max-width:640px;justify-self:center;text-align:left;transition:border-color .2s,box-shadow .2s}.hsearch:hover{border-color:var(--text);box-shadow:var(--shadow)}
+.hbadge{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#111;font-weight:700;font-size:12.5px;padding:7px 12px;border-radius:999px;white-space:nowrap}.hbadge .ico{width:15px;height:15px}
+.hl-wordmark{min-height:var(--hh);color:var(--hero-fg,#fff);background:var(--hero-bg,#0b0b0b)}
+.wordmark-big{position:absolute;left:0;right:0;top:clamp(70px,10vh,110px);z-index:2;margin:0;text-align:center;font:var(--hw) clamp(80px,19vw,330px)/.8 var(--font-h);text-transform:uppercase;letter-spacing:-.02em;color:var(--hero-fg,#fff);mix-blend-mode:difference;pointer-events:none;white-space:nowrap;overflow:hidden}
+.hl-wordmark .hero-title{font-size:calc(clamp(30px,3.8vw,60px) * var(--hs));max-width:16ch}.hl-wordmark .hero-slide>.wrap{padding-top:45vh}
+.vindex{position:absolute;right:clamp(16px,3vw,40px);top:50%;transform:translateY(-50%);z-index:3;list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.vindex button{border:0;background:none;color:inherit;font:600 14px/1 var(--font-b);letter-spacing:.1em;opacity:.45;cursor:pointer;padding:6px 0 6px 18px;position:relative;font-variant-numeric:tabular-nums}.vindex button::before{content:"";position:absolute;left:0;top:50%;width:10px;height:1.5px;background:currentColor;transition:width .3s}
+.vindex button[aria-current]{opacity:1}.vindex button[aria-current]::before{width:14px;left:-6px}
+.sproof{padding:calc(var(--pad) * .45) 0}.sproof-in{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.al-center .sproof-in{justify-content:center}.sproof p{margin:4px 0 0;font-weight:600;font-size:17px}
+.avstack{display:inline-flex}.avstack img{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid var(--bg);margin-left:-10px}.avstack img:first-child{margin-left:0}.avstack.lg img{width:48px;height:48px;margin-left:-14px}
+/* ---- product page layouts & blocks ---- */
+.pinfo .pform{display:grid;gap:14px}.pinfo .pb{margin:0}.pb-marker{display:none!important}
+.pinfo .crumbs{margin-bottom:0}.pinfo .ptitle-h{margin-bottom:6px}.rating-link{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--muted);font-size:14px}.rating-link:hover span:last-child{text-decoration:underline}
+.pprice{margin:0!important}.saved{display:inline-block;margin-left:8px;font-size:13px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);padding:4px 10px;border-radius:999px;vertical-align:3px}
+.bnpl{font-size:14px;color:var(--muted)}.bnpl strong{color:var(--text)}
+.urgency,.dispatch,.delivery,.socialp{display:flex;align-items:center;gap:10px;font-size:14px}.urgency{color:#c2410c;font-weight:600}.urgency .ico{color:#c2410c}.dispatch .ico,.delivery .ico{color:var(--accent)}
+.socialp{color:var(--muted)}.socialp span{color:var(--text)}
+.trust{list-style:none;padding:16px 0 0;margin:0;display:flex;flex-wrap:wrap;gap:10px 22px;border-top:1px solid var(--border)}.trust li{display:flex;align-items:center;gap:8px;font-size:13.5px}.trust .ico{width:18px;height:18px;color:var(--accent)}
+.specs{width:100%;border-collapse:collapse;font-size:13px;text-transform:uppercase;letter-spacing:.06em}.specs th,.specs td{padding:12px 0;border-bottom:1px solid var(--border);text-align:left;font-weight:500}.specs th{color:var(--muted);width:40%}
+.sg-link{display:inline-flex;align-items:center;gap:6px;margin-left:10px;font-size:13px;color:var(--text)}.sg-link .ico{width:16px;height:16px}
+.pill.soldout span{color:var(--muted);text-decoration:line-through;background:repeating-linear-gradient(135deg,transparent 0 6px,color-mix(in srgb,var(--border) 70%,transparent) 6px 7px)}
+.imgswatch .pill span{padding:4px 12px 4px 4px}.imgswatch .pill img{width:40px;height:40px;object-fit:cover;border-radius:calc(var(--btn-r) / 2 + 2px)}
+.buy{flex-wrap:wrap}.buy .buy-now{flex-basis:100%}
+.zoomable{cursor:zoom-in}.zoomable.zooming img{transform:scale(1.8);transform-origin:var(--zx,50%) var(--zy,50%);transition:transform .15s}
+.pslide.video video{width:100%;height:100%;object-fit:cover;background:#000}.vthumb{position:relative}.vthumb span{position:absolute;inset:0;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.35)}
+.pl-editorial .product{grid-template-columns:.9fr 1.4fr}.pl-editorial .pgallery{order:2;position:static;display:grid;grid-template-columns:1fr 1fr;gap:12px}.pl-editorial .pinfo{order:1;position:sticky;top:100px;align-self:start}
+.pl-editorial .pmain-img,.pl-stack .pmain-img{aspect-ratio:auto;background:none;border-radius:0;overflow:visible;display:contents}.pl-editorial .pslide,.pl-stack .pslide{position:relative;inset:auto;aspect-ratio:var(--ratio);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.pl-editorial .pslide:first-child{grid-column:1/-1}.pl-editorial .pslide:nth-child(even):last-of-type{grid-column:1/-1}.pl-editorial .pmain-img>.badge,.pl-stack .pmain-img>.badge{position:fixed;display:none}
+.pl-stack .wrap{max-width:none;padding-left:0}.pl-stack .product{grid-template-columns:1.5fr 1fr;gap:clamp(24px,4vw,64px)}.pl-stack .pgallery{position:static;display:grid;grid-template-columns:1fr;gap:6px}.pl-stack .pslide{border-radius:0}.pl-stack .pinfo{position:sticky;top:100px;align-self:start;padding-right:clamp(16px,4vw,48px)}
+.pl-compact .product{grid-template-columns:.8fr 1.2fr;gap:32px}.pl-compact .pgallery{grid-template-columns:64px 1fr}.pl-compact .thumb{width:64px}.pl-compact .ptitle-h{font-size:calc(clamp(26px,3vw,38px) * var(--hs))}.pl-compact .pinfo{padding:24px;background:var(--surface);border-radius:var(--r-lg)}
+.pl-classic .pinfo{position:sticky;top:100px;align-self:start}
+.sticky-atc{position:fixed;left:0;right:0;bottom:0;z-index:40;background:color-mix(in srgb,var(--bg) 90%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--border);box-shadow:0 -12px 40px -20px rgba(0,0,0,.35);animation:zup .3s ease}
+@keyframes zup{from{transform:translateY(100%)}}
+.sticky-in{display:flex;align-items:center;gap:14px;height:76px}.sticky-in img{width:52px;height:52px;border-radius:var(--r-sm);object-fit:cover}.sticky-info{flex:1;display:grid;min-width:0}.sticky-info b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sticky-info span{color:var(--muted);font-size:14px}
+.modal{position:fixed;inset:0;z-index:70;display:grid;place-items:center}.modal-panel{position:relative;background:var(--bg);color:var(--text);border-radius:var(--r-lg);padding:24px 28px;width:min(620px,92vw);max-height:86vh;overflow:auto;box-shadow:0 40px 100px rgba(0,0,0,.35);animation:zdrop .3s}
+.sgtable{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}.sgtable th,.sgtable td{padding:12px 10px;border-bottom:1px solid var(--border);text-align:left}.sgtable th{background:var(--surface)}
+.toasts{position:fixed;left:16px;bottom:16px;z-index:45;display:grid;gap:8px}.toast{display:flex;align-items:center;gap:12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);font-size:14px;animation:zup .35s ease}.toast button{border:0;background:none;cursor:pointer;font-size:18px;color:var(--muted)}
+.ship-bar{background:var(--surface);border-radius:var(--r);padding:12px 14px;margin:12px 0;font-size:14px}.ship-bar p{margin:0 0 8px}.ship-track{display:block;height:6px;border-radius:6px;background:color-mix(in srgb,var(--text) 10%,transparent);overflow:hidden}.ship-track i{display:block;height:100%;background:var(--accent);border-radius:6px;transition:width .4s}
+/* bundle, reviews, ugc, recently viewed */
+.bundle-in{display:grid;grid-template-columns:1fr auto;gap:28px;align-items:center;padding:clamp(18px,3vw,32px);border-radius:var(--r-lg);background:var(--surface)}
+.bundle-items{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.bplus{font-size:24px;color:var(--muted)}
+.bitem{display:grid;grid-template-columns:auto 72px 1fr;grid-template-rows:auto auto;gap:2px 12px;align-items:center;background:var(--bg);border-radius:var(--r);padding:10px 14px 10px 10px;cursor:pointer;min-width:220px;transition:opacity .2s}.bitem.off{opacity:.45}
+.bitem input{grid-row:1/3;accent-color:var(--primary);width:18px;height:18px}.bimg{grid-row:1/3}.bimg img{width:72px;height:72px;object-fit:cover;border-radius:var(--r-sm)}.btitle{font-weight:600;font-size:14px}.btitle small{display:block;color:var(--muted);font-weight:400;font-size:12px}.bitem b{font-size:14px}
+.bundle-sum{min-width:240px;text-align:right}.bundle-sum p{margin:0;color:var(--muted)}.btotal{font:var(--hw) calc(32px * var(--hs))/1.2 var(--font-h);color:var(--text)!important;margin:4px 0 14px!important}
+.rv-grid{display:grid;grid-template-columns:.8fr 1.6fr;gap:clamp(28px,5vw,72px);align-items:start}.rv-sum{position:sticky;top:100px}.rv-avg{font:var(--hw) 64px/1 var(--font-h);margin:10px 0 6px}.rv-avg small{font-size:20px;color:var(--muted);margin-left:6px}
+.rv-bars{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:8px;font-size:13px}.rv-bars li{display:grid;grid-template-columns:44px 1fr 28px;gap:10px;align-items:center}.rv-bars .ico{width:12px;height:12px;color:var(--accent)}.rbar{height:6px;border-radius:6px;background:color-mix(in srgb,var(--text) 10%,transparent);overflow:hidden}.rbar i{display:block;height:100%;background:var(--accent)}
+.rv-photos{display:flex;gap:10px;margin-bottom:18px;overflow-x:auto}.rv-photos img{width:110px;height:110px;object-fit:cover;border-radius:var(--r)}
+.rv-list{list-style:none;padding:0;margin:0}.review{padding:22px 0;border-bottom:1px solid var(--border)}.review h3{font:600 17px var(--font-b);text-transform:none;letter-spacing:0;margin:8px 0 4px}.review p{margin:0 0 8px;color:var(--muted)}.rv-top{display:flex;align-items:center;gap:12px}
+.rv-by{display:flex;align-items:center;gap:8px;font-size:13px}.avatar.sm{width:28px;height:28px;font-size:11px}.rv-photo{width:80px;height:80px;object-fit:cover;border-radius:var(--r-sm)}
+.sample-tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;background:var(--surface);color:var(--muted);padding:3px 8px;border-radius:999px}
+.ugc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap)}.ugc-cell{position:relative;margin:0;border-radius:var(--r-lg);overflow:hidden;aspect-ratio:3/4}.ugc-cell.u1,.ugc-cell.u3{margin-top:40px}
+.ugc-cell img{width:100%;height:100%;object-fit:cover;transition:transform 1s}.ugc-cell:hover img{transform:scale(1.05)}
+.ugc-cell figcaption{position:absolute;left:10px;right:10px;bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);padding:8px 12px;border-radius:999px;font-size:13px}.ugc-cell figcaption a{display:inline-flex;align-items:center;gap:4px;font-weight:600;text-decoration:none}.ugc-cell .ico{width:14px;height:14px}
+.recent-track{grid-auto-columns:calc((100% - 5 * var(--gap)) / 6)}.rcard{display:grid;gap:6px;text-decoration:none;font-size:14px}.rcard img,.rcard .noimg{width:100%;aspect-ratio:var(--ratio);object-fit:cover;border-radius:var(--r);background:var(--surface)}.rcard b{font-weight:600}
+@media (max-width:900px){
+.hdr-search .hdr-in{grid-template-columns:auto 1fr auto}.hdr-search .hsearch{grid-column:1/-1;grid-row:2;margin-bottom:10px}.hdr-search .hdr-in{height:auto;padding-top:10px}.hbadge{display:none}.hdr-search .subnav{display:none}
+.hdr-pill .hdr-in{padding:0 8px;height:58px}.pl-editorial .product,.pl-stack .product,.pl-compact .product{grid-template-columns:1fr}.pl-editorial .pinfo,.pl-stack .pinfo,.pl-classic .pinfo{position:static}.pl-editorial .pgallery{order:0}.pl-stack .wrap{padding-left:clamp(16px,4vw,48px)}.pl-stack .pinfo{padding-right:0}
+.pl-editorial .pgallery,.pl-stack .pgallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:8px}.pl-editorial .pslide,.pl-stack .pslide{flex:0 0 86%;scroll-snap-align:start}
+.bundle-in,.rv-grid{grid-template-columns:1fr}.bundle-sum{text-align:left}.rv-sum{position:static}.ugc-grid{grid-template-columns:1fr 1fr}.ugc-cell.u1,.ugc-cell.u3{margin-top:0}.recent-track{grid-auto-columns:42%}.vindex{top:auto;bottom:110px;transform:none}.wordmark-big{top:90px}
+}
 /* responsive */
 @media (max-width:1100px){.cols-4,.cols-5{grid-template-columns:repeat(3,1fr)}.ptrack{grid-auto-columns:calc((100% - 2 * var(--gap)) / 3)}.ft-grid{grid-template-columns:1fr 1fr}.bento-grid{grid-template-columns:repeat(2,1fr)}.n3 .t0,.n4 .t0,.n5 .t0{grid-row:span 1}.n4 .t3{grid-column:span 2}}
 @media (max-width:900px){

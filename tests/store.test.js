@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 import { posix } from 'node:path';
 import { normalizeStore, generateVariants, normalizeProduct, productsToCsv, importProductsCsv, parseCsv, CSV_COLUMNS, PAGE_KEYS, REQUIRED, collectionProducts, imageRefs } from '../src/store/model.js';
 import { STORE_TEMPLATES, TEMPLATE_CATEGORIES, createStore } from '../src/store/templates.js';
-import { renderPage, sitePages, storeScript, storeCss, resolveHref, routeForPath, pagePath } from '../src/store/render.js';
-import { SECTIONS, addableSections } from '../src/store/sections.js';
+import { renderPage, sitePages, storeScript, storeCss, resolveHref, routeForPath, pagePath, renderParts, composePage, diffParts } from '../src/store/render.js';
+import { SECTIONS, addableSections, PRODUCT_BLOCKS, productBlocks } from '../src/store/sections.js';
 import { cartKit } from '../src/store/cart.js';
 import { buildSiteFiles, exportStoreZip, previewShellHtml, deployInstructions } from '../src/store/exporter.js';
 import { artSvg, ART_KINDS, gen } from '../src/store/art.js';
@@ -94,7 +94,7 @@ test('every section type renders on its pages with default settings', () => {
   for (const page of PAGE_KEYS) for (const { type } of addableSections(page)) {
     const st = structuredClone(s); st.pages[page] = [...st.pages[page], { id: 'sx', type, settings: structuredClone(SECTIONS[type].defaults) }];
     const html = renderPage(normalizeStore(st), { page }, { mode: 'export', imageUrl });
-    assert.ok(html.includes('data-sid="sx"') || type === 'related-products', `${type} on ${page}`);
+    assert.ok(html.includes('data-sid="sx"') || ['related-products', 'ugc', 'product-reviews', 'bundle', 'product-carousel'].includes(type), `${type} on ${page}`);
     assert.doesNotMatch(html, /could not be shown|undefined|NaN/, `${type} on ${page}`);
   }
   for (const layout of ['image', 'split', 'gradient', 'carousel', 'text']) {
@@ -246,7 +246,7 @@ test('templates use only curated photos from photos.js, with niche photos everyw
     assert.ok(s.products.every(p => p.images.length && p.images.every(r => r.startsWith('unsplash:')) && p.art.startsWith('gen:')), t.id + ' products: photos + fallback art');
     assert.ok(s.fallbackArt.startsWith('gen:'));
     const hero = s.pages.home.find(x => x.type === 'hero');
-    assert.ok(hero.settings.layout === 'text' || hero.settings.image || hero.settings.slides.length, t.id + ' hero has a photo');
+    if (hero) assert.ok(hero.settings.layout === 'text' || hero.settings.image || hero.settings.slides.length, t.id + ' hero has a photo');
     const html = renderPage(s, { page: 'home' }, { mode: 'export', imageUrl });
     for (const [, id] of html.matchAll(/images\.unsplash\.com\/photo-([0-9a-f-]+)\?/g)) assert.ok(ids.has(id), id);
   }
@@ -261,4 +261,73 @@ test('procedural art renders every kind deterministically', () => {
     assert.equal(svg, artSvg(ref));
   }
   assert.match(artSvg(gen('tent', '#ffffff', '#000000', '#ff0000', 1, true)), /viewBox="0 0 1600 900"/);
+});
+
+test('live preview: parts, editor markers and minimal patches', () => {
+  const s = createStore('voidline'), route = { page: 'home' }, opts = { mode: 'preview', imageUrl: r => 'blob:x/' + r.length, editor: true };
+  const a = renderParts(s, route, opts), html = composePage(a, opts);
+  for (const sec of s.pages.home) assert.ok(html.includes(`<!--zp:s:${sec.id}-->`) && html.includes(`<!--/zp:s:${sec.id}-->`));
+  for (const k of ['ann', 'header', 'footer', 'overlays']) assert.ok(html.includes(`<!--zp:${k}-->`), k);
+  assert.match(html, /data-edit="heading"|data-edit="slides\.0\.heading"/); assert.match(html, /data-block="/);
+  assert.equal(diffParts(a, renderParts(s, route, opts)), null, 'same store → no patch');
+  // editing one heading patches exactly that section
+  const t = structuredClone(s), hero = t.pages.home.find(x => x.type === 'hero'); hero.settings.slides[0].heading = 'Changed';
+  const p = diffParts(a, renderParts(normalizeStore(t), route, opts));
+  assert.deepEqual(Object.keys(p), ['sections']); assert.deepEqual(Object.keys(p.sections), [hero.id]); assert.match(p.sections[hero.id], /Changed/);
+  // theme edit → only CSS (and runtime-independent parts) change
+  const th = structuredClone(s); th.theme.colors.accent = '#123456';
+  const pt = diffParts(a, renderParts(normalizeStore(th), route, opts));
+  assert.ok(pt.css.includes('--accent:#123456')); assert.ok(!pt.sections);
+  // reorder → order only
+  const ro = structuredClone(s); ro.pages.home.reverse();
+  const po = diffParts(a, renderParts(normalizeStore(ro), route, opts));
+  assert.deepEqual(po.order, ro.pages.home.map(x => x.id)); assert.ok(!po.sections);
+  // the exported site has no editor attributes or markers
+  const exp = renderPage(s, route, { mode: 'export', imageUrl: r => 'i.svg' });
+  assert.doesNotMatch(exp, /data-edit=|data-block=|<!--zp:/);
+});
+
+test('fashion templates: 9 new, distinct, photos only from photos.js, varied product-page layouts', () => {
+  const ids = ['voidline', 'stride', 'formfield', 'noir', 'indigo', 'littleloom', 'kinetic', 'carryall', 'basket'];
+  for (const id of ids) assert.ok(STORE_TEMPLATES.some(t => t.id === id), id);
+  assert.ok(STORE_TEMPLATES.length >= 35);
+  const layouts = new Set(ids.map(id => createStore(id).pages.product[0].settings.layout));
+  assert.deepEqual([...layouts].sort(), ['classic', 'compact', 'editorial', 'stack']);
+  const s = createStore('voidline'); assert.equal(s.pages.home[0].settings.layout, 'wordmark');
+  assert.equal(createStore('stride').theme.headerStyle, 'pill'); assert.equal(createStore('basket').theme.headerStyle, 'search');
+  assert.match(renderPage(createStore('basket'), { page: 'home' }, { mode: 'export', imageUrl }), /class="hbadge"[^>]*>.*Delivery in 15 min/s);
+  assert.match(renderPage(createStore('formfield'), { page: 'product' }, { mode: 'export', imageUrl }), /<table class="specs/);
+  assert.match(renderPage(s, { page: 'home' }, { mode: 'export', imageUrl }), /class="vindex"/);
+});
+
+test('product page: every block renders in every layout; sample data is labelled and opt-in', () => {
+  const s = createStore('stride'), p = s.products[0];
+  for (const layout of ['classic', 'editorial', 'stack', 'compact']) {
+    const st = structuredClone(s);
+    st.pages.product[0].settings = { ...st.pages.product[0].settings, layout, blocks: Object.keys(PRODUCT_BLOCKS).map(type => ({ type, on: true, ...structuredClone(PRODUCT_BLOCKS[type].defaults) })) };
+    st.products[0].video = 'https://example.com/v.mp4';
+    const html = renderPage(normalizeStore(st), { page: 'product', productId: p.id }, { mode: 'export', imageUrl });
+    assert.match(html, new RegExp('pl-' + layout));
+    for (const [cls, re] of [['breadcrumb', /class="crumbs pb"/], ['price', /data-price/], ['bnpl', /data-bnpl=/], ['dispatch', /data-dispatch=/], ['social', /class="socialp pb"/], ['variants', /name="opt0"/],
+      ['size guide modal', /data-modal hidden/], ['buy now', /data-buy-now/], ['delivery', /data-delivery=/], ['trust', /class="trust pb"/], ['accordions', /class="acc pb"/], ['specs', /class="specs pb"/], ['sticky bar', /data-sticky-atc/], ['video', /<video /]])
+      assert.match(html, re, `${layout}: ${cls}`);
+    assert.doesNotMatch(html, /undefined|NaN|could not be shown/);
+  }
+  // defaults: social proof (sample numbers) is off, so the exported page makes no such claim
+  assert.equal(productBlocks(['social'])[0].on, false); assert.ok(!productBlocks().some(b => b.type === 'social' && b.on));
+  const html = renderPage(s, { page: 'product', productId: p.id }, { mode: 'export', imageUrl });
+  assert.doesNotMatch(html, /people bought this today|data-toasts/);
+  // template reviews are tagged as samples; bundle and recently-viewed render
+  assert.ok(p.reviewsList.length && p.reviewsList.every(r => r.sample));
+  assert.match(html, /Sample review/); assert.match(html, /data-bundle-add/); assert.match(html, /data-recent=/); assert.match(html, /id="reviews"/);
+  // editing a review clears the sample flag in the editor; normalisation keeps flags as given
+  assert.equal(normalizeStore({ products: [{ title: 'x', reviewsList: [{ name: 'A', rating: 9, text: 'ok' }] }] }).products[0].reviewsList[0].rating, 5);
+});
+
+test('runtime: storeScript of every new template parses; free-shipping threshold reaches the runtime', () => {
+  for (const id of ['voidline', 'basket', 'noir']) {
+    const s = createStore(id), js = storeScript(s, imageUrl);
+    new Function(js);
+    assert.ok(js.includes('"freeShipping":' + s.checkout.freeShipping));
+  }
 });

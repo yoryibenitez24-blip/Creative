@@ -9,6 +9,7 @@
 import { gen } from './art.js';
 import { PHOTOS } from './photos.js';
 import { normalizeStore, slugify, uid } from './model.js';
+import { productBlocks } from './sections.js';
 
 const S = (type, settings = {}) => ({ type, settings });
 const SIZES = ['XS', 'S', 'M', 'L', 'XL'], SML = ['S', 'M', 'L'];
@@ -407,16 +408,162 @@ def({
   payments: 'Card, Wallets',
 });
 
+// ---------- fashion & apparel collection (round 3) + grocery quick commerce ----------
+const UGC = (...xs) => S('ugc', { images: xs.map(([image, handle]) => ({ image, handle, link: 'collection:all' })) });
+
+def({
+  id: 'voidline', name: 'VOIDLINE', niche: 'Techwear / streetwear', category: 'Fashion', photos: 'fashion', reviews: true, pdp: 'stack', description: 'Dark techwear hoodie brand with a giant wordmark and numbered slide index.',
+  theme: { colors: { background: '#0b0b0b', surface: '#161616', text: '#ecece6', muted: '#8f8f88', primary: '#ecece6', primaryText: '#0b0b0b', accent: '#ff5a1f', border: '#262626' }, fonts: { heading: 'condensed', body: 'inter' }, headingWeight: 900, headingCase: 'uppercase', radius: 0, buttons: 'sharp', density: 'compact', headerStyle: 'split', cardStyle: 'plain', imageRatio: 'portrait', headingScale: 'huge', tracking: 'normal', shadow: 'none' },
+  art: ['#161616', '#ff5a1f'], swatches: ['#2a2a2a', '#ecece6', '#ff5a1f', '#5a5a55'], heroArt: 'hoodie',
+  products: [['Shell Hoodie 01', 145, 0, 'hoodie', 'Hoodies', { Size: SIZES, Color: ['Grey', 'Black'] }, { ph: ['@p1', '@u2'], tags: ['new'] }], ['Cargo Overshirt', 160, 190, 'jacket', 'Outerwear', { Size: SML, Color: ['Sage', 'Black'] }, { ph: ['@p3', '@u4'] }],
+    ['Heavy Logo Tee', 55, 0, 'tshirt', 'Tees', { Size: SIZES, Color: ['White', 'Black'] }, { ph: ['@p0', '@u0'] }], ['Utility Denim Jacket', 210, 0, 'jacket', 'Outerwear', { Size: SML }, { ph: ['@p5', '@u1'] }], ['Loopback Crewneck', 95, 0, 'hoodie', 'Hoodies', { Size: SIZES }, { ph: ['@p4', '@u3'] }], ['Knit Layer', 120, 0, 'jacket', 'Knitwear', { Size: SML }, { ph: ['@p2', '@u4'] }]],
+  home: [S('hero', { layout: 'wordmark', wordmark: 'VOIDLINE', heading: 'Built for the city after dark', slides: [{ image: '@u2', heading: 'Built for the city after dark', text: 'Technical layers, heavy fleece, zero logos you did not ask for.', buttonLabel: 'Shop drop 04', buttonLink: 'collection:all' }, { image: '@u0', heading: 'Heavy tees', text: '300 gsm, boxy, garment dyed.', buttonLabel: 'Shop tees', buttonLink: 'collection:all' }, { image: '@u1', heading: 'Outerwear', text: 'Water-repellent, packable, quiet.', buttonLabel: 'Shop outerwear', buttonLink: 'collection:all' }], height: 'full', overlay: 35, autoplay: 6, background: '#0b0b0b', textColor: '#ecece6' }),
+    S('marquee', { text: 'Drop 04 | Technical layers | Free returns | Ships worldwide', style: 'outline', speed: 30 }),
+    S('product-carousel', { eyebrow: 'Drop 04', heading: 'New this drop' }),
+    S('collection-list', { heading: 'Categories', columns: 4, style: 'tall' }),
+    S('image-text', { eyebrow: 'Fabric lab', heading: 'Engineered, not decorated', text: 'Recycled nylon shells, brushed fleece and taped seams. Every piece is tested for a winter of commuting.', buttonLabel: 'Read the specs', buttonLink: 'page:about', layout: 'full', image: '@u1' }),
+    UGC(['@u0', '@kai.nite'], ['@u2', '@m.vance'], ['@u1', '@lowkeylayers'], ['@u3', '@sora.w']),
+    S('newsletter', { heading: 'Drop alerts', text: 'One message when a drop goes live. Nothing else.' })],
+  announcement: 'Drop 04 live now | Free returns | Ships worldwide', annStyle: 'marquee', payments: 'Card, Wallets',
+});
+
+def({
+  id: 'stride', name: 'Stride Lab', niche: 'Performance sneakers', category: 'Fashion', photos: 'sneakers', reviews: true, pdp: 'classic', description: 'Sports sneaker store: “Driven by comfort”, pill nav over the hero and avatar social proof.',
+  theme: { colors: { background: '#f3f4f0', surface: '#e6e8e1', text: '#0e0f0c', muted: '#62655c', primary: '#0e0f0c', primaryText: '#e4ff3a', accent: '#c6e600', border: '#d9dcd2' }, fonts: { heading: 'condensed', body: 'inter' }, headingWeight: 900, headingCase: 'uppercase', radius: 24, buttons: 'pill', density: 'comfortable', headerStyle: 'pill', cardStyle: 'card', imageRatio: 'square', headingScale: 'huge', tracking: 'normal' },
+  art: ['#e6e8e1', '#c6e600'], swatches: ['#0e0f0c', '#ffffff', '#c6e600', '#62655c'], heroArt: 'sneaker',
+  products: [['Stride Runner 2', 159, 179, 'sneaker', 'Running', { Size: ['40', '41', '42', '43', '44', '45'], Color: ['Grey', 'Black'] }, { ph: ['@p3', '@p1'], tags: ['new'] }], ['Prism Trainer', 149, 0, 'sneaker', 'Training', { Size: ['40', '41', '42', '43', '44'], Color: ['Coral', 'Sky'] }, { ph: ['@p1', '@h1'] }],
+    ['Court Clean', 119, 0, 'sneaker', 'Lifestyle', { Size: ['38', '39', '40', '41', '42', '43'] }, { ph: ['@p2', '@p0'] }], ['Dune Low', 139, 0, 'sneaker', 'Lifestyle', { Size: ['38', '39', '40', '41', '42'], Color: ['Sand'] }, { ph: ['@p0', '@h0'] }]],
+  home: [S('hero', { layout: 'image', eyebrow: 'New · Stride Runner 2', heading: 'Driven by comfort', text: 'Responsive foam, breathable knit and a fit that disappears on the run.', buttonLabel: 'Shop running', buttonLink: 'collection:all', button2Label: 'Find your fit', button2Link: 'page:contact', image: '@p3', overlay: 30, height: 'full' }),
+    S('social-proof', { text: 'Join 25,000+ runners who switched to Stride', rating: 4.8, avatars: [{ image: '@fashion:u0' }, { image: '@fashion:u1' }, { image: '@fashion:u2' }, { image: '@fashion:u3' }, { image: '@fashion:u4' }] }),
+    S('collection-list', { heading: 'Shop by activity', columns: 3, style: 'tall' }),
+    S('featured-products', { eyebrow: 'Best sellers', heading: 'Built to move', columns: 4 }),
+    S('bento', { heading: 'Comfort, engineered', items: [{ image: '@h1', title: 'Cloudfoam midsole', text: '12% more energy return.', link: 'collection:all' }, { image: null, title: '30-day run trial', text: 'Run in them. Return them if they are not for you.', link: '' }, { image: '@p2', title: 'Recycled knit upper', text: 'Breathable and light.', link: '' }] }),
+    S('testimonials', { heading: 'Runners say', items: Q(['Zero break-in time. Ran a half marathon in week one.', 'Ade O.', 'Marathoner', '@fashion:u1'], ['Light, springy and they look clean off the track.', 'Hanna L.', 'Trail runner', '@fashion:u3'], ['My knees thank me every morning.', 'Ravi P.', 'Commuter runner', '@fashion:u2']) }),
+    S('newsletter', { heading: 'Run club', text: 'Training plans and early access to colourways.', image: '@h0' })],
+  announcement: '30-day run trial | Free shipping over $75', payments: 'Card, Wallets', nav: ['Running', 'Training', 'Lifestyle'],
+});
+
+def({
+  id: 'formfield', name: 'Form & Field', niche: 'Minimal product-first apparel', category: 'Fashion', photos: 'fashion', reviews: true, pdp: 'editorial', description: 'Editorial, product-first store: lots of white, Helvetica-style type and uppercase spec tables.',
+  theme: { colors: { background: '#ffffff', surface: '#f4f4f2', text: '#111111', muted: '#77776f', primary: '#111111', primaryText: '#ffffff', accent: '#111111', border: '#e6e6e2' }, fonts: { heading: 'helvetica', body: 'helvetica' }, headingWeight: 500, headingCase: 'uppercase', radius: 0, buttons: 'sharp', density: 'airy', headerStyle: 'left', cardStyle: 'plain', imageRatio: 'portrait', headingScale: 'regular', tracking: 'wide', shadow: 'none' },
+  art: ['#f4f4f2', '#111111'], swatches: ['#d8d8d2', '#111111', '#9fb29f'], heroArt: 'tshirt',
+  products: [['Tee No. 1', 48, 0, 'tshirt', 'Tops', { Size: SIZES, Color: ['White', 'Black'] }, { ph: ['@p0', '@u0'] }], ['Overshirt No. 3', 140, 0, 'jacket', 'Shirts', { Size: SML, Color: ['Sage'] }, { ph: ['@p3', '@h2'] }], ['Sweatshirt No. 2', 95, 0, 'hoodie', 'Tops', { Size: SIZES }, { ph: ['@p4', '@u2'] }], ['Knit Poncho No. 5', 180, 0, 'jacket', 'Knitwear', null, { ph: ['@p2', '@u3'] }],
+    ['Hoodie No. 4', 120, 0, 'hoodie', 'Tops', { Size: SIZES }, { ph: ['@p1', '@u1'] }], ['Jacket No. 6', 220, 260, 'jacket', 'Outerwear', { Size: SML }, { ph: ['@p5', '@u4'] }]],
+  home: [S('featured-products', { heading: 'Collection 01', text: 'Six garments. Made to be worn every day for years.', columns: 3, limit: 6, buttonLabel: '' }),
+    S('rich-text', { eyebrow: 'Principles', text: 'Fewer, better garments. Natural fibres. Transparent prices. Repairs for life.', size: 'large', align: 'left' }),
+    S('image-text', { heading: 'Made in Porto', text: 'Cut and sewn in a family workshop. We visit every season.', image: '@h2', imageSide: 'right' }),
+    S('newsletter', { heading: 'Notes', text: 'New garments, rarely.' })],
+  payments: 'Card, Bank transfer',
+});
+
+def({
+  id: 'noir', name: 'Maison Noir', niche: 'Luxury womenswear', category: 'Fashion', photos: 'fashion', reviews: true, pdp: 'editorial', description: 'Luxury womenswear: black and ivory, Didot display type, editorial product pages.',
+  theme: { colors: { background: '#f6f1ea', surface: '#ece4d8', text: '#141210', muted: '#7d746a', primary: '#141210', primaryText: '#f6f1ea', accent: '#8c6b45', border: '#ddd3c5' }, fonts: { heading: 'display', body: 'avenir' }, headingWeight: 400, radius: 0, buttons: 'solid', density: 'airy', headerStyle: 'centered', imageRatio: 'portrait', headingScale: 'huge', tracking: 'tight', shadow: 'none' },
+  art: ['#ece4d8', '#8c6b45'], swatches: ['#141210', '#d6c3ad', '#8c6b45'], heroArt: 'dress',
+  products: [['Camel Wool Blazer', 690, 0, 'jacket', 'Tailoring', { Size: ['34', '36', '38', '40', '42'] }, { ph: ['@u4', '@p5'] }], ['Cashmere Poncho', 820, 0, 'jacket', 'Knitwear', { Color: ['Cream'] }, { ph: ['@p2', '@u3'] }], ['Silk Shirt', 390, 460, 'tshirt', 'Shirts', { Size: ['34', '36', '38', '40'], Color: ['Sage', 'White'] }, { ph: ['@p3', '@u0'] }], ['Ribbed Cotton Tee', 160, 0, 'tshirt', 'Essentials', { Size: SIZES }, { ph: ['@p0', '@u1'] }]],
+  home: [S('hero', { layout: 'carousel', heading: 'The quiet season', slides: [{ image: '@u4', heading: 'The quiet season', text: 'Tailoring and cashmere for the cold months.', buttonLabel: 'Discover', buttonLink: 'collection:all' }, { image: '@u3', heading: 'Cashmere, simply', text: 'Grade-A cashmere, knitted in Scotland.', buttonLabel: 'Shop knitwear', buttonLink: 'collection:all' }], height: 'full', overlay: 20, autoplay: 7 }),
+    S('rich-text', { eyebrow: 'Maison Noir', text: 'Clothes made slowly, in small numbers, by people we know by name.', size: 'large' }),
+    S('featured-products', { heading: 'The edit', columns: 4, buttonLabel: 'View all' }),
+    S('image-text', { eyebrow: 'Atelier', heading: 'Cut by hand in Paris', text: 'Every blazer takes eleven hours to make.', image: '@h2', layout: 'overlap' }),
+    UGC(['@u4', '@claire.d'], ['@u3', '@ines.m'], ['@u0', '@alma'], ['@u1', '@noor.s']),
+    S('newsletter', { heading: 'Private appointments', text: 'Book a fitting in the Paris atelier.' })],
+  currency: ['EUR', 'fr-FR'], announcement: 'Complimentary alterations on every order', payments: 'Card, Bank transfer',
+});
+
+def({
+  id: 'indigo', name: 'Indigo Union', niche: 'Denim', category: 'Fashion', photos: 'fashion', reviews: true, pdp: 'classic', description: 'Denim workshop store with fit guide, washes and heritage storytelling.',
+  theme: { colors: { background: '#f4f1ea', surface: '#e7e2d6', text: '#141c2e', muted: '#5e6578', primary: '#1f3b73', primaryText: '#f4f1ea', accent: '#c2763a', border: '#d8d2c4' }, fonts: { heading: 'condensed', body: 'iowan' }, headingWeight: 800, headingCase: 'uppercase', radius: 6, buttons: 'solid', headerStyle: 'split', cardStyle: 'plain', imageRatio: 'portrait', headingScale: 'huge', tracking: 'normal' },
+  art: ['#e7e2d6', '#c2763a'], swatches: ['#1f3b73', '#3b5a80', '#141c2e'], heroArt: 'jacket',
+  products: [['Type III Denim Jacket', 180, 0, 'jacket', 'Jackets', { Size: SIZES, Color: ['Denim'] }, { ph: ['@p5', '@u1'] }], ['Selvedge Workshirt', 120, 140, 'tshirt', 'Shirts', { Size: SIZES, Color: ['Sage', 'White'] }, { ph: ['@p3', '@h2'] }], ['Loopwheel Sweat', 110, 0, 'hoodie', 'Sweats', { Size: SIZES }, { ph: ['@p4', '@u2'] }], ['Pocket Tee', 45, 0, 'tshirt', 'Tees', { Size: SIZES, Color: ['White', 'Navy'] }, { ph: ['@p0', '@u0'] }]],
+  home: [S('hero', { layout: 'image', eyebrow: 'Since 1998', heading: 'Raw denim, honest work', text: '14 oz selvedge, cut and chain-stitched in our own shop.', buttonLabel: 'Shop denim', buttonLink: 'collection:all', image: '@u1', overlay: 40, height: 'full' }),
+    S('features', { style: 'strip', columns: 4, items: [{ icon: 'award', title: '14 oz selvedge', text: 'Woven on shuttle looms' }, { icon: 'refresh', title: 'Free repairs', text: 'For life' }, { icon: 'truck', title: 'Free hemming', text: 'Tell us your inseam' }, { icon: 'shield', title: 'Fit guarantee', text: 'Free exchanges' }] }),
+    S('featured-products', { eyebrow: 'Workshop favourites', heading: 'Built to fade', columns: 4 }),
+    S('image-text', { eyebrow: 'The workshop', heading: 'Every seam, chain-stitched', text: 'We still run the 1960s Union Special machines that give our hems their roping.', layout: 'full', image: '@h0' }),
+    S('faq', { heading: 'Fit & care', items: [{ q: 'How should raw denim fit?', a: 'Snug at first — it relaxes about half a size.' }, { q: 'When should I wash them?', a: 'Wait six months for the best fades, then wash cold, inside out.' }] })],
+  payments: 'Card, Wallets',
+});
+
+def({
+  id: 'littleloom', name: 'Little Loom', niche: 'Kidswear', category: 'Fashion', photos: 'fashion', reviews: true, pdp: 'compact', description: 'Soft, playful kidswear in organic cotton with rounded type.',
+  theme: { colors: { background: '#fffaf3', surface: '#fbeee0', text: '#2d2a4a', muted: '#7a7690', primary: '#ff7a59', primaryText: '#ffffff', accent: '#5aa9a0', border: '#f1e2cf' }, fonts: { heading: 'rounded', body: 'rounded' }, headingWeight: 900, radius: 28, buttons: 'pill', headerStyle: 'split', cardStyle: 'card', imageRatio: 'square', headingScale: 'large', tracking: 'tight' },
+  art: ['#fbeee0', '#5aa9a0'], swatches: ['#ff7a59', '#5aa9a0', '#f5c84c'], heroArt: 'tshirt',
+  products: [['Mini Organic Tee', 22, 0, 'tshirt', 'Tops', { Size: ['2Y', '4Y', '6Y', '8Y'], Color: ['White', 'Coral'] }, { ph: ['@p0', '@toys:p0'] }], ['Cosy Mini Hoodie', 38, 45, 'hoodie', 'Tops', { Size: ['2Y', '4Y', '6Y', '8Y'] }, { ph: ['@p1', '@toys:h0'] }], ['Weekend Sweatshirt', 34, 0, 'hoodie', 'Tops', { Size: ['2Y', '4Y', '6Y'] }, { ph: ['@p4', '@toys:p1'] }], ['Play Day Set', 49, 0, 'box', 'Sets', null, { ph: ['@toys:p0', '@p0'] }]],
+  home: [S('hero', { layout: 'split', eyebrow: '100% organic cotton', heading: 'Made for climbing, jumping and naps', text: 'Soft, tough kidswear that keeps up — and gets handed down.', buttonLabel: 'Shop kids', buttonLink: 'collection:all', image: '@toys:h0', background: '#fbeee0' }),
+    S('featured-products', { heading: 'Little favourites', columns: 4 }),
+    S('features', { columns: 3, items: [{ icon: 'leaf', title: 'Organic cotton', text: 'GOTS certified, gentle on skin.' }, { icon: 'refresh', title: 'Grows with them', text: 'Roll-up cuffs add a size.' }, { icon: 'gift', title: 'Gift wrapping', text: 'Free, with a handwritten note.' }] }),
+    S('testimonials', { items: Q(['Survives the washing machine every single week.', 'Jo T.', 'Parent'], ['So soft, my son refuses to wear anything else.', 'Mira K.', 'Parent'], ['Lovely gift packaging.', 'Sam B.', 'Grandparent']) }),
+    S('newsletter', { heading: 'Little letters', text: '10% off your first order.' })],
+  payments: 'Card, Wallets',
+});
+
+def({
+  id: 'kinetic', name: 'Kinetic Studio', niche: 'Athleisure', category: 'Fashion', photos: 'fitness', reviews: true, pdp: 'stack', description: 'Athleisure label with bold photography, bento grid and stacked product galleries.',
+  theme: { colors: { background: '#f7f6f2', surface: '#ebe9e2', text: '#16161a', muted: '#6c6b70', primary: '#16161a', primaryText: '#f7f6f2', accent: '#ff6a3d', border: '#dddbd3' }, fonts: { heading: 'inter', body: 'inter' }, headingWeight: 800, radius: 20, buttons: 'pill', headerStyle: 'split', cardStyle: 'plain', imageRatio: 'portrait', headingScale: 'huge', tracking: 'tight' },
+  art: ['#ebe9e2', '#ff6a3d'], swatches: ['#16161a', '#ff6a3d', '#9fb29f'], heroArt: 'tshirt',
+  products: [['Studio Track Set', 129, 149, 'jacket', 'Sets', { Size: SIZES, Color: ['Yellow', 'Black'] }, { ph: ['@fashion:h3', '@p2'] }], ['Lift Tee', 42, 0, 'tshirt', 'Tops', { Size: SIZES, Color: ['White', 'Black'] }, { ph: ['@fashion:p0', '@p0'] }], ['Flow Hoodie', 89, 0, 'hoodie', 'Tops', { Size: SIZES, Color: ['Grey'] }, { ph: ['@fashion:p1', '@p1'] }], ['Core Mat', 59, 0, 'band', 'Gear', null, { ph: ['@p2', '@h0'] }]],
+  home: [S('hero', { layout: 'image', eyebrow: 'Move collection', heading: 'Made for movement', text: 'Training layers you will wear long after the workout.', buttonLabel: 'Shop the collection', buttonLink: 'collection:all', image: '@fashion:h3', overlay: 25, height: 'full' }),
+    S('marquee', { text: 'Sweat-wicking | Four-way stretch | Recycled fabrics | Free returns', style: 'accent', speed: 28 }),
+    S('featured-products', { heading: 'Most loved', columns: 4 }),
+    S('bento', { heading: 'Train, then go out', items: [{ image: '@h1', title: 'Strength', text: 'Layers that move with you.', link: 'collection:all' }, { image: '@p2', title: 'Recovery', text: 'Soft, stretchy, cosy.', link: 'collection:all' }, { image: '@fashion:u0', title: 'Street', text: 'Clean lines for after.', link: 'collection:all' }] }),
+    UGC(['@fashion:h3', '@move.with.mia'], ['@p2', '@coreclub'], ['@fashion:u0', '@jess.lifts'], ['@h1', '@kinetic.crew']),
+    S('newsletter', { heading: 'Join the studio', text: 'Workout plans and early access.' })],
+  payments: 'Card, Wallets',
+});
+
+def({
+  id: 'carryall', name: 'Carryall Co.', niche: 'Bags & accessories', category: 'Fashion', photos: 'fashion', reviews: true, pdp: 'classic', description: 'Bags and accessories with warm leather tones and image swatches.',
+  theme: { colors: { background: '#faf6f0', surface: '#efe6da', text: '#2a1f17', muted: '#83725f', primary: '#2a1f17', primaryText: '#faf6f0', accent: '#b5652b', border: '#e4d8c8' }, fonts: { heading: 'iowan', body: 'avenir' }, headingWeight: 500, radius: 18, buttons: 'pill', headerStyle: 'split', imageRatio: 'square', headingScale: 'large', tracking: 'tight' },
+  art: ['#efe6da', '#b5652b'], swatches: ['#2a1f17', '#b5652b', '#d6c3ad'], heroArt: 'bag',
+  products: [['Market Shopper', 79, 0, 'bag', 'Bags', { Color: ['Red', 'Black'] }, { ph: ['@general:p0', '@outdoor:p2'] }], ['Trail Day Pack', 129, 149, 'backpack', 'Bags', { Color: ['Forest', 'Sand'] }, { ph: ['@outdoor:p2', '@general:p0'] }], ['Gold Chain Bracelet', 89, 0, 'necklace', 'Jewellery', { Metal: ['Gold', 'Rose gold'] }, { ph: ['@jewelry:p2', '@jewelry:p3'] }], ['Pendant Necklace', 119, 0, 'necklace', 'Jewellery', null, { ph: ['@jewelry:p1', '@jewelry:p0'] }]],
+  home: [S('hero', { layout: 'split', eyebrow: 'Carry better', heading: 'Bags that go everywhere you do', text: 'Water-resistant canvas, vegetable-tanned leather, lifetime repairs.', buttonLabel: 'Shop bags', buttonLink: 'collection:all', image: '@outdoor:h0', background: '#efe6da' }),
+    S('collection-list', { heading: 'Shop by category', columns: 2, style: 'wide' }),
+    S('featured-products', { heading: 'Everyday carry', columns: 4 }),
+    S('image-text', { eyebrow: 'Made to last', heading: 'Repairs for life', text: 'Send it back any time — we fix straps, zips and seams for free.', image: '@outdoor:h1', layout: 'overlap' }),
+    S('newsletter', { heading: 'The carry list', text: 'New colours and restocks, first.' })],
+  payments: 'Card, Wallets',
+});
+
+def({
+  id: 'basket', name: 'Basket', niche: 'Grocery quick commerce', category: 'Food & drink', photos: 'restaurant', reviews: false, pdp: 'compact', description: 'Search-first grocery store with a delivery-time badge and compact product pages.',
+  theme: { colors: { background: '#ffffff', surface: '#f1f6ef', text: '#132013', muted: '#5f6d5f', primary: '#118a3c', primaryText: '#ffffff', accent: '#ffb800', border: '#e2eadf' }, fonts: { heading: 'inter', body: 'inter' }, headingWeight: 800, radius: 18, buttons: 'pill', density: 'compact', headerStyle: 'search', cardStyle: 'card', imageRatio: 'square', headingScale: 'regular', tracking: 'tight' },
+  art: ['#f1f6ef', '#ffb800'], swatches: ['#118a3c', '#ffb800', '#e2603a'], heroArt: 'bag',
+  products: [['Sourdough Loaf', 5.5, 0, 'bread', 'Bakery', null, { ph: ['@bakery:p0', '@bakery:h1'] }], ['Butter Croissants (4)', 6.9, 0, 'croissant', 'Bakery', null, { ph: ['@bakery:p1', '@bakery:p2'] }], ['Salmon Poke Bowl', 11.5, 13, 'dish', 'Ready meals', null, { ph: ['@p2', '@p0'] }], ['Margherita Pizza', 8.9, 0, 'pizza', 'Ready meals', null, { ph: ['@p1', '@p0'] }],
+    ['Espresso Beans 250 g', 9.5, 0, 'coffeebag', 'Pantry', null, { ph: ['@coffee:p0', '@coffee:p1'] }], ['Potted Cactus', 7, 0, 'plant', 'Home', null, { ph: ['@plants:p1', '@plants:p0'] }]],
+  home: [S('hero', { layout: 'split', eyebrow: 'Delivery in 15 minutes', heading: 'Groceries, at the door before the kettle boils', text: 'Fresh bakery, ready meals and pantry staples from local suppliers.', buttonLabel: 'Start shopping', buttonLink: 'collection:all', image: '@bakery:h0', background: '#f1f6ef', height: 'small' }),
+    S('collection-list', { heading: 'Aisles', columns: 4, style: 'square' }),
+    S('featured-products', { heading: 'Popular right now', columns: 5, limit: 10 }),
+    S('banner', { heading: 'Free delivery over $25', text: 'Every order, every day.', buttonLabel: 'Fill your basket', buttonLink: 'collection:all', style: 'solid' }),
+    S('features', { style: 'strip', columns: 3, items: [{ icon: 'bolt', title: '15-minute delivery', text: '7am – 11pm, every day' }, { icon: 'leaf', title: 'Local suppliers', text: 'Bread baked this morning' }, { icon: 'refresh', title: 'Freshness promise', text: 'Not perfect? Full refund' }] })],
+  checkout: 'whatsapp', freeShipping: 25, badge: 'Delivery in 15 min', payments: 'Card, Cash',
+});
+
 const photoSet = t => PHOTOS[t.photos] || PHOTOS.general;
 const tokenRef = (set, tok) => {
-  const m = /^@([hpu])(\d+)$/.exec(tok); if (!m) return tok;
-  const list = (m[1] === 'h' ? set.hero : m[1] === 'u' ? set.people || set.hero : set.product) || set.product;
-  return 'unsplash:' + list[+m[2] % list.length][0];
+  const m = /^@(?:([a-z]+):)?([hpu])(\d+)$/.exec(tok); if (!m) return tok;
+  if (m[1]) set = PHOTOS[m[1]] || set;
+  const list = (m[2] === 'h' ? set.hero : m[2] === 'u' ? set.people || set.hero : set.product) || set.product;
+  return 'unsplash:' + list[+m[3] % list.length][0];
 };
 const resolveTokens = (v, set) => typeof v === 'string' ? tokenRef(set, v) : Array.isArray(v) ? v.map(x => resolveTokens(x, set)) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, resolveTokens(x, set)])) : v;
 
 export const STORE_TEMPLATES = T.map(t => ({ id: t.id, name: t.name, niche: t.niche, category: t.category, description: t.description, swatch: [t.theme.colors.background, t.theme.colors.primary, t.theme.colors.accent], photo: 'unsplash:' + photoSet(t).hero[0][0] }));
 export const TEMPLATE_CATEGORIES = [...new Set(T.map(t => t.category))];
+
+const REVIEW_POOL = [
+  ['Perfect fit', 'Fits true to size and the quality is better than I expected. Already ordered a second one.', 5],
+  ['Love it', 'Beautiful material and it arrived beautifully packed. Exactly like the photos.', 5],
+  ['Great, runs slightly large', 'Really nice quality. I would size down if you are between sizes.', 4],
+  ['Worth it', 'Wore it all week. Comfortable and still looks new after washing.', 5],
+  ['Good but slow shipping', 'Lovely product, delivery took a couple of days longer than expected.', 4],
+];
+const REVIEW_NAMES = ['Amira K.', 'Jonas P.', 'Lea M.', 'Daniel R.', 'Sofia T.', 'Kenji W.', 'Maya L.'];
+/** Sample reviews for template products — flagged `sample` so the store shows a “Sample review” tag until the merchant edits them. */
+function sampleReviews(i, withPhoto) {
+  return [0, 1, 2].map(k => {
+    const [title, text, rating] = REVIEW_POOL[(i + k) % REVIEW_POOL.length], d = new Date(Date.UTC(2026, 9, 28 - (i * 3 + k * 5) % 27));
+    return { id: uid('r'), name: REVIEW_NAMES[(i * 2 + k) % REVIEW_NAMES.length], rating, title, text, date: d.toISOString().slice(0, 10), photo: k === 0 && withPhoto ? withPhoto : null, sample: true };
+  });
+}
 
 const DESC = {
   default: t => `${t} is designed to be used and loved every day. Thoughtful details, quality materials and a finish that lasts.\n\nShips in recyclable packaging.`,
@@ -437,7 +584,9 @@ export function createStore(templateId = 'general') {
     const stockFor = k => (i * 7 + k * 3) % 13 === 5 ? 0 : 5 + ((i * 13 + k * 5) % 20);
     const photos = (ph || ['@p' + i, '@p' + (i + 1)]).map(x => tokenRef(set, x)).filter((r, k, a) => a.indexOf(r) === k);
     const p = { id: uid('p'), title, slug: slugify(title), price, compareAt: compareAt || null, category, description: (DESC[t.category] || DESC.default)(title),
-      images: photos, art: gen(kind, abg, sw[i % sw.length], aac, i + 1), options: opts, tags: [slugify(category)], featured: i < 4, status: 'active', rating: null, reviews: 0, ...rest };
+      images: photos, art: gen(kind, abg, sw[i % sw.length], aac, i + 1), options: opts, tags: [slugify(category)], featured: i < 4, status: 'active', rating: null, reviews: 0,
+      materials: t.category === 'Fashion' ? 'Outer: 100% organic cotton. Machine wash cold, inside out. Do not tumble dry. Iron on low heat.' : '',
+      reviewsList: t.reviews ? sampleReviews(i, set.people ? tokenRef(set, '@u' + i) : null) : [], ...rest };
     p.tags = [...new Set([slugify(category), ...(rest.tags || [])])];
     let combos = [[]]; for (const o of opts) combos = combos.flatMap(c => o.values.map(v => [...c, v]));
     p.variants = combos.map((c, k) => ({ id: uid('v'), options: c, price: null, sku: [slugify(title).toUpperCase().slice(0, 18), ...c.map(v => slugify(v).toUpperCase())].join('-'), stock: digital ? null : stockFor(k) }));
@@ -471,11 +620,14 @@ export function createStore(templateId = 'general') {
   const store = {
     kind: 'store', templateId: t.id, name: t.name, logo: { text: t.name, image: null, height: 32 }, theme: t.theme, currency: { code: cur, locale: loc }, fallbackArt,
     announcement: { enabled: !!t.announcement, text: t.announcement || 'Free shipping on your first order', link: 'collection:all', style: t.annStyle || 'static' },
-    layout: { header: { type: 'header', settings: { sticky: true, transparent: true, showSearch: true, showWishlist: true } }, footer: { type: 'footer', settings: { text: t.description, newsletter: true, payments: t.payments || '' } } },
+    layout: { header: { type: 'header', settings: { sticky: true, transparent: true, showSearch: true, showWishlist: true, badge: t.badge || '', searchPlaceholder: 'Search groceries, bakery, meals…' } }, footer: { type: 'footer', settings: { text: t.description, newsletter: true, payments: t.payments || '' } } },
     pages: {
       home: homeSections,
       collection: [S('collection-main', { columns: products.length > 4 ? 3 : 4 })],
-      product: [S('product-main', {}), S('related-products'), S('features', { style: 'strip', columns: 4, items: STRIP })],
+      product: [S('product-main', { layout: t.pdp || 'classic', blocks: productBlocks(t.id === 'formfield' ? ['breadcrumb', 'title', 'price', 'variants', 'sizeguide', 'buy', 'specs', 'delivery', 'details'] : t.pdp === 'compact' ? ['title', 'price', 'urgency', 'variants', 'buy', 'delivery', 'trust', 'details'] : undefined, { delivery: t.pdp === 'compact' ? { min: 0, max: 1, text: 'Delivery' } : {} }) }),
+        S('bundle'), ...(t.reviews ? [S('product-reviews')] : []), S('related-products'),
+        ...(t.home.some(x => x.type === 'ugc') ? [S('ugc', resolveTokens(structuredClone(t.home.find(x => x.type === 'ugc').settings), set))] : []),
+        S('recently-viewed'), S('features', { style: 'strip', columns: 4, items: STRIP })],
       about: [S('page-title', { eyebrow: 'About', heading: `About ${t.name}`, text: '', image: tokenRef(set, '@h1') }),
         S('image-text', { image: tokenRef(set, '@h0'), eyebrow: 'Our story', heading: 'Small team, big care', text: `${t.name} started with a simple idea: ${t.description.charAt(0).toLowerCase() + t.description.slice(1)}\n\nWe are a small team who care about every detail, from the first sketch to the moment your order arrives.` }),
         S('features', { columns: 3, items: STRIP.slice(0, 3) })],
@@ -490,7 +642,7 @@ export function createStore(templateId = 'general') {
     },
     social: { instagram: 'https://instagram.com/', facebook: '', tiktok: 'https://tiktok.com/', youtube: '', x: '', pinterest: 'https://pinterest.com/' },
     contact: { email, phone: '+1 555 0100', address: '', hours: '' },
-    checkout: { mode, phone: '15550100', email, paymentLinks: {}, shippingNote: digital ? '' : 'Shipping is calculated and confirmed with you after ordering.', note: '' },
+    checkout: { mode, phone: '15550100', email, paymentLinks: {}, freeShipping: t.freeShipping || (digital ? 0 : 100), shippingNote: digital ? '' : 'Shipping is calculated and confirmed with you after ordering.', note: '' },
     seo: { title: `${t.name} — ${t.niche}`, description: t.description },
   };
   return normalizeStore(store);

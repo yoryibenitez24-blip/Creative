@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Plus, Trash2, Copy, Eye, EyeOff, GripVertical, ChevronUp, ChevronDown, Search, FileUp, FileDown, Camera, Upload, X, ArrowLeft, ArrowRight, Lock } from 'lucide-react';
-import { SECTIONS, SECTION_GROUPS, addableSections } from './sections.js';
+import { SECTIONS, SECTION_GROUPS, addableSections, PRODUCT_BLOCKS } from './sections.js';
 import { FONT_STACKS, CURRENCIES, CHECKOUT_MODES, REQUIRED, PAGE_LABELS, newSection, newProduct, uid, slugify, categories, productsToCsv, importProductsCsv, CSV_COLUMNS, variantPrice, collectionProducts } from './model.js';
 import { Field, TextInput, TextArea, Select, Toggle, Segmented, ColorField, LinkPicker, ImageField, SchemaField, NumField, ValueSlider } from './fields.jsx';
 import { formatMoney } from './render.js';
@@ -79,14 +79,38 @@ export function SectionInspector({ store, page, selectedId, edit, env }) {
   }, def.label, coalesce ? sec.id + k : undefined);
   return <Inspector title={def.label} note={REQUIRED[page] === sec.type ? 'Required on this page — it can be moved but not removed.' : global ? 'Shared by every page.' : null}>
     {sec.type === 'header' && <>
-      <Segmented label="Header style" value={store.theme.headerStyle} options={[['split', 'Split'], ['left', 'Left'], ['centered', 'Centered'], ['minimal', 'Minimal']]} onChange={v => edit(d => { d.theme.headerStyle = v; }, 'Header style')} />
+      <Segmented label="Header style" value={store.theme.headerStyle} options={[['split', 'Split'], ['left', 'Left'], ['centered', 'Centered'], ['minimal', 'Minimal'], ['pill', 'Pill'], ['search', 'Search']]} onChange={v => edit(d => { d.theme.headerStyle = v; }, 'Header style')} />
       <LogoFields store={store} edit={edit} env={env} />
       <p className="stHint">Menu links are edited under Design → Navigation.</p>
     </>}
-    {def.fields.filter(f => !f.show || f.show(sec.settings)).map(f => <SchemaField key={f.key} field={f} value={sec.settings[f.key]} env={env}
+    {def.fields.filter(f => !f.show || f.show(sec.settings)).map(f => f.type === 'blocks' ? <BlocksField key={f.key} blocks={sec.settings.blocks || []} env={env}
+      onChange={(fn, label, key) => edit(d => { const t = global ? d.layout[sec.type] : d.pages[page].find(x => x.id === sec.id); fn(t.settings.blocks); }, label, key)} /> : <SchemaField key={f.key} field={f} value={sec.settings[f.key]} env={env}
       onChange={v => set(f.key, v, ['text', 'textarea'].includes(f.type))} />)}
     {sec.type === 'footer' && <p className="stHint">Footer links are edited under Design → Navigation; social links and contact details in Settings.</p>}
   </Inspector>;
+}
+
+/** Product-page blocks: toggle, reorder (also by dragging on the canvas), edit, add, remove. */
+function BlocksField({ blocks, onChange, env }) {
+  const [open, setOpen] = useState(-1), [adding, setAdding] = useState('');
+  const mv = (i, d) => { onChange(b => { const [x] = b.splice(i, 1); b.splice(i + d, 0, x); }, 'Reorder blocks'); setOpen(-1); };
+  return <div className="stList"><span className="stFieldLabel">Blocks — drag them on the page or use the arrows</span>
+    {blocks.map((b, i) => { const def = PRODUCT_BLOCKS[b.type]; if (!def) return null; const name = def.label; return <div key={i} className={'stListItem' + (open === i ? ' open' : '') + (b.on ? '' : ' off')}>
+      <div className="stListHead">
+        <input type="checkbox" className="stCheckbox" aria-label={'Show ' + name} checked={!!b.on} onChange={e => { const on = e.target.checked; onChange(x => { x[i].on = on; }, on ? 'Show block' : 'Hide block'); }} />
+        <button type="button" className="stListTitle" aria-expanded={open === i} aria-label={'Edit block ' + name} onClick={() => setOpen(open === i ? -1 : i)}>{open === i ? <ChevronDown size={13} /> : <ChevronUp size={13} style={{ transform: 'rotate(90deg)' }} />}<span>{name}</span></button>
+        <button type="button" className="insIcon" aria-label={`Move block ${name} up`} disabled={!i} onClick={() => mv(i, -1)}><ChevronUp size={13} /></button>
+        <button type="button" className="insIcon" aria-label={`Move block ${name} down`} disabled={i === blocks.length - 1} onClick={() => mv(i, 1)}><ChevronDown size={13} /></button>
+        <button type="button" className="insIcon" aria-label={'Remove block ' + name} onClick={() => onChange(x => { x.splice(i, 1); }, 'Remove block')}><Trash2 size={13} /></button>
+      </div>
+      {open === i && <div className="stListBody">{def.hint && <p className="stHint">{def.hint}</p>}{def.fields.length ? def.fields.map(f => <SchemaField key={f.key} field={{ ...f, label: name + ' – ' + f.label.toLowerCase() }} value={b[f.key]} env={env}
+        onChange={v => onChange(x => { x[i][f.key] = v; }, name, 'blk' + i + f.key)} />) : <p className="stHint">No settings.</p>}</div>}
+    </div>; })}
+    <div className="stPair">
+      <Select bare label="Block to add" value={adding} options={[['', 'Add a block…'], ...Object.entries(PRODUCT_BLOCKS).map(([k, d]) => [k, d.label])]} onChange={setAdding} />
+      <button type="button" className="stBtn" disabled={!adding} onClick={() => { const t = adding; onChange(x => { x.push({ type: t, on: true, ...structuredClone(PRODUCT_BLOCKS[t].defaults) }); }, 'Add block'); setAdding(''); }}><Plus size={13} />Add block</button>
+    </div>
+  </div>;
 }
 
 const Inspector = ({ title, note, children }) => <div className="stInspector" aria-label={title + ' settings'} role="group">
@@ -122,7 +146,7 @@ export function ThemePanel({ store, edit, env }) {
     <Segmented label="Image shape" value={t.imageRatio} options={[['square', 'Square'], ['portrait', 'Portrait'], ['landscape', 'Landscape']]} onChange={v => th(x => { x.imageRatio = v; }, 'Image shape')} />
     <Segmented label="Shadows" value={t.shadow} options={[['none', 'None'], ['soft', 'Soft'], ['strong', 'Strong']]} onChange={v => th(x => { x.shadow = v; }, 'Shadows')} />
     <Segmented label="Spacing" value={t.density} options={[['compact', 'Compact'], ['comfortable', 'Comfortable'], ['airy', 'Airy']]} onChange={v => th(x => { x.density = v; }, 'Spacing')} />
-    <Segmented label="Header style" value={t.headerStyle} options={[['split', 'Split'], ['left', 'Left'], ['centered', 'Centered'], ['minimal', 'Minimal']]} onChange={v => th(x => { x.headerStyle = v; }, 'Header style')} />
+    <Segmented label="Header style" value={t.headerStyle} options={[['split', 'Split'], ['left', 'Left'], ['centered', 'Centered'], ['minimal', 'Minimal'], ['pill', 'Pill'], ['search', 'Search']]} onChange={v => th(x => { x.headerStyle = v; }, 'Header style')} />
     <p className="stGroupTitle">Logo</p>
     <LogoFields store={store} edit={edit} env={env} />
   </div>;
@@ -161,6 +185,7 @@ export function SettingsPanel({ store, edit }) {
     {ck.mode === 'paymentLinks' && <div className="stPayLinks"><p className="stHint">Paste a payment link for each product (e.g. a Stripe Payment Link, PayPal.me or Gumroad URL). Product editor → Payment link edits the same value.</p>
       {store.products.map(p => <TextInput key={p.id} label={'Payment link for ' + p.title} value={ck.paymentLinks[p.id] || ''} placeholder="https://" onChange={v => s(d => { if (v.trim()) d.checkout.paymentLinks[p.id] = v; else delete d.checkout.paymentLinks[p.id]; }, 'Payment link', 'pl' + p.id)} />)}</div>}
     {ck.mode !== 'none' && <TextInput label="Shipping note" value={ck.shippingNote} onChange={v => s(d => { d.checkout.shippingNote = v; }, 'Checkout', 'ck-ship')} />}
+    {ck.mode !== 'none' && <Field label={'Free shipping from (' + store.currency.code + ', 0 = off)'}><NumField label="Free shipping threshold" value={ck.freeShipping} min={0} step={1} onChange={v => s(d => { d.checkout.freeShipping = v; }, 'Free shipping', 'ck-free')} /></Field>}
     <p className="stHint">The exported store never takes card details. WhatsApp and email checkouts send the order to you; payment links send shoppers to your own payment provider.</p>
     <p className="stGroupTitle">Contact</p>
     <TextInput label="Contact email" type="email" value={store.contact.email} onChange={v => s(d => { d.contact.email = v; }, 'Contact', 'c-email')} />
@@ -300,10 +325,34 @@ export function ProductEditor({ store, productId, edit, env }) {
       </tbody></table></div>
       <p className="stHint">Empty price = product price ({formatMoney(p.price, cur)}). Empty stock = not tracked. Showing from {formatMoney(Math.min(...p.variants.map(v => variantPrice(p, v))), cur)}.</p>
 
+      <p className="stGroupTitle">Product page content</p>
+      <TextArea label="Materials & care" value={p.materials} onChange={v => up(x => { x.materials = v; }, 'Materials', 'mat')} />
+      <TextInput label="Video URL (mp4, optional)" value={p.video} placeholder="https://…/video.mp4" onChange={v => up(x => { x.video = v; }, 'Video', 'video')} />
+      <ReviewsEditor product={p} up={up} env={env} />
+
       <p className="stGroupTitle">Payment link</p>
       <TextInput label="Payment link" value={store.checkout.paymentLinks[p.id] || ''} placeholder="https://buy.stripe.com/…" onChange={v => edit(d => { if (v.trim()) d.checkout.paymentLinks[p.id] = v; else delete d.checkout.paymentLinks[p.id]; }, 'Payment link', p.id + 'pl')} />
       <p className="stHint">Used when the checkout mode is “Payment links”{store.checkout.mode === 'paymentLinks' ? ' (active)' : ''}.</p>
     </div>
+  </div>;
+}
+
+/** Reviews shown in the product-reviews section. Template reviews are marked as samples until edited. */
+function ReviewsEditor({ product: p, up, env }) {
+  const set = (i, k, v) => up(x => { x.reviewsList[i][k] = v; x.reviewsList[i].sample = false; }, 'Review', 'rv' + i + k);
+  return <div className="stList"><span className="stFieldLabel">Reviews ({p.reviewsList.length})</span>
+    {p.reviewsList.some(r => r.sample) && <p className="stHint">Reviews marked “Sample” come from the template and show a “Sample review” tag in the store. Edit them with real reviews or delete them.</p>}
+    {p.reviewsList.map((r, i) => <details key={r.id} className="stListItem"><summary className="stListHead"><span className="stListTitle"><span>{'★'.repeat(r.rating)} {r.name}{r.sample ? ' · Sample' : ''}</span></span></summary>
+      <div className="stListBody">
+        <TextInput label={`Review ${i + 1} name`} value={r.name} onChange={v => set(i, 'name', v)} />
+        <Field label={`Review ${i + 1} rating`}><NumField label={`Review ${i + 1} rating`} value={r.rating} min={1} max={5} onChange={v => set(i, 'rating', Math.round(v))} /></Field>
+        <TextInput label={`Review ${i + 1} title`} value={r.title} onChange={v => set(i, 'title', v)} />
+        <TextArea label={`Review ${i + 1} text`} value={r.text} onChange={v => set(i, 'text', v)} />
+        <TextInput label={`Review ${i + 1} date`} type="date" value={r.date} onChange={v => set(i, 'date', v)} />
+        <ImageField label={`Review ${i + 1} photo`} value={r.photo} imageUrl={env.imageUrl} onUpload={env.upload} onChange={v => set(i, 'photo', v)} />
+        <button type="button" className="stBtn ghost" onClick={() => up(x => { x.reviewsList.splice(i, 1); }, 'Delete review')}><Trash2 size={13} />Delete review {i + 1}</button>
+      </div></details>)}
+    <button type="button" className="stBtn ghost wide" onClick={() => up(x => { x.reviewsList.push({ id: uid('r'), name: 'Customer', rating: 5, title: '', text: '', date: new Date().toISOString().slice(0, 10), photo: null, sample: false }); }, 'Add review')}><Plus size={13} />Add review</button>
   </div>;
 }
 

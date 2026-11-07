@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { ArrowLeft, Undo2, Redo2, Monitor, Tablet, Smartphone, ExternalLink, Download, LayoutTemplate, Camera, ClipboardCopy, MousePointer2, Hand, ChevronDown, X } from 'lucide-react';
-import { normalizeStore, PAGE_KEYS, PAGE_LABELS, STORE_VERSION, imageRefs, activeProducts, slugify } from './model.js';
+import { normalizeStore, PAGE_KEYS, PAGE_LABELS, STORE_VERSION, imageRefs, activeProducts, slugify, REQUIRED as REQUIRED_TYPES } from './model.js';
 import { createStore, STORE_TEMPLATES } from './templates.js';
-import { renderPage, resolveHref, routeForPath } from './render.js';
+import { renderParts, composePage, diffParts, resolveHref, routeForPath, ALL_COLLECTION } from './render.js';
+import { SECTIONS } from './sections.js';
+import { uid } from './model.js';
 import { exportStoreZip, deployInstructions, previewShellHtml } from './exporter.js';
 import { createImageResolver, uploadImage } from './images.js';
 import Gallery from './Gallery.jsx';
@@ -39,7 +41,7 @@ export default function StoreBuilder({ store, onChange, onExit, onOpenPhotoStudi
   const [interact, setInteract] = useState(false);
   const [toast, setToast] = useState('');
   const [modal, setModal] = useState(null);
-  const [, bump] = useReducer(x => x + 1, 0);
+  const [tick, bump] = useReducer(x => x + 1, 0);
   const hist = useRef({ past: [], future: [], last: null, at: 0 });
   const docRef = useRef(doc); docRef.current = doc;
   const page = route.page;
@@ -97,13 +99,70 @@ export default function StoreBuilder({ store, onChange, onExit, onOpenPhotoStudi
     if (view === 'collections') return { page: 'collection', collectionId };
     return route;
   }, [cur, route, view, productId, collectionId]);
+  // ---------- live preview: one persistent document, patched part by part ----------
   const [srcdoc, setSrcdoc] = useState('');
+  const frame = useRef(null);
+  const live = useRef({ key: '', ready: false, shown: null, latest: null });
+  const prRef = useRef(previewRoute); prRef.current = previewRoute;
+  const previewOpts = useMemo(() => ({ mode: 'preview', imageUrl, editor: true }), [imageUrl]);
+  const routeKey = cur ? [previewRoute.page, previewRoute.productId || '', previewRoute.collectionId || '', cur.id, cur.templateId].join('|') : '';
+  const flush = useCallback(() => {
+    const L = live.current, w = frame.current?.contentWindow;
+    if (!L.ready || !w || !L.latest || L.latest === L.shown) return;
+    const patch = diffParts(L.shown, L.latest);
+    L.shown = L.latest;
+    if (patch) w.postMessage({ storePatch: patch }, '*');
+  }, []);
+  useEffect(() => { if (gallery) live.current = { key: '', ready: false, shown: null, latest: null }; }, [gallery]);
   useEffect(() => {
     if (!cur || gallery) return;
-    const t = setTimeout(() => setSrcdoc(renderPage(cur, previewRoute, { mode: 'preview', imageUrl, editor: true })), 90);
-    return () => clearTimeout(t);
-  }, [cur, previewRoute, imageUrl, gallery, resolver]);
-  const frame = useRef(null), scrollY = useRef(0), lastPath = useRef('');
+    const parts = renderParts(cur, previewRoute, previewOpts), L = live.current;
+    if (L.key !== routeKey || !L.shown) {   // first load, other page or other template: full document load
+      live.current = { key: routeKey, ready: false, shown: parts, latest: parts };
+      setSrcdoc(composePage(parts, previewOpts));
+      return;
+    }
+    L.latest = parts; flush();
+  }, [cur, routeKey, previewOpts, gallery, tick, flush]);
+
+  // edits coming from the canvas
+  const settingsTarget = (d, sid) => {
+    if (sid === d.layout.header.id) return d.layout.header;
+    if (sid === d.layout.footer.id) return d.layout.footer;
+    return d.pages[prRef.current.page].find(x => x.id === sid);
+  };
+  const walk = (obj, path, create) => { const ks = path.split('.'); let o = obj; for (const k of ks.slice(0, -1)) { if (o[k] == null) { if (!create) return [null]; o[k] = {}; } o = o[k]; } return [o, ks[ks.length - 1]]; };
+  const canvasEdit = useCallback(({ sid, key, value }) => {
+    if (key.startsWith('@')) {
+      const pr = prRef.current, field = key.slice(1);
+      if (!['title', 'description', 'materials'].includes(field)) return;
+      edit(d => { const p = d.products.find(x => x.id === pr.productId) || d.products.find(x => x.status === 'active'); if (p) { if (field === 'title' && p.slug === slugify(p.title)) p.slug = slugify(value); p[field] = value; } }, 'Edit text');
+      return;
+    }
+    edit(d => { const sec = settingsTarget(d, sid); if (!sec) return; const [o, k] = walk(sec.settings, key, false); if (o && typeof o === 'object') o[k] = value; }, 'Edit text');
+  }, [edit]);
+  const moveSection = useCallback((sid, before) => edit(d => {
+    const l = d.pages[prRef.current.page], i = l.findIndex(x => x.id === sid); if (i < 0) return;
+    const [x] = l.splice(i, 1); const j = before ? l.findIndex(y => y.id === before) : -1; l.splice(j < 0 ? l.length : j, 0, x);
+  }, 'Move section'), [edit]);
+  const moveBlock = useCallback(({ sid, list, from, to }) => edit(d => {
+    const sec = settingsTarget(d, sid); if (!sec) return;
+    if (list === 'collections' && !(sec.settings.collections || []).length) sec.settings.collections = (d.collections.length ? d.collections : [ALL_COLLECTION]).map(c => c.id);
+    const [o, k] = walk(sec.settings, list, false); const arr = o && o[k];
+    if (!Array.isArray(arr) || from < 0 || from >= arr.length || to < 0 || to >= arr.length) return;
+    const [x] = arr.splice(from, 1); arr.splice(to, 0, x);
+  }, 'Reorder blocks'), [edit]);
+  const sectionAction = useCallback(({ sid, action }) => {
+    const page = prRef.current.page, l = docRef.current.pages[page], i = l.findIndex(x => x.id === sid); if (i < 0) return;
+    const req = REQUIRED_TYPES[page] === l[i].type;
+    if (action === 'up' && i > 0) edit(d => { const a = d.pages[page]; [a[i - 1], a[i]] = [a[i], a[i - 1]]; }, 'Move section');
+    if (action === 'down' && i < l.length - 1) edit(d => { const a = d.pages[page]; [a[i + 1], a[i]] = [a[i], a[i + 1]]; }, 'Move section');
+    if (action === 'duplicate' && !req) { const c = { ...structuredClone(l[i]), id: uid('s') }; edit(d => { d.pages[page].splice(i + 1, 0, c); }, 'Duplicate section'); setSelected(c.id); }
+    if (action === 'hide' && !req) edit(d => { d.pages[page][i].hidden = true; }, 'Hide section');
+    if (action === 'delete' && !req) { edit(d => { d.pages[page].splice(i, 1); }, 'Delete section'); setSelected(null); }
+  }, [edit]);
+
+  const scrollY = useRef(0), lastPath = useRef('');
   useEffect(() => {
     const onMsg = e => {
       if (!frame.current || e.source !== frame.current.contentWindow) return;
@@ -112,17 +171,22 @@ export default function StoreBuilder({ store, onChange, onExit, onOpenPhotoStudi
         const w = frame.current.contentWindow, path = w.document.documentElement.getAttribute('data-path');
         if (path === lastPath.current) w.scrollTo(0, scrollY.current); lastPath.current = path;
         w.addEventListener('scroll', () => { scrollY.current = w.scrollY; });
-        w.postMessage({ storeMode: interact ? 'interact' : 'edit', storeHighlight: selected }, '*');
+        w.postMessage({ storeLabels: Object.fromEntries(Object.entries(SECTIONS).map(([k, v]) => [k, v.label])), storeMode: interact ? 'interact' : 'edit', storeHighlight: selected }, '*');
+        live.current.ready = true; flush();
       } else if (d.storeKey) { if (d.storeKey === 'undo') undo(); else redo();
       } else if (d.storeSelect) {
         setSelected(d.storeSelect); if (view !== 'design') setView('design'); setDesignTab('sections');
-      } else if (d.storeNav) {
+      } else if (d.storeEdit) canvasEdit(d.storeEdit);
+      else if (d.storeMove) moveSection(d.storeMove.sid, d.storeMove.before);
+      else if (d.storeMoveBlock) moveBlock(d.storeMoveBlock);
+      else if (d.storeAction) sectionAction(d.storeAction);
+      else if (d.storeNav) {
         const p = resolveHref(d.from || 'index.html', d.storeNav), r = p && routeForPath(docRef.current, p);
         if (r) { setRoute(r); setSelected(null); if (r.page === 'product') setProductId(r.productId); if (view !== 'design') setView('design'); }
       }
     };
     window.addEventListener('message', onMsg); return () => window.removeEventListener('message', onMsg);
-  }, [interact, selected, view, undo, redo]);
+  }, [interact, selected, view, undo, redo, flush, canvasEdit, moveSection, moveBlock, sectionAction]);
   useEffect(() => { frame.current?.contentWindow?.postMessage({ storeMode: interact ? 'interact' : 'edit', storeHighlight: interact ? null : selected, scroll: true }, '*'); }, [selected, interact]);
 
   // fit the device width into the preview area

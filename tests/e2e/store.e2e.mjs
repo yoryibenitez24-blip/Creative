@@ -159,6 +159,78 @@ await step('switch to the mobile preview', async () => {
   await page.getByRole('button', { name: 'Desktop preview' }).click();
 });
 
+await step('the preview is one persistent document: inspector typing and inline edits patch it in place', async () => {
+  await page.getByRole('button', { name: 'Tablet preview' }).click();   // scale 1: canvas coordinates match the page
+  await page.waitForFunction(() => document.querySelector('iframe[title="Store preview"]').style.transform === 'scale(1)');
+  const fr = await (await page.locator('iframe[title="Store preview"]').elementHandle()).contentFrame();
+  await fr.evaluate(() => { window.__mark = 'same-document'; window.__doc = document; });
+  const same = () => fr.evaluate(() => window.__mark === 'same-document' && window.__doc === document);
+  // inspector typing (one patch per keystroke, never a reload)
+  await page.getByRole('tab', { name: 'Design' }).click(); await page.getByRole('tab', { name: 'Sections' }).click();
+  await page.locator('.stSecList li').filter({ hasText: /^Hero/ }).getByRole('button').first().click();
+  await page.getByLabel('Headline', { exact: true }).focus(); await page.keyboard.press('End');
+  await page.keyboard.type(' today', { delay: 30 });
+  await fr.locator('h1.hero-title', { hasText: 'Summer essentials are here today' }).waitFor();
+  assert.ok(await same(), 'typing must not reload the preview');
+  // inline editing on the canvas: double-click, type, Enter commits to the setting
+  await fr.locator('h1.hero-title').dblclick();
+  await fr.waitForSelector('h1.hero-title[contenteditable]');
+  await page.keyboard.press('Control+A'); await page.keyboard.type('Inline headline');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => window.__store.pages.home.find(s => s.type === 'hero').settings.heading === 'Inline headline');
+  await fr.locator('h1.hero-title:not([contenteditable])', { hasText: 'Inline headline' }).waitFor();
+  // Escape cancels
+  await fr.locator('h1.hero-title').dblclick(); await page.keyboard.type('nope'); await page.keyboard.press('Escape');
+  assert.equal(await page.evaluate(() => window.__store.pages.home.find(s => s.type === 'hero').settings.heading), 'Inline headline');
+  assert.equal(await fr.locator('h1.hero-title').textContent(), 'Inline headline');
+  // put the headline used by the later steps back (undo twice: inline edit, then the typing)
+  await page.locator('.stStage').click({ position: { x: 5, y: 5 } });
+  await page.keyboard.press('Control+z');
+  assert.equal(await page.evaluate(() => window.__store.pages.home.find(s => s.type === 'hero').settings.heading), 'Summer essentials are here today');
+  await page.keyboard.press('Control+z');
+  await fr.locator('h1.hero-title', { hasText: /^Summer essentials are here$/ }).waitFor();
+  assert.ok(await same(), 'inline editing and undo must not reload the preview');
+});
+
+await step('drag sections and blocks on the canvas; toolbar actions; undo', async () => {
+  const fr = await (await page.locator('iframe[title="Store preview"]').elementHandle()).contentFrame();
+  const order = () => page.evaluate(() => window.__store.pages.home.map(s => s.id));
+  const before = await order();
+  const secs = fr.locator('main > [data-sid]');
+  // section drag: grab the toolbar handle of section 3 and drop it above section 2
+  await secs.nth(2).hover({ position: { x: 300, y: 40 } });
+  const handle = fr.locator('.zed-tag button[data-zact="drag"]');
+  await handle.waitFor({ state: 'visible' });
+  const hb = await handle.boundingBox(), t = await secs.nth(1).boundingBox();
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2); await page.mouse.down();
+  await page.mouse.move(t.x + 200, t.y + 8, { steps: 8 }); await page.mouse.up();
+  await page.waitForFunction(b => window.__store.pages.home[1].id === b, before[2]);
+  const after = await order();
+  assert.deepEqual(after, [before[0], before[2], before[1], ...before.slice(3)]);
+  const dom = await fr.evaluate(() => [...document.querySelectorAll('main > [data-sid]')].map(e => e.dataset.sid));
+  assert.deepEqual(dom, after.filter(id => dom.includes(id)), 'canvas DOM reordered in place');
+  // block drag inside the features strip: move the first feature after the third
+  const feats = fr.locator('section[data-type="features"] [data-block^="items."]');
+  const titles = () => page.evaluate(() => window.__store.pages.home.find(s => s.type === 'features').settings.items.map(i => i.title));
+  const t0 = await titles();
+  await feats.nth(0).hover();
+  const bh = fr.locator('.zed-bh'); await bh.waitFor({ state: 'visible' });
+  const bb = await bh.boundingBox(), dst = await feats.nth(2).boundingBox();
+  await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2); await page.mouse.down();
+  await page.mouse.move(dst.x + dst.width * 0.8, dst.y + dst.height / 2, { steps: 8 }); await page.mouse.up();
+  await page.waitForFunction(t => window.__store.pages.home.find(s => s.type === 'features').settings.items[2].title === t, t0[0]);
+  assert.deepEqual(await titles(), [t0[1], t0[2], t0[0], ...t0.slice(3)]);
+  // toolbar: hide a section, then undo everything done in this step
+  await secs.nth(1).hover({ position: { x: 300, y: 30 } });
+  await fr.locator('.zed-tag button[data-zact="hide"]').click();
+  await page.waitForFunction(id => window.__store.pages.home.find(s => s.id === id).hidden, after[1]);
+  await page.locator('.stStage').click({ position: { x: 5, y: 5 } });
+  for (let i = 0; i < 3; i++) await page.keyboard.press('Control+z');
+  assert.deepEqual(await order(), before); assert.deepEqual(await titles(), t0);
+  assert.ok(!(await page.evaluate(() => window.__store.pages.home.some(s => s.hidden))));
+  await page.getByRole('button', { name: 'Desktop preview' }).click();
+});
+
 let siteDir;
 await step('export the store as a ZIP and unzip it', async () => {
   const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export store' }).click()]);
@@ -180,7 +252,7 @@ await step('export the store as a ZIP and unzip it', async () => {
   }
 });
 
-await step('shop the exported site from file://: wishlist, search, mobile menu, variants, quantity, cart total, WhatsApp checkout', async () => {
+await step('shop the exported site from file://: wishlist, search, mobile menu, variants, cart total, WhatsApp checkout, size guide, sticky add-to-cart, bundle, buy now', async () => {
   const shop = await ctx.newPage();
   const errs = []; shop.on('pageerror', e => errs.push(e.message));
   await shop.goto(pathToFileURL(join(siteDir, 'products/test-tee.html')).href);
@@ -222,6 +294,30 @@ await step('shop the exported site from file://: wishlist, search, mobile menu, 
   assert.match(text, /Name: Ada Shopper/);
   const link = await shop.locator('[data-order-link]').getAttribute('href');
   assert.equal(link, popup.url());
+  // sales features of the exported product page: size guide, sticky add-to-cart, bundle
+  await shop.goto(pathToFileURL(join(siteDir, 'products/test-tee.html')).href);
+  await shop.getByRole('button', { name: 'Size guide' }).first().click();
+  await shop.getByRole('dialog', { name: 'Size guide' }).waitFor();
+  assert.ok(await shop.locator('.sgtable tr').count() >= 3);
+  await shop.keyboard.press('Escape');
+  assert.ok(await shop.locator('[data-modal]').isHidden());
+  const count = async () => +(await shop.locator('[data-cart-count]').first().textContent() || 0);
+  const c0 = await count();
+  assert.ok(await shop.locator('[data-sticky-atc]').isHidden());
+  await shop.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
+  await shop.locator('[data-sticky-atc]').waitFor({ state: 'visible' });
+  await shop.locator('[data-sticky-add]').click();
+  await shop.waitForFunction(n => +document.querySelector('[data-cart-count]').textContent === n + 1, c0);
+  await shop.keyboard.press('Escape');
+  const bundleN = await shop.locator('[data-bundle-item]').count();
+  assert.ok(bundleN >= 2);
+  await shop.getByRole('button', { name: 'Add all to cart' }).click();
+  await shop.waitForFunction(n => +document.querySelector('[data-cart-count]').textContent === n, c0 + 1 + bundleN);
+  assert.ok(await shop.locator('[data-drawer] [data-ship-bar]').isVisible(), 'free-shipping progress in the cart drawer');
+  await shop.keyboard.press('Escape');
+  await shop.getByRole('button', { name: 'Buy it now' }).click();
+  await shop.waitForURL(/checkout\.html$/);
+  assert.equal(await shop.locator('[data-cart-count]').first().textContent(), String(c0 + 2 + bundleN));
   assert.deepEqual(errs, []);
   await shop.close();
 });

@@ -10,7 +10,7 @@
 //     fonts: { heading, body },          // keys of FONT_STACKS (system / web-safe stacks only)
 //     headingWeight: 400..900, headingCase: 'none'|'uppercase', radius: 0..32 (px),
 //     buttons: 'solid'|'outline'|'pill'|'sharp', density: 'compact'|'comfortable'|'airy',
-//     headerStyle: 'split'|'left'|'centered'|'minimal', cardStyle: 'plain'|'card'|'bordered',
+//     headerStyle: 'split'|'left'|'centered'|'minimal'|'pill' (floating rounded bar)|'search' (search-first), cardStyle: 'plain'|'card'|'bordered',
 //     imageRatio: 'square'|'portrait'|'landscape', shadow: 'none'|'soft'|'strong',
 //     headingScale: 'regular'|'large'|'huge', tracking: 'tight'|'normal'|'wide'
 //   },
@@ -24,12 +24,15 @@
 //                variants: [{ id, options: string[] (aligned with product.options), price|null (null = product price),
 //                             sku, stock|null (null = not tracked) }],
 //                category, tags: string[] ('new' shows a New badge), featured, status: 'active'|'draft',
-//                rating: 0..5|null, reviews: int (shown as stars on cards), art: 'gen:…'|null (offline fallback image) }],
+//                rating: 0..5|null, reviews: int (shown as stars on cards), art: 'gen:…'|null (offline fallback image),
+//                video: url|'' (optional gallery video), materials: text (materials & care accordion),
+//                reviewsList: [{ id, name, rating 1..5, title, text, date 'YYYY-MM-DD', photo: ImageRef|null, sample: bool }] }],
 //   collections: [{ id, title, slug, description, image, rule: { type: 'all'|'manual'|'category'|'tag', value, productIds } }],
 //   navigation: { main: [{ id, label, target: LinkTarget }], footer: [...] },
 //   social: { instagram, facebook, tiktok, youtube, x, pinterest },   // full URLs, '' = hidden
 //   contact: { email, phone, address, hours },
-//   checkout: { mode: 'whatsapp'|'email'|'paymentLinks'|'none', phone, email, paymentLinks: { [productId]: url }, shippingNote, note },
+//   checkout: { mode: 'whatsapp'|'email'|'paymentLinks'|'none', phone, email, paymentLinks: { [productId]: url }, shippingNote, note,
+//               freeShipping: amount (0 = no free-shipping progress bar in the cart) },
 //   seo: { title, description }
 // }
 //
@@ -39,7 +42,7 @@
 // LinkTarget= 'home' | 'collection:<id>' | 'collection:all' | 'product:<id>' | 'page:about' | 'page:contact' | 'cart' | 'checkout'
 //             | 'url:<absolute url, mailto: or tel:>' | '#<anchor>'
 
-import { SECTIONS } from './sections.js';
+import { SECTIONS, PRODUCT_BLOCKS, productBlocks } from './sections.js';
 
 export const STORE_VERSION = 1;
 export const PAGE_KEYS = ['home', 'collection', 'product', 'about', 'contact', 'cart', 'checkout'];
@@ -118,6 +121,9 @@ export function normalizeProduct(p) {
     featured: !!p.featured, status: pick(p.status, ['active', 'draft'], 'active'),
     rating: p.rating == null || p.rating === '' ? null : Math.round(num(p.rating, 0, 0, 5) * 10) / 10, reviews: Math.round(num(p.reviews, 0, 0)),
     art: typeof p.art === 'string' && p.art.startsWith('gen:') ? p.art : null,
+    video: typeof p.video === 'string' && /^(https?:|data:video|asset:)/.test(p.video.trim()) ? p.video.trim() : '', materials: str(p.materials),
+    reviewsList: (Array.isArray(p.reviewsList) ? p.reviewsList : []).map(r => ({ id: str(r.id) || uid('r'), name: str(r.name, 'Customer') || 'Customer', rating: Math.round(num(r.rating, 5, 1, 5)), title: str(r.title), text: str(r.text),
+      date: /^\d{4}-\d{2}-\d{2}$/.test(r.date || '') ? r.date : '', photo: typeof r.photo === 'string' && r.photo ? r.photo : null, sample: !!r.sample })),
   };
   const given = (Array.isArray(p.variants) ? p.variants : []).map(v => ({
     id: str(v.id) || uid('v'), options: (v.options || []).map(x => str(x)), price: v.price == null || v.price === '' ? null : num(v.price, null, 0),
@@ -140,7 +146,11 @@ function normalizeSection(s, page) {
   if (!s || !SECTIONS[s.type]) return null;
   const def = SECTIONS[s.type];
   if (page && def.pages && !def.pages.includes(page) && !def.pages.includes('*')) return null;
-  return { id: str(s.id) || uid('s'), type: s.type, hidden: REQUIRED[page] === s.type ? false : !!s.hidden, settings: { ...clone(def.defaults || {}), ...(s.settings || {}) } };
+  const settings = { ...clone(def.defaults || {}), ...(s.settings || {}) };
+  if (s.type === 'product-main') settings.blocks = Array.isArray(settings.blocks) && settings.blocks.length
+    ? settings.blocks.filter(b => b && PRODUCT_BLOCKS[b.type]).map(b => ({ ...clone(PRODUCT_BLOCKS[b.type].defaults), ...b, on: b.on !== false }))
+    : productBlocks();
+  return { id: str(s.id) || uid('s'), type: s.type, hidden: REQUIRED[page] === s.type ? false : !!s.hidden, settings };
 }
 
 export function normalizeLink(t) {
@@ -162,7 +172,7 @@ export function normalizeStore(input) {
       fonts: { heading: FONT_STACKS[th.fonts?.heading] ? th.fonts.heading : 'system', body: FONT_STACKS[th.fonts?.body] ? th.fonts.body : 'system' },
       headingWeight: Math.round(num(th.headingWeight, 700, 300, 900) / 100) * 100, headingCase: pick(th.headingCase, ['none', 'uppercase'], 'none'), radius: num(th.radius, 8, 0, 32),
       buttons: pick(th.buttons, ['solid', 'outline', 'pill', 'sharp'], 'solid'), density: pick(th.density, ['compact', 'comfortable', 'airy'], 'comfortable'),
-      headerStyle: pick(th.headerStyle, ['split', 'left', 'centered', 'minimal'], 'split'), cardStyle: pick(th.cardStyle, ['plain', 'card', 'bordered'], 'plain'),
+      headerStyle: pick(th.headerStyle, ['split', 'left', 'centered', 'minimal', 'pill', 'search'], 'split'), cardStyle: pick(th.cardStyle, ['plain', 'card', 'bordered'], 'plain'),
       imageRatio: pick(th.imageRatio, ['square', 'portrait', 'landscape'], 'portrait'),
       shadow: pick(th.shadow, ['none', 'soft', 'strong'], 'soft'), headingScale: pick(th.headingScale, ['regular', 'large', 'huge'], 'large'), tracking: pick(th.tracking, ['tight', 'normal', 'wide'], 'tight'),
     },
@@ -182,7 +192,7 @@ export function normalizeStore(input) {
     checkout: {
       mode: pick(s.checkout?.mode, CHECKOUT_MODES.map(m => m[0]), 'whatsapp'), phone: str(s.checkout?.phone), email: str(s.checkout?.email),
       paymentLinks: Object.fromEntries(Object.entries(s.checkout?.paymentLinks || {}).filter(([, v]) => typeof v === 'string' && v.trim()).map(([k, v]) => [k, v.trim()])),
-      shippingNote: str(s.checkout?.shippingNote), note: str(s.checkout?.note),
+      shippingNote: str(s.checkout?.shippingNote), note: str(s.checkout?.note), freeShipping: num(s.checkout?.freeShipping, 0, 0),
     },
     seo: { title: str(s.seo?.title), description: str(s.seo?.description) },
   };
@@ -234,7 +244,7 @@ export function findProduct(store, id) { return store.products.find(p => p.id ==
 export function imageRefs(store) {
   const out = new Set(), add = r => { if (typeof r === 'string' && r) out.add(r); };
   add(store.logo.image); add(store.fallbackArt);
-  for (const p of store.products) { p.images.forEach(add); add(p.art); }
+  for (const p of store.products) { p.images.forEach(add); add(p.art); p.reviewsList.forEach(r => add(r.photo)); }
   for (const c of store.collections) add(c.image);
   const walk = v => { if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') Object.values(v).forEach(walk); else if (typeof v === 'string' && /^(asset:|gen:|unsplash:|data:image\/)/.test(v)) add(v); };
   for (const page of PAGE_KEYS) walk(store.pages[page].map(s => s.settings));
