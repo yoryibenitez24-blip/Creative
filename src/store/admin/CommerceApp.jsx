@@ -28,6 +28,7 @@ import Settings from './Settings.jsx';
  * props:
  *   store                    store document (src/store/model.js) or null → the template gallery is shown first
  *   onChange(store, label)   next full store document after every store edit (products, stock, theme, settings…)
+ *   sectionBar               the app's section switcher (Home · Photography · Design · Web & UI · E-commerce), shown in the header
  *   onExit()                 leave the commerce app (optional; shows a back button)
  *   onOpenPhotoStudio()      open the product photo studio (optional)
  *   assetStore               AssetStore for uploaded images (optional; without it images become data: URLs)
@@ -53,7 +54,7 @@ const THEME_KEY = 'zertake.commerceTheme';
 const loadTheme = () => { try { return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'; } catch { return 'light'; } };
 const SECTION_OF = { order: 'orders', 'order-new': 'orders', product: 'products', inventory: 'products', collections: 'products', collection: 'products', customer: 'customers', discount: 'discounts', pages: 'themes', navigation: 'themes', preferences: 'themes' };
 
-export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio, assetStore, commerce, onCommerceChange, intro: playIntro }) {
+export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio, assetStore, commerce, onCommerceChange, intro: playIntro, sectionBar }) {
   const [, bump] = useReducer(x => x + 1, 0);
   // latest documents (props are adopted when they change; our own commits are visible immediately)
   const S = useRef(null), K = useRef(null), seen = useRef({ store: undefined, commerce: undefined });
@@ -154,7 +155,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
   }, [customizing, intro]);
 
   // ---------- no store yet: pick a template first ----------
-  if (!cur) return <div className="caRoot caPicker stRoot"><Gallery onPick={id => commit(createStore(id), null, 'Create store')} onCancel={onExit} cancelLabel="Exit commerce" />{introEl}</div>;
+  if (!cur) return <div className="caRoot caPicker stRoot">{sectionBar && <div className="caPickerBar">{sectionBar}</div>}<Gallery onPick={id => commit(createStore(id), null, 'Create store')} onCancel={onExit} cancelLabel="Exit commerce" />{introEl}</div>;
   if (customizing) return <StoreBuilder store={cur} commerce={com} onChange={(s, label) => commit(s, null, label)} onExit={() => setCustomizing(false)} onOpenPhotoStudio={onOpenPhotoStudio} assetStore={assetStore} />;
 
   const ctx = { store: cur, commerce: com, commit, editStore, editCommerce, run, fmt, imageUrl, upload, resolver, notify, confirm, go, route, assetStore, onOpenPhotoStudio, customize: () => setCustomizing(true), viewStore };
@@ -197,6 +198,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
       <header className="caTop">
         <button type="button" className="caIconBtn caRound caNavToggle" aria-label="Toggle navigation" aria-expanded={navOpen} onClick={() => setNavOpen(v => !v)}><Menu size={18} /></button>
         <div className="caBrand"><span className="caBrandEyebrow">Zertake Commerce · {sectionLabel}</span><strong>{cur.name}</strong></div>
+        {sectionBar && <div className="caSections">{sectionBar}</div>}
         <div className="caSearch" role="search">
           <input ref={searchRef} type="search" aria-label="Search orders, products and customers" placeholder="Search orders, products, customers" value={q}
             role="combobox" aria-expanded={qOpen && results.length > 0} aria-controls="caSearchList" aria-autocomplete="list"

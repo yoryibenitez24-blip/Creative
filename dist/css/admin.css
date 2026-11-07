@@ -621,3 +621,18 @@ select.caInput option, select.caTagInput option { background: var(--ca-solid); c
   .caHero h1 { font-size: 32px; }
   .caORow { grid-template-columns: 40px minmax(0, 1fr) auto; } .caOTags { display: none; }
 }
+
+/* the app's section switcher (Home · Photography · Design · Web & UI · E-commerce) inside the commerce header */
+.caSections { flex: none; display: flex; }
+.caSections .sectionBar { margin-left: 0; background: var(--ca-surface); border: 1px solid var(--ca-line); border-radius: 999px; padding: 4px; box-shadow: var(--ca-shadow); backdrop-filter: var(--ca-blur); }
+.caSections .sectionBar button { height: 32px; border-radius: 999px; color: var(--ca-dim); padding: 0 12px; }
+.caSections .sectionBar button:hover { color: var(--ca-text); background: var(--ca-hover); }
+.caSections .sectionBar button.on { background: var(--ca-ink); color: #fff; }
+[data-theme="dark"] .caSections .sectionBar button.on { color: #111; }
+.caSections .logoMini { color: inherit; }
+@media (max-width: 1380px) { .caSections .sectionBar button span:not(.logoMini) { display: none; } .caSections .sectionBar button { padding: 0 10px; } }
+.caPickerBar { position: sticky; top: 0; z-index: 3; display: flex; justify-content: center; padding: 10px 0; background: rgba(15,15,17,.85); backdrop-filter: blur(10px); }
+.caPickerBar .sectionBar { margin-left: 0; }
+/* the template picker (no store yet) keeps the store builder's dark gallery look */
+.caRoot.caPicker { background: #0f0f11; color: #ececf1; }
+.caRoot.caPicker .stTplInfo h2, .caRoot.caPicker .stGalleryHead h1 { color: #f2f2f5; }
