@@ -174,6 +174,25 @@ export function BarList({ items, format = v => v, label }) {
   </li>)}</ul>;
 }
 
+/** A formatted number with its decimal part dimmed ("$1,842" + ".56"). Text content stays the formatted string. */
+export function BigNum({ value, className = '' }) {
+  const m = /^(.*\d)([.,]\d{1,2})(\D*)$/.exec(String(value));
+  return <span className={'caBig ' + className}>{m ? <>{m[1]}<span className="caDec">{m[2]}</span>{m[3]}</> : value}</span>;
+}
+/** Semicircle gauge (decorative; pair it with a real progressbar or text). value 0..1. */
+export function Gauge({ value, label, sub }) {
+  const v = Math.max(0, Math.min(1, +value || 0));
+  return <div className="caGauge" aria-hidden="true">
+    <svg viewBox="0 0 120 66" width="100%">
+      <defs><linearGradient id="caGaugeG" x1="0" x2="1"><stop offset="0" className="g0" /><stop offset="1" className="g1" /></linearGradient></defs>
+      <path d="M10 60 A50 50 0 0 1 110 60" className="track" pathLength="100" />
+      {Array.from({ length: 21 }, (_, i) => { const a = Math.PI * (1 - i / 20), r1 = 38, r2 = i % 5 ? 35.5 : 34; return <line key={i} x1={60 + r1 * Math.cos(a)} y1={60 - r1 * Math.sin(a)} x2={60 + r2 * Math.cos(a)} y2={60 - r2 * Math.sin(a)} className="tick" />; })}
+      {v > 0 && <path d="M10 60 A50 50 0 0 1 110 60" className="val" pathLength="100" strokeDasharray={`${v * 100} 100`} />}
+    </svg>
+    <div className="caGaugeText"><strong>{label}</strong>{sub && <span>{sub}</span>}</div>
+  </div>;
+}
+
 // ---------- empty states (original SVG illustrations) ----------
 const ART = {
   orders: <><rect x="34" y="18" width="52" height="66" rx="6" className="s2" /><path d="M44 34h32M44 44h32M44 54h20" className="ln" /><circle cx="84" cy="76" r="14" className="s1" /><path d="M78 76l4 4 8-8" className="ck" /></>,

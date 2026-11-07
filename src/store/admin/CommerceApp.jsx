@@ -1,7 +1,7 @@
 // Zertake Commerce: a back-office app around the store builder (orders, products, inventory, customers, discounts,
 // analytics, marketing, online store, settings). See the contract below; data schemas: src/store/admin/model.js.
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { House, Inbox, Tag, Users, Percent, BarChart3, Megaphone, Store, Settings as SettingsIcon, Search, ExternalLink, ArrowLeft, Menu } from 'lucide-react';
+import { House, Inbox, Tag, Users, Percent, BarChart3, Megaphone, Store, Settings as SettingsIcon, Search, ExternalLink, LogOut, Menu, Sun, Moon, Bell } from 'lucide-react';
 import StoreBuilder, { createStore } from '../StoreBuilder.jsx';
 import Gallery from '../Gallery.jsx';
 import { normalizeStore, imageRefs, STORE_VERSION } from '../model.js';
@@ -49,6 +49,8 @@ const NAV = [
   ['marketing', 'Marketing', Megaphone],
   ['themes', 'Online Store', Store, [['themes', 'Themes'], ['pages', 'Pages'], ['navigation', 'Navigation'], ['preferences', 'Preferences']]],
 ];
+const THEME_KEY = 'zertake.commerceTheme';
+const loadTheme = () => { try { return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'; } catch { return 'light'; } };
 const SECTION_OF = { order: 'orders', 'order-new': 'orders', product: 'products', inventory: 'products', collections: 'products', collection: 'products', customer: 'customers', discount: 'discounts', pages: 'themes', navigation: 'themes', preferences: 'themes' };
 
 export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio, assetStore, commerce, onCommerceChange, intro: playIntro }) {
@@ -79,6 +81,8 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
   const [customizing, setCustomizing] = useState(false);
   const [toast, setToast] = useState('');
   const [navOpen, setNavOpen] = useState(false);
+  const [theme, setTheme] = useState(loadTheme);
+  const toggleTheme = useCallback(() => setTheme(t => { const n = t === 'dark' ? 'light' : 'dark'; try { localStorage.setItem(THEME_KEY, n); } catch { /* storage unavailable */ } return n; }), []);
   const [confirmEl, confirm] = useConfirm();
   const toastT = useRef(0);
   const notify = useCallback(msg => { setToast(msg); clearTimeout(toastT.current); toastT.current = setTimeout(() => setToast(''), 4200); }, []);
@@ -150,7 +154,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
   }, [customizing, intro]);
 
   // ---------- no store yet: pick a template first ----------
-  if (!cur) return <div className="caRoot caPicker stRoot"><Gallery onPick={id => commit(createStore(id), null, 'Create store')} onCancel={onExit} />{introEl}</div>;
+  if (!cur) return <div className="caRoot caPicker stRoot"><Gallery onPick={id => commit(createStore(id), null, 'Create store')} onCancel={onExit} cancelLabel="Exit commerce" />{introEl}</div>;
   if (customizing) return <StoreBuilder store={cur} commerce={com} onChange={(s, label) => commit(s, null, label)} onExit={() => setCustomizing(false)} onOpenPhotoStudio={onOpenPhotoStudio} assetStore={assetStore} />;
 
   const ctx = { store: cur, commerce: com, commit, editStore, editCommerce, run, fmt, imageUrl, upload, resolver, notify, confirm, go, route, assetStore, onOpenPhotoStudio, customize: () => setCustomizing(true), viewStore };
@@ -182,15 +186,19 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
     }
   })();
 
+  const sectionEntry = NAV.find(n => n[0] === section);
+  const sectionLabel = section === 'settings' ? 'Settings' : sectionEntry ? sectionEntry[1] : 'Home';
+  const subPages = sectionEntry && sectionEntry[3];
+  const subOn = k => route.page === k || (k === 'products' && route.page === 'product') || (k === 'collections' && route.page === 'collection');
+  const initial = (cur.name || 'S').trim().charAt(0).toUpperCase();
+
   return <AdminCtx.Provider value={ctx}>
-    <div className={'caRoot' + (entering ? ' caEnter' : '')}>
+    <div className={'caRoot caShell' + (entering ? ' caEnter' : '')} data-theme={theme}>
       <header className="caTop">
-        <button type="button" className="caIconBtn caNavToggle" aria-label="Toggle navigation" aria-expanded={navOpen} onClick={() => setNavOpen(v => !v)}><Menu size={18} /></button>
-        {onExit && <button type="button" className="caIconBtn" aria-label="Exit commerce" title="Exit commerce" onClick={onExit}><ArrowLeft size={17} /></button>}
-        <div className="caBrand"><span className="caBrandMark" aria-hidden="true">{(cur.name || 'S').trim().charAt(0).toUpperCase()}</span><strong>{cur.name}</strong></div>
+        <button type="button" className="caIconBtn caRound caNavToggle" aria-label="Toggle navigation" aria-expanded={navOpen} onClick={() => setNavOpen(v => !v)}><Menu size={18} /></button>
+        <div className="caBrand"><span className="caBrandEyebrow">Zertake Commerce · {sectionLabel}</span><strong>{cur.name}</strong></div>
         <div className="caSearch" role="search">
-          <Search size={15} aria-hidden="true" />
-          <input ref={searchRef} type="search" aria-label="Search orders, products and customers" placeholder="Search orders, products, customers  ( / )" value={q}
+          <input ref={searchRef} type="search" aria-label="Search orders, products and customers" placeholder="Search orders, products, customers" value={q}
             role="combobox" aria-expanded={qOpen && results.length > 0} aria-controls="caSearchList" aria-autocomplete="list"
             onChange={e => { setQ(e.target.value); setQOpen(true); setQi(0); }} onFocus={() => setQOpen(true)} onBlur={() => setTimeout(() => setQOpen(false), 150)}
             onKeyDown={e => {
@@ -199,32 +207,42 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
               else if (e.key === 'Enter' && results[qi]) { e.preventDefault(); pickResult(results[qi]); }
               else if (e.key === 'Escape') { e.stopPropagation(); setQOpen(false); e.target.blur(); }
             }} />
+          <kbd className="caKbd" aria-hidden="true">/</kbd>
+          <button type="button" className="caSearchGo" aria-label="Search" title="Search" onClick={() => { if (q.trim() && results[qi]) pickResult(results[qi]); else { searchRef.current?.focus(); setQOpen(true); } }}><Search size={16} aria-hidden="true" /></button>
           {qOpen && q.trim() && <ul className="caSearchList" id="caSearchList" role="listbox" aria-label="Search results">
             {results.length ? results.map((r, i) => <li key={r.kind + r.route.id} role="option" aria-selected={i === qi} className={i === qi ? 'on' : ''} onMouseDown={e => { e.preventDefault(); pickResult(r); }}>
               <span className="caSearchKind">{r.kind}</span><strong>{r.label}</strong><small>{r.sub}</small></li>) : <li className="caSearchNone">No results for “{q.trim()}”</li>}
           </ul>}
         </div>
-        <span className="caSpacer" />
-        <button type="button" className="caBtn" onClick={viewStore}><ExternalLink size={14} aria-hidden="true" />View store</button>
+        <div className="caTopTools">
+          <button type="button" className="caIconBtn caRound" aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} title={theme === 'dark' ? 'Light theme' : 'Dark theme'} onClick={toggleTheme}>{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</button>
+          <button type="button" className="caIconBtn caRound caBell" aria-label={toFulfill ? `${toFulfill} ${toFulfill === 1 ? 'order' : 'orders'} to fulfill` : 'No orders to fulfill'} title="Orders to fulfill" onClick={() => go('orders')}><Bell size={17} />{toFulfill > 0 && <i aria-hidden="true" />}</button>
+          <button type="button" className="caBtn caPrimary caViewStore" onClick={viewStore}><ExternalLink size={14} aria-hidden="true" />View store</button>
+        </div>
       </header>
-      <div className="caBody">
-        <nav className={'caNav' + (navOpen ? ' open' : '')} aria-label="Commerce">
-          <ul>
-            {NAV.map(([key, label, Icon, children]) => <li key={key}>
-              <button type="button" className={'caNavItem' + (section === key ? ' on' : '')} aria-current={route.page === key ? 'page' : undefined} onClick={() => go(key)}>
-                <Icon size={16} aria-hidden="true" /><span>{label}</span>{key === 'orders' && toFulfill > 0 && <span className="caNavBadge" aria-label={`${toFulfill} to fulfill`}>{toFulfill}</span>}
+      <nav className={'caNav' + (navOpen ? ' open' : '')} aria-label="Commerce">
+        <div className="caSide">
+          <span className="caLogo" aria-hidden="true">Z</span>
+          <ul className="caRail">
+            {NAV.map(([key, label, Icon]) => <li key={key}>
+              <button type="button" className={'caNavItem' + (section === key ? ' on' : '')} aria-current={route.page === key ? 'page' : undefined} aria-describedby={key === 'orders' && toFulfill > 0 ? 'caToFulfill' : undefined} onClick={() => go(key)}>
+                <Icon size={19} aria-hidden="true" /><span className="caNavLabel">{label}</span>{key === 'orders' && toFulfill > 0 && <span className="caNavBadge" aria-hidden="true">{toFulfill}</span>}
               </button>
-              {children && section === key && <ul className="caSubNav">{children.map(([k, l]) => <li key={k}>
-                <button type="button" className={'caNavSub' + ((route.page === k || SECTION_OF[route.page] === k || (k === 'products' && route.page === 'product') || (k === 'collections' && route.page === 'collection')) ? ' on' : '')} aria-current={route.page === k ? 'page' : undefined} onClick={() => go(k)}>{l}</button>
-              </li>)}</ul>}
             </li>)}
           </ul>
-          <div className="caNavFoot">
-            <button type="button" className={'caNavItem' + (section === 'settings' ? ' on' : '')} aria-current={route.page === 'settings' ? 'page' : undefined} onClick={() => go({ page: 'settings', tab: 'general' })}><SettingsIcon size={16} aria-hidden="true" /><span>Settings</span></button>
-          </div>
-        </nav>
-        <main className="caMain" ref={main} aria-label="Commerce content">{page}</main>
-      </div>
+          <ul className="caRail caRailFoot">
+            <li><button type="button" className={'caNavItem' + (section === 'settings' ? ' on' : '')} aria-current={route.page === 'settings' ? 'page' : undefined} onClick={() => go({ page: 'settings', tab: 'general' })}><SettingsIcon size={19} aria-hidden="true" /><span className="caNavLabel">Settings</span></button></li>
+            {onExit && <li><button type="button" className="caNavItem caExit" aria-label="Exit commerce" onClick={onExit}><LogOut size={18} aria-hidden="true" /><span className="caNavLabel" aria-hidden="true">Exit commerce</span></button></li>}
+          </ul>
+          <span className="caAvatar" title={cur.name} aria-hidden="true">{initial}</span>
+          {toFulfill > 0 && <span id="caToFulfill" hidden>{toFulfill} to fulfill</span>}
+        </div>
+        {subPages && <div className="caTabs">
+          {subPages.map(([k, l]) => <button key={k} type="button" className={'caNavSub' + (subOn(k) ? ' on' : '')} aria-current={route.page === k ? 'page' : undefined} onClick={() => go(k)}>{l}</button>)}
+        </div>}
+      </nav>
+      {navOpen && <div className="caScrim" aria-hidden="true" onClick={() => setNavOpen(false)} />}
+      <main className="caMain" ref={main} aria-label="Commerce content">{page}</main>
       <div className="caToast" role="status" aria-live="polite">{toast && <span>{toast}</span>}</div>
       {confirmEl}
       {introEl}
