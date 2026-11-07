@@ -5,13 +5,14 @@ import { useAdmin, Page, Card, Badge, Btn, Text, Num, Select, Check, Area, Tags,
 import { ORDER_FILTERS, filterOrders, orderMatches, computeOrderTotals, createOrder, updateDraft, completeDraft, deleteDraft, markPaid, fulfillOrder, refundOrder, cancelOrder, setArchived, addTimelineComment, orderDocumentHtml, orderEmail, refundedAmount, lineFor, ensureCustomer, importOrderPayloads } from './orders.js';
 import { customerName, formatAddress, COUNTRIES, NOTIFICATION_KEYS, NOTIFICATION_LABELS, normalizeAddress } from './model.js';
 import { sellable } from './inventory.js';
+import { OrdersSync } from './Backend.jsx';
 import { variantPrice } from '../model.js';
 
 const back = (go, to, label) => <button type="button" className="caIconBtn caBack" aria-label={label} onClick={() => go(to)}><ArrowLeft size={17} /></button>;
 const csvCell = v => { v = v == null ? '' : String(v); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
 
 export function OrdersList() {
-  const { commerce, store, fmt, go, run, notify } = useAdmin();
+  const { commerce, store, fmt, go, run, notify, backend } = useAdmin();
   const [filter, setFilter] = useState('all'), [q, setQ] = useState(''), [sel, setSel] = useState([]);
   const list = useMemo(() => filterOrders(commerce.orders, filter).filter(o => orderMatches(o, q, commerce.customers)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [commerce, filter, q]);
   const counts = Object.fromEntries(ORDER_FILTERS.map(([k]) => [k, filterOrders(commerce.orders, k).length]));
@@ -28,6 +29,7 @@ export function OrdersList() {
   const bulk = (fn, label) => { run((s, c) => { let st = s, co = c; for (const id of sel) { const r = fn(st, co, id); st = r.store || st; co = r.commerce || co; } return { store: st, commerce: co }; }, label); setSel([]); };
   const allOn = list.length > 0 && list.every(o => sel.includes(o.id));
   return <Page title="Orders" actions={<>
+    <OrdersSync />
     <label className="caBtn"><Upload size={14} aria-hidden="true" />Import orders<input type="file" accept="application/json,.json" hidden aria-label="Import orders JSON file" onChange={importJson} /></label>
     <Btn icon={Download} onClick={exportCsv} disabled={!commerce.orders.some(o => !o.draft)}>Export CSV</Btn>
     <Btn kind="primary" icon={Plus} onClick={() => go({ page: 'order-new' })}>Create order</Btn></>}>
@@ -55,7 +57,8 @@ export function OrdersList() {
         : <Empty art="orders" title={commerce.orders.length ? 'No orders match' : 'Your orders will show here'} action={!commerce.orders.length && <Btn kind="primary" icon={Plus} onClick={() => go({ page: 'order-new' })}>Create order</Btn>}>
           {commerce.orders.length ? 'Try another filter or search.' : 'Create orders for sales made by phone, in person or by message, or shop your store with View store.'}</Empty>}
     </Card>
-    <p className="caHint">Static stores cannot send orders back here by themselves. Import order JSON collected by your own backend (see Analytics › Connect a backend), or create orders manually.</p>
+    <p className="caHint">{backend?.ready ? 'Paid orders from your live store are imported with “Sync orders from backend” (automatically every minute while this page is open and you are signed in). Re-syncing updates orders instead of duplicating them.'
+      : 'Static stores cannot send orders back here by themselves. Connect your Supabase backend (Settings › Apps and integrations) to import paid orders, import order JSON, or create orders manually.'}</p>
   </Page>;
 }
 

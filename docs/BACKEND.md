@@ -9,7 +9,7 @@ storefront (static, any host)          Supabase project (backend/supabase)      
   success page   ◀── order-status ──  orders / order_lines                                           │ shopper pays
   beacons        ───────────────▶   track → analytics_events                                         │
                                      stripe-webhook ◀──────────────── signed events ◀────────────────┘
-admin (local, IndexedDB) ── sign in ─▶ sync-catalog · stripe-connect-onboard/-status · read orders (RLS)
+admin (local, IndexedDB) ── sign in (Bearer token) ─▶ sync-catalog (auto) · stripe-connect-onboard/-status · read orders (RLS)
 ```
 
 ## What is where
@@ -114,14 +114,48 @@ supabase functions deploy create-checkout-session stripe-webhook stripe-connect-
 ### 5. Admin settings (public values only)
 
 - *Settings › Integrations › Backend*: provider **Supabase**, Project URL, anon/publishable key (Functions URL defaults to `<url>/functions/v1`).
+- *Settings › Apps and integrations › Supabase*: **Sign in to your backend** (see "Admin steps" below).
 - *Settings › Payments › Stripe*: enable, mode **Test**, `pk_test_…`, connect type, fees, capture, payment methods, statement
   descriptor, automatic tax, 3-D Secure, billing (subscriptions, customer portal, invoices, trial days). Then **Connect with Stripe**.
 - *Settings › Domains*: the shop's public `https://` address — used for Stripe return URLs and the CORS/origin allow-list.
 - Optional in *Integrations*: Turnstile site key, GA4 / GTM / Meta / TikTok / Pinterest / Clarity ids, Sentry DSN, email
   sender. They are rendered by the storefront (consent-gated); the checkout forwards `add_to_cart`, `begin_checkout` and
   `purchase` to GA4 / Meta / TikTok after consent.
-- Sync the catalog (see below) **every time prices, stock, discounts, shipping or tax change** — the checkout charges
+- The catalog is published to the backend automatically while you are signed in (see below) — the checkout charges
   what the backend has, not what an old export shows. Then export / publish the store.
+
+### Admin steps (after the keys are in)
+
+1. *Settings › Apps and integrations › Supabase*: paste the Project URL and anon key, **Save**, then **Sign in to your backend**
+   in the same card. Pick one:
+   - **Magic link** — "Email me a sign-in link"; open the link in this browser. It returns to the admin page you were on
+     (`…#access_token=…`); the admin takes the tokens out of the URL before routing and shows "Signed in to your backend as …".
+     Add the admin URL(s) to *Authentication › URL configuration › Redirect URLs* in Supabase.
+   - **One-time code** — "Email me a code", then type the 6-digit code from the same email (stays in the current tab).
+     The default Supabase email template only has the link; add `{{ .Token }}` to *Authentication › Email templates ›
+     Magic link* to include the code.
+   - **Password** — for accounts created with a password in *Authentication › Users*.
+
+   The session is kept in memory and in the tab's `sessionStorage` only (key `zt-backend-session:<project URL>`): it is never
+   written into the commerce/store documents, JSON backups or exported sites, and it ends when the tab closes. A magic link
+   signs in the tab it opens. The header shows a status chip ("Synced 2 min ago", "Sync failed", "Sign in to backend").
+2. *Settings › Payments*: **Connect with Stripe** (asks you to sign in first if needed) calls `stripe-connect-onboard` with
+   `Authorization: Bearer <your access token>` + `apikey: <anon key>` and opens Stripe's onboarding. Back in the admin,
+   **Refresh status** calls `stripe-connect-status` and writes the account id, onboarding status, charges and payouts into the
+   settings — click **Save** to keep them.
+3. **Publish catalog to backend** (Products header, Settings › Payments › *Catalog on your backend*, the Supabase card) posts
+   `catalogSnapshot(store, commerce)` to `sync-catalog` — the first call creates the store row owned by you. While you are
+   signed in, every change to products, prices, stock, discounts, tax, shipping or payment settings is published
+   automatically ~2 s after the edit; the indicator shows "Synced 2 min ago" or "Sync failed — retry". The snapshot is checked
+   for secret-looking values before it is sent (and only public settings are in it).
+4. **Sync orders from backend** (Orders, Services › Bookings, the Supabase card) reads paid orders, bookings and service
+   projects with your token (RLS: your stores only), maps them with `backendToCommerce` and merges them into the admin
+   ("Imported 2 orders, 1 booking"). Records keep their backend id (`sb_<uuid>`), so re-running only updates them — no
+   duplicates. With **Auto** ticked, the Orders/Bookings page re-checks every 60 s while it is open and you are signed in.
+5. Sign out in the Supabase card. An expired or revoked session (HTTP 401) signs you out with "Sign in again".
+
+Screenshots: `docs/evidence/backend-sign-in.jpg` (sign-in prompt from Connect with Stripe), `backend-sign-in-card.jpg`,
+`backend-signed-in.jpg`, `backend-synced.jpg`, `backend-sync-failed.jpg`, `backend-orders-sync.jpg`.
 
 ### Admin sign-in (owner token)
 
@@ -136,8 +170,11 @@ await be.syncCatalog(catalogSnapshot(store, commerce, { imageUrl }));   // first
 const { url } = await be.connectOnboard({ storeId: store.id, mode: 'test', connectType: 'express', returnUrl: location.href, refreshUrl: location.href });
 ```
 
-`stripe-connect-onboard` accepts exactly the admin's body `{ storeId, mode, connectType, accountId, country, email,
-businessType, returnUrl, refreshUrl }` and answers `{ url, accountId, onboardingStatus ('pending'|'connected'|'restricted'),
+The admin does all of this from the UI (see "Admin steps"); the session store is `src/store/admin/backendSync.js`, the UI
+`src/store/admin/Backend.jsx`.
+
+`stripe-connect-onboard` accepts the admin's body `{ storeId, mode, connectType, accountId, country, email,
+businessType, storeName, currency, returnUrl, refreshUrl }` and answers `{ url, accountId, onboardingStatus ('pending'|'connected'|'restricted'),
 chargesEnabled, payoutsEnabled }`. With only the anon key it answers **401 `auth_required`** — unless the project sets
 `ALLOW_ANON_ONBOARDING=true`: then the anon key may connect the **first** account of a store that has none (the store is
 "unclaimed" until you sign in and sync). Use that only in a project that serves a single merchant, and connect right
@@ -200,11 +237,13 @@ const { bookings, projects } = await be.fetchServiceRecords(store.id, { since: l
 commerce = mergeBackend(commerce, backendToCommerce(rows, bookings, projects, store));   // ids 'sb_<uuid>', re-sync safe
 ```
 
-`tests/backend.test.js` checks that the mapped orders, bookings and projects pass the admin's normalizers. Not wired yet:
-a "Sign in to backend" form and a **Sync orders from backend** button in the admin (Settings › Integrations / Orders) —
-about 30 lines of UI around the calls above. Pending (unpaid) checkouts are excluded from the sync. Stock decrements
-happen in the backend snapshot; the admin's stock is the source of truth again on the next catalog sync, so sync orders
-before editing stock.
+`tests/backend.test.js` checks that the mapped orders, bookings and projects pass the admin's normalizers;
+`tests/backendsync.test.js` checks the idempotent import (`importBackendRecords`) behind the **Sync orders from backend**
+button, and `tests/e2e/admin.e2e.mjs` drives sign-in → Connect with Stripe (bearer token) → Refresh status → publish /
+auto-sync → orders import twice → sign out → magic-link return against a mocked Supabase. Pending (unpaid) checkouts are
+excluded from the sync. Imported orders do not change the admin's stock (`inventoryApplied: false`); stock decrements happen
+in the backend snapshot, and the admin's stock is published again on the next catalog sync (automatic after a stock edit),
+so sync orders and correct stock before editing it.
 
 ## Verified here vs. not
 

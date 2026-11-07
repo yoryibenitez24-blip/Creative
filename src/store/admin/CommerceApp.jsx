@@ -23,6 +23,7 @@ import { Themes, PagesPage, NavigationPage, Preferences } from './OnlineStore.js
 import Settings from './Settings.jsx';
 import { ServicesOverview, BookingsPage, BookingDetail, ProjectsBoard, ProjectDetail } from './Services.jsx';
 import { CalendarCheck } from 'lucide-react';
+import { useBackendController, BackendChip } from './Backend.jsx';
 
 /**
  * Commerce admin.
@@ -148,6 +149,10 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
     window.addEventListener('message', onMsg); return () => window.removeEventListener('message', onMsg);
   }, [commit, notify]);
 
+  // ---------- backend session, catalog publish/auto-sync, orders import (src/store/admin/Backend.jsx) ----------
+  const getStore = useCallback(() => S.current, []), getCommerce = useCallback(() => K.current, []);
+  const backend = useBackendController({ store: cur, commerce: com, getStore, getCommerce, commit, notify });
+
   // ---------- search ----------
   const [q, setQ] = useState(''), [qOpen, setQOpen] = useState(false), [qi, setQi] = useState(0);
   const searchRef = useRef(null);
@@ -177,7 +182,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
   if (!cur) return <div className="caRoot caPicker stRoot">{sectionBar && <div className="caPickerBar">{sectionBar}</div>}<Gallery onPick={id => commit(createStore(id), null, 'Create store')} onCancel={onExit} cancelLabel="Exit commerce" />{introEl}</div>;
   if (customizing) return <StoreBuilder store={cur} commerce={com} onChange={(s, label) => commit(s, K.current && !K.current.onboarding.steps.theme ? markTheme(K.current) : null, label)} onExit={() => setCustomizing(false)} onOpenPhotoStudio={onOpenPhotoStudio} assetStore={assetStore} />;
 
-  const ctx = { store: cur, commerce: com, commit, editStore, editCommerce, run, fmt, imageUrl, upload, resolver, notify, confirm, go, route, assetStore, onOpenPhotoStudio, customize: () => { if (!K.current.onboarding.steps.theme) commit(null, markTheme(K.current), 'Theme customized'); setCustomizing(true); }, viewStore, plan, onUpgrade };
+  const ctx = { store: cur, commerce: com, commit, editStore, editCommerce, run, fmt, imageUrl, upload, resolver, notify, confirm, go, route, assetStore, onOpenPhotoStudio, customize: () => { if (!K.current.onboarding.steps.theme) commit(null, markTheme(K.current), 'Theme customized'); setCustomizing(true); }, viewStore, plan, onUpgrade, backend };
   const section = SECTION_OF[route.page] || route.page;
   const toFulfill = com.orders.filter(o => !o.draft && o.status === 'open' && o.fulfillmentStatus === 'unfulfilled').length;
   const page = (() => {
@@ -241,6 +246,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
           </ul>}
         </div>
         <div className="caTopTools">
+          <BackendChip />
           <button type="button" className="caIconBtn caRound" aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} title={theme === 'dark' ? 'Light theme' : 'Dark theme'} onClick={toggleTheme}>{theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}</button>
           <button type="button" className="caIconBtn caRound caBell" aria-label={toFulfill ? `${toFulfill} ${toFulfill === 1 ? 'order' : 'orders'} to fulfill` : 'No orders to fulfill'} title="Orders to fulfill" onClick={() => go('orders')}><Bell size={17} />{toFulfill > 0 && <i aria-hidden="true" />}</button>
           <button type="button" className="caBtn caPrimary caViewStore" onClick={viewStore}><ExternalLink size={14} aria-hidden="true" />View store</button>
@@ -276,6 +282,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
       <div className="caToast" role="status" aria-live="polite">{toast && <span>{toast}</span>}</div>
       {help && <HelpDialog onClose={() => setHelp(false)} go={r => { setHelp(false); go(r); }} />}
       {confirmEl}
+      {backend.dialogEl}
       {introEl}
     </div>
   </AdminCtx.Provider>;
@@ -294,7 +301,7 @@ function HelpDialog({ onClose, go }) {
           <li><button type="button" className="caLink" onClick={() => go({ page: 'settings', tab: 'payments' })}>Choose how customers check out</button></li>
           <li><button type="button" className="caLink" onClick={() => go({ page: 'settings', tab: 'shipping' })}>Shipping zones and rates</button></li>
           <li><button type="button" className="caLink" onClick={() => go({ page: 'settings', tab: 'domains' })}>Connect your domain</button></li>
-          <li><button type="button" className="caLink" onClick={() => go('analytics')}>Collect live orders with a backend</button></li>
+          <li><button type="button" className="caLink" onClick={() => go({ page: 'settings', tab: 'apps' })}>Collect live orders with a backend</button></li>
         </ul></section>
     </div>
   </Modal>;

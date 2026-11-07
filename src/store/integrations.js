@@ -11,7 +11,8 @@
 // the backend's environment (see SERVER_SECRETS / secretsCommand()). normalize*() drops any value that looks secret.
 //
 // Backend contract used by the admin (Supabase Edge Functions; functionsUrl defaults to `${url}/functions/v1`):
-//   POST {functionsUrl}/stripe-connect-onboard   headers: apikey + Authorization: Bearer <anonKey>, JSON body
+//   POST {functionsUrl}/stripe-connect-onboard   headers: apikey: <anonKey> + Authorization: Bearer <merchant access token>
+//        (the admin signs in first: src/store/admin/backendSync.js, backend/client/api.js), JSON body
 //        { storeId, mode, connectType, accountId, country, email, businessType, returnUrl, refreshUrl }
 //        → 200 { url (Stripe-hosted onboarding link), accountId, onboardingStatus?, chargesEnabled?, payoutsEnabled? }
 //   POST {functionsUrl}/stripe-webhook           Stripe → backend (events: STRIPE_WEBHOOK_EVENTS)

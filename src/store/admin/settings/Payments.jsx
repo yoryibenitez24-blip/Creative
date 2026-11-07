@@ -1,11 +1,13 @@
 // Settings › Payments: Stripe Connect (connection, keys, payment methods, capture, descriptor, fees, payouts, Radar,
 // Billing, webhooks, server secrets) and the alternative / manual methods of the static store.
 import React, { useState } from 'react';
-import { Plus, Trash2, ExternalLink, KeyRound, Webhook, CircleCheck, CircleAlert } from 'lucide-react';
-import { Btn, Text, Num, Select, Check, Area, Segmented } from '../ui.jsx';
+import { useBackend, CatalogSync } from '../Backend.jsx';
+import { stripeStatusPatch } from '../backendSync.js';
+import { Plus, Trash2, ExternalLink, KeyRound, Webhook, CircleCheck, CircleAlert, RefreshCw } from 'lucide-react';
+import { useAdmin, Btn, Text, Num, Select, Check, Area, Segmented } from '../ui.jsx';
 import { CHECKOUT_MODES } from '../../model.js';
 import { cid } from '../model.js';
-import { CONNECT_TYPES, PAYMENT_METHODS, PAYMENT_GROUPS, STRIPE_WEBHOOK_EVENTS, WEEKDAYS, STRIPE_CURRENCIES, backendReady, onboardUrl, webhookUrl,
+import { CONNECT_TYPES, PAYMENT_METHODS, PAYMENT_GROUPS, STRIPE_WEBHOOK_EVENTS, WEEKDAYS, STRIPE_CURRENCIES, backendReady, webhookUrl,
   afterPlatformFee, statementPreview, serverSecrets, secretsCommand } from '../../integrations.js';
 import { Section, Row, Toggle, SelectRow, Choice, Input, Pill, CopyLine, Note } from './kit.jsx';
 
@@ -16,27 +18,34 @@ export function Payments({ s, c, edit, open }) {
   const sp = c.settings.payments.stripe, g = c.settings.general;
   const T = fn => edit((_, x) => fn(x.settings.payments.stripe), 'payments');
   const set = k => v => T(t => { t[k] = v; });
-  const [busy, setBusy] = useState(false), [err, setErr] = useState('');
+  const [busy, setBusy] = useState(''), [err, setErr] = useState(''), [link, setLink] = useState('');
+  const { backend } = useAdmin();
+  const { be, signedIn, email } = useBackend(c);
   const ready = backendReady(c), hook = webhookUrl(c);
   const [label, tone] = STATUS[sp.onboardingStatus];
+  // both calls need the merchant's access token (Authorization: Bearer <token>, apikey: anon) — sign in first
+  const needSignIn = then => { if (be && be.signedIn()) return false; backend?.promptSignIn({ commerce: c, then }); return true; };
+  const failed = e => setErr(e.message === 'Failed to fetch' ? 'Could not reach the backend (network or CORS). Check that the Stripe Connect functions are deployed.' : e.message);
   const connect = async () => {
-    setErr(''); setBusy(true);
+    setErr(''); setLink('');
+    if (needSignIn(connect)) return;
+    setBusy('connect');
     try {
-      const b = c.settings.integrations.backend;
-      const res = await fetch(onboardUrl(c), { method: 'POST', headers: { 'content-type': 'application/json', apikey: b.anonKey, authorization: 'Bearer ' + b.anonKey },
-        body: JSON.stringify({ storeId: s.id, mode: sp.mode, connectType: sp.connectType, accountId: sp.accountId || null, country: g.country, email: g.email || s.contact.email, businessType: g.businessEntity, returnUrl: location.href, refreshUrl: location.href }) });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || data.message || `The backend answered ${res.status}.`);
-      T(t => {
-        if (typeof data.accountId === 'string' && /^acct_/.test(data.accountId)) t.accountId = data.accountId;
-        t.onboardingStatus = STATUS[data.onboardingStatus] ? data.onboardingStatus : 'pending'; t.enabled = true;
-        if (typeof data.chargesEnabled === 'boolean') t.chargesEnabled = data.chargesEnabled;
-        if (typeof data.payoutsEnabled === 'boolean') t.payoutsEnabled = data.payoutsEnabled;
-      });
-      if (typeof data.url === 'string' && /^https:\/\//.test(data.url)) window.open(data.url, '_blank', 'noopener');
+      const data = await be.connectOnboard({ storeId: s.id, mode: sp.mode, connectType: sp.connectType, accountId: sp.accountId || null, country: g.country, email: g.email || s.contact.email, businessType: g.businessEntity, storeName: s.name, currency: s.currency?.code, returnUrl: location.href, refreshUrl: location.href });
+      const patch = stripeStatusPatch(data);
+      T(t => { Object.assign(t, patch); if (!patch.onboardingStatus || patch.onboardingStatus === 'not_connected') t.onboardingStatus = 'pending'; t.enabled = true; });
+      if (typeof data?.url === 'string' && /^https:\/\//.test(data.url)) { if (!window.open(data.url, '_blank', 'noopener')) setLink(data.url); }
       else setErr('The backend did not return an onboarding link.');
-    } catch (e) { setErr(e.message === 'Failed to fetch' ? 'Could not reach the backend (network or CORS). Check that the stripe-connect-onboard function is deployed.' : e.message); }
-    finally { setBusy(false); }
+    } catch (e) { failed(e); }
+    finally { setBusy(''); }
+  };
+  const refresh = async () => {
+    setErr('');
+    if (needSignIn(refresh)) return;
+    setBusy('refresh');
+    try { const patch = stripeStatusPatch(await be.connectStatus(s.id)); T(t => { Object.assign(t, patch); }); }
+    catch (e) { failed(e); }
+    finally { setBusy(''); }
   };
   const fee = afterPlatformFee(sp, 100), cur = sp.currency, active = sp.paymentMethods.length;
   const preview = statementPreview(sp, s.name);
@@ -47,8 +56,13 @@ export function Payments({ s, c, edit, open }) {
         <span className="csLogo stripe" aria-hidden="true">S</span>
         <div className="csConnectText"><strong>Stripe Connect <Pill tone={tone}>{label}</Pill>{sp.mode === 'test' && <Pill tone="warn">Test mode</Pill>}</strong>
           <span>{sp.accountId ? <>Account <code>{sp.accountId}</code> · {CONNECT_TYPES.find(t => t[0] === sp.connectType)[1]}</> : 'No Stripe account connected yet.'}</span></div>
-        <Btn kind="primary" icon={ExternalLink} disabled={!ready || busy} onClick={connect}>{busy ? 'Connecting…' : sp.accountId ? 'Continue onboarding' : 'Connect with Stripe'}</Btn>
+        <div className="csInline">
+          <Btn icon={RefreshCw} disabled={!ready || !!busy} onClick={refresh}>{busy === 'refresh' ? 'Refreshing…' : 'Refresh status'}</Btn>
+          <Btn kind="primary" icon={ExternalLink} disabled={!ready || !!busy} onClick={connect}>{busy === 'connect' ? 'Connecting…' : sp.accountId ? 'Continue onboarding' : 'Connect with Stripe'}</Btn>
+        </div>
       </div>
+      {ready && <Note tone={signedIn ? '' : 'info'}>{signedIn ? <>Signed in to your backend as <strong>{email}</strong>. Connecting and refreshing use your session.</> : <>Connecting Stripe needs your store account: <button type="button" className="caLink" onClick={() => backend?.promptSignIn({ commerce: c })}>sign in to your backend</button>.</>}</Note>}
+      {link && <Note tone="info">Your browser blocked the new tab. <a className="caLink" href={link} target="_blank" rel="noopener noreferrer">Open Stripe onboarding</a></Note>}
       {!ready && <Note tone="info">Connecting needs your backend: add your Supabase project in <button type="button" className="caLink" onClick={() => open('apps', 'app-supabase')}>Apps and integrations</button> and deploy the <code>stripe-connect-onboard</code> function. Until then you can paste an existing account ID below.</Note>}
       {err && <Note tone="bad" role="alert">{err}</Note>}
       <Toggle id="stripe-enabled" label="Accept payments with Stripe" desc="Shows Stripe’s payment form at checkout once a publishable key and backend are set." checked={sp.enabled} onChange={set('enabled')} />
@@ -58,9 +72,13 @@ export function Payments({ s, c, edit, open }) {
         <Input label="Connected account ID" vkey="accountId" mono value={sp.accountId} placeholder="acct_1A2b3C4d5E6f7G8h" onChange={v => T(t => { t.accountId = v.trim(); if (!v.trim()) t.onboardingStatus = 'not_connected'; else if (t.onboardingStatus === 'not_connected') t.onboardingStatus = 'pending'; })} />
         <Select label="Account type" value={sp.connectType} onChange={set('connectType')} options={CONNECT_TYPES.map(([k, l]) => [k, l])} hint={CONNECT_TYPES.find(t => t[0] === sp.connectType)[2]} />
       </div></div></div>
-      <Row label="Charges" value={sp.chargesEnabled ? <span className="csOk"><CircleCheck size={14} aria-hidden="true" />Enabled</span> : <span className="csDim"><CircleAlert size={14} aria-hidden="true" />Not yet</span>} sub="Reported by Stripe (account.updated webhook)." />
+      <Row label="Charges" sub="Reported by Stripe (account.updated webhook) — Refresh status reads it now." value={sp.chargesEnabled ? <span className="csOk"><CircleCheck size={14} aria-hidden="true" />Enabled</span> : <span className="csDim"><CircleAlert size={14} aria-hidden="true" />Not yet</span>} />
       <Row label="Payouts" value={sp.payoutsEnabled ? <span className="csOk"><CircleCheck size={14} aria-hidden="true" />Enabled</span> : <span className="csDim"><CircleAlert size={14} aria-hidden="true" />Not yet</span>} />
     </Section>
+
+    {ready && <Section id="catalog-sync" title="Catalog on your backend" desc="The checkout charges the prices, stock, discounts, shipping and tax your backend has. Edits are published automatically while you are signed in.">
+      <div className="csPad"><CatalogSync showHint /></div>
+    </Section>}
 
     <Section id="stripe-keys" title="Publishable keys" desc="Public keys the checkout loads Stripe.js with. Find them in Stripe › Developers › API keys.">
       <div className="csPad"><div className="caForm">

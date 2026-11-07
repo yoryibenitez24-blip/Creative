@@ -9,6 +9,7 @@ import { adjustStock, productStock, stockRows } from './inventory.js';
 import { ALIGN_PRESETS, productFrames, productFrame, moveProductImage, removeProductImage, normFrame } from '../frame.js';
 import { KindPicker, applyKind, ServiceCards, DigitalCard } from './ServiceEditor.jsx';
 import { productKind } from '../serviceProduct.js';
+import { CatalogSync } from './Backend.jsx';
 
 /** Compact 3×3 image alignment grid (sets the image's focal point; finer control lives in the store builder). */
 function AlignGrid({ label, frame, onChange }) {
@@ -47,6 +48,7 @@ export function ProductsList() {
     notify(`${r.added} added, ${r.updated} updated` + (r.errors.length ? ' · ' + r.errors.slice(0, 3).join('; ') : ''));
   };
   return <Page title="Products" actions={<>
+    <CatalogSync />
     <label className="caBtn"><Upload size={14} aria-hidden="true" />Import<input type="file" accept=".csv,text/csv" hidden aria-label="Import products CSV file" onChange={importCsv} /></label>
     <Btn icon={Download} onClick={() => download('products.csv', productsToCsv(store), 'text/csv')}>Export</Btn>
     <Btn kind="primary" icon={Plus} onClick={() => go({ page: 'product', id: 'new' })}>Add product</Btn></>}>

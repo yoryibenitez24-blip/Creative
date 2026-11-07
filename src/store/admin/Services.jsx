@@ -9,6 +9,7 @@ import { customerName } from './model.js';
 import { BOOKING_STATUSES, PROJECT_STAGES, ACTIVE_BOOKING, bookingSlots, serviceKpis, serviceProducts, upcomingBookings, newBooking, historyEntry, sid, zonedDay } from './services.js';
 import { servicePriceLabel } from '../serviceProduct.js';
 import { SampleDataButton } from './SampleData.jsx';
+import { OrdersSync } from './Backend.jsx';
 
 const DAY = 86400000;
 const STATUS = Object.fromEntries(BOOKING_STATUSES.map(([k, l, t]) => [k, [l, t]]));
@@ -107,7 +108,7 @@ export function BookingsPage() {
     : view === 'week' ? `${keyDate(weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${keyDate(addLocal(weekStart, 6)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : 'All bookings';
   const empty = !bookings.length;
   return <Page title="Bookings" subtitle={serviceProducts(store).length ? `${upcomingBookings(commerce).length} upcoming` : 'Add a service product to take bookings'}
-    actions={<Btn kind="primary" icon={Plus} onClick={() => setAdding(true)} disabled={!serviceProducts(store).some(p => p.service.booking.enabled)}>New booking</Btn>}>
+    actions={<><OrdersSync /><Btn kind="primary" icon={Plus} onClick={() => setAdding(true)} disabled={!serviceProducts(store).some(p => p.service.booking.enabled)}>New booking</Btn></>}>
     <Card pad={false} className="svCalCard">
       <div className="caToolbar svCalBar">
         <Segmented label="Calendar view" value={view} onChange={pickView} options={[['week', 'Week'], ['month', 'Month'], ['list', 'List']]} />

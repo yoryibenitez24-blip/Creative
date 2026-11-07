@@ -12,6 +12,11 @@
 //   await be.resendConfirmation(orderId)                           → { ok }
 // Then backendToCommerce(rows, …) (backend/client/orders.js) turns rows into admin orders / bookings / projects.
 
+/** Payload of a JWT (no verification — only to read the email / issuer of our own access token). {} when unreadable. */
+export function claims(token) {
+  try { const b = String(token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); const bin = atob(b + '='.repeat((4 - b.length % 4) % 4)); return JSON.parse(decodeURIComponent(Array.from(bin, c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join(''))) || {}; } catch { return {}; }
+}
+
 export function createBackend({ url, anonKey, functionsUrl } = {}, { storage = null, fetchImpl = globalThis.fetch } = {}) {
   const base = String(url || '').replace(/\/+$/, ''), fn = String(functionsUrl || (base ? base + '/functions/v1' : '')).replace(/\/+$/, '');
   const KEY = 'zt-backend-session:' + base;
@@ -25,7 +30,7 @@ export function createBackend({ url, anonKey, functionsUrl } = {}, { storage = n
     if (auth) { const t = await token(); if (t) headers.Authorization = 'Bearer ' + t; }
     const r = await fetchImpl(u, { ...init, headers });
     const text = await r.text(); let j = null; try { j = text ? JSON.parse(text) : null; } catch { j = { message: text }; }
-    if (!r.ok) { const e = new Error(j?.error?.message || j?.message || j?.msg || `HTTP ${r.status}`); e.status = r.status; e.code = j?.error?.code || j?.code; throw e; }
+    if (!r.ok) { const e = new Error(j?.error?.message || j?.error_description || j?.message || j?.msg || (typeof j?.error === 'string' && j.error) || `HTTP ${r.status}`); e.status = r.status; e.code = j?.error?.code || j?.error_code || j?.code; throw e; }
     return j;
   }
   async function token() {
@@ -43,7 +48,7 @@ export function createBackend({ url, anonKey, functionsUrl } = {}, { storage = n
     verifyCode: async (email, code) => accept(await call(`${base}/auth/v1/verify`, { method: 'POST', body: JSON.stringify({ type: 'email', email, token: String(code).trim() }) }, false)),
     signInWithPassword: async (email, password) => accept(await call(`${base}/auth/v1/token?grant_type=password`, { method: 'POST', body: JSON.stringify({ email, password }) }, false)),
     /** After a magic link redirect: '#access_token=…&refresh_token=…&expires_in=…' */
-    acceptRedirect: hash => { const q = new URLSearchParams(String(hash || '').replace(/^#/, '')); return q.get('access_token') ? accept({ access_token: q.get('access_token'), refresh_token: q.get('refresh_token'), expires_in: +q.get('expires_in') || 3600 }) : null; },
+    acceptRedirect: hash => { const q = new URLSearchParams(String(hash || '').replace(/^#/, '')), t = q.get('access_token'); return t ? accept({ access_token: t, refresh_token: q.get('refresh_token'), expires_in: +q.get('expires_in') || 3600, user: { email: claims(t).email || '' } }) : null; },
     syncCatalog: snapshot => post('sync-catalog', snapshot),
     connectOnboard: body => post('stripe-connect-onboard', body),
     connectStatus: storeId => call(`${fn}/stripe-connect-status?store=${encodeURIComponent(storeId)}`),

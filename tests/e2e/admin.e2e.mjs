@@ -23,6 +23,8 @@ import { createRoot } from 'react-dom/client';
 import CommerceApp from ${JSON.stringify(join(repo, 'src/store/admin/CommerceApp.jsx'))};
 import { createStore } from ${JSON.stringify(join(repo, 'src/store/StoreBuilder.jsx'))};
 import { AssetStore, memoryBackend } from ${JSON.stringify(join(repo, 'src/engine/assets.js'))};
+import { captureAuthRedirect } from ${JSON.stringify(join(repo, 'src/store/admin/backendSync.js'))};
+captureAuthRedirect();
 const assets = new AssetStore(memoryBackend());
 const load = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
 window.__labels = []; window.__exit = 0;
@@ -55,6 +57,10 @@ await ctx.route(/images\.unsplash\.com/, r => r.abort('internetdisconnected'));
 const page = await ctx.newPage();
 const errors = []; page.on('pageerror', e => errors.push(e.message));
 let n = 0;
+const until = async (fn, ms = 5000) => { const t = Date.now(); while (!fn()) { if (Date.now() - t > ms) throw new Error('timed out'); await new Promise(r => setTimeout(r, 50)); } };
+const beMock = { seen: [], syncs: [], reads: [], failSync: 0, orders: [2001, 2002].map((num, i) => ({ id: 'u' + num, number: num, status: 'open', financial_status: 'paid', fulfillment_status: 'unfulfilled', email: 'buyer' + i + '@example.com',
+  created_at: '2026-11-0' + (i + 1) + 'T10:00:00Z', updated_at: '2026-11-0' + (i + 1) + 'T10:05:00Z', paid_at: '2026-11-0' + (i + 1) + 'T10:05:00Z', subtotal: 40, discount_total: 0, shipping: 6, shipping_discount: 0, tax: 2, total: 48,
+  shipping_address: { name: 'Buyer ' + i, country: 'US' }, order_lines: [{ id: 'l' + num, product_id: 'p', variant_id: 'v', title: 'Mug', unit_price: 20, quantity: 2, position: 0 }], refunds: [] })) };
 const step = async (name, fn) => { const t = Date.now(); await fn(); console.log(`ok ${++n} - ${name} (${Date.now() - t} ms)`); };
 const shot = async name => { await page.evaluate(() => { const m = document.querySelector('.caMain'); if (m) m.scrollTop = 0; }); await page.waitForTimeout(150); return page.screenshot({ path: join(evidence, `admin-${name}.jpg`), type: 'jpeg', quality: 80 }); };
 const nav = name => page.getByRole('navigation', { name: 'Commerce' }).getByRole('button', { name, exact: true }).click();
@@ -359,10 +365,18 @@ try {
   await step('settings: search jumps to a setting; secret keys are refused; Stripe, Supabase and GA4 save', async () => {
     const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
     const anon = b64({ alg: 'HS256', typ: 'JWT' }) + '.' + b64({ iss: 'supabase', ref: 'abcdefghijklmnopqrst', role: 'anon' }) + '.' + 'S'.repeat(43);
+    const TOK = b64({ alg: 'HS256', typ: 'JWT' }) + '.' + b64({ iss: 'https://abcdefghijklmnopqrst.supabase.co/auth/v1', email: 'owner@everyday.test', role: 'authenticated' }) + '.sig';
     const SB = 'https://abcdefghijklmnopqrst.supabase.co', cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'GET, POST, OPTIONS' };
-    const seen = [];
-    await ctx.route(SB + '/**', r => { const q = r.request(); if (q.method() === 'OPTIONS') return r.fulfill({ status: 204, headers: cors }); seen.push([q.method(), q.url(), q.headers().apikey, q.postData()]);
-      return r.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: q.url().endsWith('/stripe-connect-onboard') ? JSON.stringify({ url: 'https://connect.stripe.com/setup/e/acct_1TestAcct12345/x', accountId: 'acct_1TestAcct12345' }) : '{}' }); });
+    const seen = beMock.seen; beMock.SB = SB; beMock.TOK = TOK; beMock.anon = anon;
+    await ctx.route(SB + '/**', r => { const q = r.request(); if (q.method() === 'OPTIONS') return r.fulfill({ status: 204, headers: cors }); seen.push([q.method(), q.url(), q.headers().apikey, q.postData(), q.headers().authorization]);
+      const u = q.url(), json = (b, status = 200) => r.fulfill({ status, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify(b) });
+      if (u.includes('/auth/v1/token?grant_type=password')) return JSON.parse(q.postData()).password === 'hunter22' ? json({ access_token: TOK, refresh_token: 'refresh-1', expires_in: 3600, user: { email: 'owner@everyday.test' } }) : json({ error_description: 'Invalid login credentials' }, 400);
+      if (u.endsWith('/stripe-connect-onboard')) return q.headers().authorization === 'Bearer ' + TOK ? json({ url: 'https://connect.stripe.com/setup/e/acct_1TestAcct12345/x', accountId: 'acct_1TestAcct12345', onboardingStatus: 'pending' }) : json({ error: { code: 'auth_required', message: 'Sign in first' } }, 401);
+      if (u.endsWith('/functions/v1/sync-catalog')) { if (beMock.failSync > 0) { beMock.failSync--; return json({ error: { code: 'internal', message: 'Database unavailable' } }, 500); } beMock.syncs.push({ body: JSON.parse(q.postData()), auth: q.headers().authorization }); return json({ ok: true, products: JSON.parse(q.postData()).products.length, deactivated: 0 }); }
+      if (u.includes('/functions/v1/stripe-connect-status')) return json({ connected: true, accountId: 'acct_1TestAcct12345', onboardingStatus: 'connected', status: 'complete', chargesEnabled: true, payoutsEnabled: true, requirementsDue: [] });
+      if (u.includes('/rest/v1/orders?')) { beMock.reads.push(q.headers().authorization); return json(beMock.orders); }
+      if (u.includes('/rest/v1/bookings?') || u.includes('/rest/v1/service_projects?')) return json([]);
+      return r.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: '{}' }); });
     await ctx.route(/connect\.stripe\.com/, r => r.fulfill({ status: 200, contentType: 'text/html', body: '<title>Stripe onboarding</title>' }));
     await page.getByRole('navigation', { name: 'Commerce' }).getByRole('button', { name: 'Settings' }).click();
     const pill = main.getByRole('region', { name: 'Unsaved changes' }), sections = main.getByRole('navigation', { name: 'Settings sections' });
@@ -392,12 +406,28 @@ try {
     assert.deepEqual(seen[0].slice(0, 3), ['GET', SB + '/rest/v1/', anon]);
     await pill.getByRole('button', { name: 'Save' }).click();
     await page.waitForFunction(() => window.__commerce.settings.integrations.ga4.measurementId === 'G-ABC123XYZ9' && window.__commerce.settings.integrations.backend.provider === 'supabase');
-    // Connect with Stripe calls the backend's onboarding function and opens the returned link
+    // Connect with Stripe needs the merchant's session: it asks to sign in first, then calls the onboarding function
+    // with Authorization: Bearer <access token> (+ apikey: anon) and opens the returned link
     await sections.getByRole('button', { name: 'Payments' }).click();
-    const [popup] = await Promise.all([ctx.waitForEvent('page'), main.getByRole('button', { name: 'Connect with Stripe' }).click()]);
+    await page.getByRole('button', { name: 'Sign in to backend' }).waitFor();
+    await main.getByRole('button', { name: 'Connect with Stripe' }).click();
+    const dlg = page.getByRole('dialog', { name: 'Sign in to your backend' });
+    await dlg.waitFor();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: join(evidence, 'backend-sign-in.jpg'), type: 'jpeg', quality: 82 });
+    await dlg.getByRole('button', { name: 'Password', exact: true }).click();
+    await dlg.getByLabel('Account email').fill('owner@everyday.test');
+    await dlg.getByLabel('Password', { exact: true }).fill('wrong');
+    await dlg.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await dlg.getByText('Invalid login credentials').waitFor();
+    await dlg.getByLabel('Password', { exact: true }).fill('hunter22');
+    const [popup] = await Promise.all([ctx.waitForEvent('page'), dlg.getByRole('button', { name: 'Sign in', exact: true }).click()]);
     await popup.close();
+    await dlg.waitFor({ state: 'detached' });
     const call = seen.find(x => x[1] === SB + '/functions/v1/stripe-connect-onboard');
     assert.ok(call, 'onboarding function called'); assert.equal(JSON.parse(call[3]).connectType, 'standard');
+    assert.equal(call[4], 'Bearer ' + TOK, 'the merchant access token is sent'); assert.equal(call[2], anon, 'apikey is the anon key');
+    await main.getByText(/Signed in to your backend as owner@everyday.test/).waitFor();
     await main.getByText('Onboarding pending').first().waitFor();
     await main.getByText(SB + '/functions/v1/stripe-webhook').waitFor();
     await pill.getByRole('button', { name: 'Save' }).click();
@@ -405,6 +435,88 @@ try {
     st = (await commerce()).settings.payments.stripe;
     assert.equal(st.onboardingStatus, 'pending'); assert.equal(st.enabled, true);
     assert.doesNotMatch(JSON.stringify(await commerce()), /sk_test_|sk_live_|whsec_/, 'no secret was stored');
+  });
+
+  await step('backend session: refresh Stripe status, publish + auto-sync the catalog, sync orders twice without duplicates, sign out', async () => {
+    const { SB, TOK } = beMock, sections = main.getByRole('navigation', { name: 'Settings sections' }), pill = main.getByRole('region', { name: 'Unsaved changes' });
+    // the Settings save above changed the payments the checkout trusts → debounced auto-sync with the bearer token
+    await page.waitForFunction(() => document.querySelector('.caBeChip')?.textContent.includes('Synced'), null, { timeout: 8000 });
+    assert.equal(beMock.syncs.length, 1, 'one auto-sync after saving'); assert.equal(beMock.syncs[0].auth, 'Bearer ' + TOK);
+    // Refresh status → stripe-connect-status → charges/payouts/status/account written back into settings
+    await main.getByRole('button', { name: 'Refresh status' }).click();
+    await main.getByText('Connected', { exact: true }).first().waitFor();
+    await pill.getByRole('button', { name: 'Save' }).click();
+    await page.waitForFunction(() => window.__commerce.settings.payments.stripe.onboardingStatus === 'connected');
+    const st = (await commerce()).settings.payments.stripe;
+    assert.equal(st.chargesEnabled, true); assert.equal(st.payoutsEnabled, true); assert.equal(st.accountId, 'acct_1TestAcct12345');
+    const sid = (await store()).id;
+    assert.ok(beMock.seen.some(x => x[1] === SB + '/functions/v1/stripe-connect-status?store=' + encodeURIComponent(sid)), 'status function called for this store');
+    assert.equal(beMock.seen.find(x => x[1].includes('stripe-connect-status'))[4], 'Bearer ' + TOK);
+    // Apps and integrations: the signed-in state
+    await sections.getByRole('button', { name: 'Apps and integrations' }).click();
+    const account = main.getByRole('region', { name: 'Backend account' });
+    await account.getByText('Signed in as owner@everyday.test').waitFor();
+    await account.scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
+    await page.screenshot({ path: join(evidence, 'backend-signed-in.jpg'), type: 'jpeg', quality: 82 });
+    // Products: Publish catalog to backend posts catalogSnapshot(store, commerce)
+    await nav('Products');
+    const before = beMock.syncs.length;
+    await main.getByRole('button', { name: 'Publish catalog to backend' }).click();
+    await until(() => beMock.syncs.length > before);
+    await main.getByText(/Synced just now/).waitFor();
+    const snap = beMock.syncs.at(-1).body, s = await store();
+    assert.equal(snap.store.id, s.id); assert.equal(snap.products.length, s.products.length);
+    assert.deepEqual(snap.products.map(p => p.id), s.products.map(p => p.id));
+    assert.equal(snap.products.find(p => p.title === 'Test Hoodie').price, 50);
+    assert.doesNotMatch(JSON.stringify(snap), /sk_test_|sk_live_|whsec_|service_role|refresh-1/, 'no secrets or session in the snapshot');
+    // a failing sync shows "Sync failed — retry"; retry succeeds
+    beMock.failSync = 1;
+    await main.getByRole('button', { name: 'Publish catalog to backend' }).click();
+    await main.getByText(/Sync failed —/).waitFor();
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: join(evidence, 'backend-sync-failed.jpg'), type: 'jpeg', quality: 82 });
+    await main.getByRole('button', { name: 'retry' }).click();
+    await main.getByText(/Synced just now/).waitFor();
+    // auto-sync after a product price edit
+    const n0 = beMock.syncs.length;
+    await main.getByRole('button', { name: 'Test Hoodie' }).first().click();
+    await main.getByLabel('Price', { exact: true }).fill('55');
+    await main.getByRole('button', { name: 'Save', exact: true }).first().click();
+    await until(() => beMock.syncs.length > n0, 8000);
+    assert.equal(beMock.syncs.at(-1).body.products.find(p => p.title === 'Test Hoodie').price, 55, 'the edited price was published');
+    await nav('Products'); await main.getByText(/Synced just now/).waitFor();
+    await page.screenshot({ path: join(evidence, 'backend-synced.jpg'), type: 'jpeg', quality: 82 });
+    // Orders: sync imports the 2 backend orders; running it again adds nothing
+    const count0 = (await commerce()).orders.length;
+    await nav('Orders');
+    await main.getByRole('button', { name: 'Sync orders from backend' }).click();
+    await page.getByRole('status').filter({ hasText: 'Imported 2 orders, 0 bookings' }).waitFor();
+    let c = await commerce();
+    assert.equal(c.orders.length, count0 + 2); assert.deepEqual(c.orders.filter(o => o.id.startsWith('sb_')).map(o => o.name).sort(), ['#2001', '#2002']);
+    assert.equal(beMock.reads[0], 'Bearer ' + TOK, 'orders are read with the owner token (RLS)');
+    await main.getByRole('button', { name: '#2001' }).waitFor();
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: join(evidence, 'backend-orders-sync.jpg'), type: 'jpeg', quality: 82 });
+    await main.getByRole('button', { name: 'Sync orders from backend' }).click();
+    await page.getByRole('status').filter({ hasText: 'already up to date' }).waitFor();
+    c = await commerce();
+    assert.equal(c.orders.length, count0 + 2, 're-sync does not duplicate');
+    // the session lives only in this tab's sessionStorage — never in the documents or localStorage
+    const leaks = await page.evaluate(t => ({ ls: JSON.stringify({ ...localStorage }).includes(t), docs: JSON.stringify([window.__store, window.__commerce]).includes(t), ss: JSON.stringify({ ...sessionStorage }).includes(t) }), TOK);
+    assert.deepEqual(leaks, { ls: false, docs: false, ss: true });
+    // sign out from Settings › Apps and integrations
+    await page.getByRole('button', { name: /^Backend: signed in as owner@everyday.test/ }).click();
+    await main.getByRole('region', { name: 'Backend account' }).getByRole('button', { name: 'Sign out' }).click();
+    await page.getByRole('button', { name: 'Sign in to backend' }).waitFor();
+    const card = main.getByRole('form', { name: 'Sign in to your backend' });
+    await card.getByRole('button', { name: 'One-time code' }).click();
+    await card.evaluate(el => el.scrollIntoView({ block: 'center' })); await page.waitForTimeout(300);
+    await page.screenshot({ path: join(evidence, 'backend-sign-in-card.jpg'), type: 'jpeg', quality: 82 });
+    // magic-link return: tokens in the URL hash sign in and are removed from the URL
+    await page.goto('about:blank'); await page.goto(url + '#access_token=' + TOK + '&refresh_token=refresh-2&expires_in=3600&token_type=bearer&type=magiclink');
+    await page.getByRole('status').filter({ hasText: 'Signed in to your backend as owner@everyday.test' }).waitFor();
+    assert.equal(await page.evaluate(() => location.hash), '');
+    await page.getByRole('button', { name: /^Backend: signed in as owner@everyday.test/ }).waitFor();
     await ctx.unroute(SB + '/**'); await ctx.unroute(/connect\.stripe\.com/);
   });
 

@@ -6,6 +6,17 @@ import { SALES_CHANNELS, EVENT_TYPES } from '../model.js';
 import { EMAIL_PROVIDERS, validateField, backendReady, functionsBase, serverSecrets } from '../../integrations.js';
 import { Section, Toggle, Input, Pill, Note, CopyLine } from './kit.jsx';
 import { ServerSecrets } from './Payments.jsx';
+import { SignInForm, CatalogSync, OrdersSync, useBackend } from '../Backend.jsx';
+
+/** Supabase card: the merchant's backend session (magic link / code / password) and the sync actions. */
+function BackendAccount({ c }) {
+  const { ready, signedIn } = useBackend(c);
+  return <div className="caBeAccount" role="region" aria-label="Backend account">
+    <strong className="csMini">Sign in to your backend</strong>
+    {ready ? <SignInForm commerce={c} /> : <p className="csDim">Enter a valid project URL and anon key above, then sign in with your store account (Supabase Auth). The session stays in this browser tab only.</p>}
+    {ready && signedIn && <div className="csInline"><CatalogSync showHint /><OrdersSync /></div>}
+  </div>;
+}
 
 /**
  * Integration cards: key, name, monogram colour, what it powers, where to find the values, fields [[path, label, placeholder, hint?]].
@@ -90,6 +101,7 @@ function AppCard({ app, c, ig, setPath, edit }) {
         <div className="csInline"><Btn icon={Plug} disabled={!backendReady(c) || test?.busy} onClick={testConnection}>{test?.busy ? 'Testing…' : 'Test connection'}</Btn>
           {ig.backend.provider === 'supabase' && <Btn kind="plain" onClick={() => edit((_, x) => { x.settings.integrations.backend = { provider: 'none', url: '', anonKey: '', functionsUrl: '' }; })}>Disconnect</Btn>}
           {test && !test.busy && <span className={test.ok ? 'csOk' : 'csErr'} role="status">{test.msg}</span>}</div>
+        <BackendAccount c={c} />
       </>}
       <details className="csWhere"><summary>Where do I find this?</summary><p>{app.where}</p></details>
     </div>}
