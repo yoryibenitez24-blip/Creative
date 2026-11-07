@@ -27,7 +27,7 @@ export function editorAgent(win, doc) {
     '.zed-bh{all:unset;position:absolute;pointer-events:auto;display:none;cursor:grab;background:#ec4899;color:#fff;width:22px;height:22px;border-radius:6px;place-items:center;font-size:13px;box-shadow:0 3px 10px rgba(0,0,0,.25)}' +
     '.zed-line{position:absolute;pointer-events:none;background:#3b82f6;display:none;border-radius:3px;box-shadow:0 0 0 3px rgba(59,130,246,.25)}' +
     '.zed-dragging{opacity:.35!important}[data-edit]:hover{outline:1px dashed rgba(59,130,246,.6);outline-offset:3px;cursor:text}' +
-    '[contenteditable]{outline:2px solid #3b82f6!important;outline-offset:4px;cursor:text;-webkit-user-modify:read-write-plaintext-only}' +
+    '[contenteditable]{text-transform:none!important;outline:2px solid #3b82f6!important;outline-offset:4px;cursor:text;-webkit-user-modify:read-write-plaintext-only}' +
     'html.editing [data-reveal]{opacity:1!important;transform:none!important}' +
     '.zed-fr{position:absolute;pointer-events:auto;display:none;align-items:center;gap:8px;padding:6px 8px 6px 10px;background:rgba(17,17,20,.92);color:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);backdrop-filter:blur(6px)}' +
     '.zed-fr span{font-size:11px;opacity:.75;white-space:nowrap}.zed-fr .g{display:grid;grid-template-columns:repeat(3,16px);grid-auto-rows:16px;gap:2px;padding:3px;border-radius:6px;background:rgba(255,255,255,.08)}' +

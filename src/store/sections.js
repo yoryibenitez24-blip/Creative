@@ -43,6 +43,9 @@ export const FEATURE_ICONS = ['truck', 'shield', 'refresh', 'star', 'heart', 'le
 const STEP_ICONS = [...FEATURE_ICONS, 'search', 'ruler', 'bag', 'camera', 'pin', 'card', 'mail', 'music'];
 const SOCIAL = { instagram: ['Instagram', 'camera'], facebook: ['Facebook', 'users'], tiktok: ['TikTok', 'music'], youtube: ['YouTube', 'play'], x: ['X', 'at'], pinterest: ['Pinterest', 'pin'] };
 const PAY_ICON = s => /card|visa|credit|debit/i.test(s) ? 'card' : /wallet|pay|apple|google/i.test(s) ? 'wallet' : /bank|transfer|wire/i.test(s) ? 'bank' : /cash|delivery|cod/i.test(s) ? 'cash' : 'lock';
+/** Approximate width of the store name in em of the heading font (sizes the giant footer wordmark to fit one line). */
+const GLYPH_W = { anton: .44, condensed: .44, impact: .5, archivo: .8, unbounded: .86, grotesk: .78, syne: .7, fredoka: .6, spacemono: .62, mono: .62 };
+const wordmarkEm = st => { const n = st.logo.text || st.name, k = GLYPH_W[st.theme.fonts.heading] || .58; return Math.max(3, Math.round(n.length * k * (st.theme.headingCase === 'uppercase' ? 1.18 : 1) * 100) / 100); };
 const initials = n => String(n || '?').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
 function btns(ctx, a, al, b, bl, prefix = '') {
@@ -194,7 +197,7 @@ export const SECTIONS = {
       const pays = String(s.payments || '').split(',').map(x => x.trim()).filter(Boolean);
       return `<footer class="site-footer${s.dark ? ' ft-dark' : ''}" data-sid="${sec.id}" data-type="footer"><div class="wrap"><div class="ft-grid">
         <div class="ft-brand"><a class="logo" href="${ctx.link('home')}">${ctx.e(st.logo.text || st.name)}</a>${s.text ? `<p${ctx.ed('text')}>${ctx.e(s.text)}</p>` : ''}${social}</div>${menu}${contact}${nl}</div>
-        <div class="ft-bottom"><p>${ctx.e(s.copyright || `© ${new Date().getFullYear()} ${st.name}`)}</p>${pays.length ? `<ul class="pays" aria-label="Payment methods">${pays.map(p => `<li title="${ctx.e(p)}">${ctx.icon(PAY_ICON(p))}<span>${ctx.e(p)}</span></li>`).join('')}</ul>` : ''}</div>${s.wordmark ? `<p class="ft-wordmark" aria-hidden="true" style="--wl:${Math.max(4, (st.logo.text || st.name).length)}">${ctx.e(st.logo.text || st.name)}</p>` : ''}</div></footer>`;
+        <div class="ft-bottom"><p>${ctx.e(s.copyright || `© ${new Date().getFullYear()} ${st.name}`)}</p>${pays.length ? `<ul class="pays" aria-label="Payment methods">${pays.map(p => `<li title="${ctx.e(p)}">${ctx.icon(PAY_ICON(p))}<span>${ctx.e(p)}</span></li>`).join('')}</ul>` : ''}</div>${s.wordmark ? `<p class="ft-wordmark" aria-hidden="true" style="--wl:${wordmarkEm(st)}">${ctx.e(st.logo.text || st.name)}</p>` : ''}</div></footer>`;
     },
   },
 
@@ -388,7 +391,7 @@ export const SECTIONS = {
       const one = s.image ? `<figure class="eh-fig eh-a">${ctx.pic(s.image, { size: s.layout === 'stack' ? 'hero' : 'wide', eager: true, ...ctx.framed(s, 'image') })}${s.caption ? `<figcaption${ctx.ed('caption')}>${ctx.e(s.caption)}</figcaption>` : ''}</figure>` : '';
       const two = s.image2 && s.layout !== 'stack' ? `<figure class="eh-fig eh-b">${ctx.pic(s.image2, { size: 'card', ...ctx.framed(s, 'image2') })}</figure>` : '';
       const media = one || two || s.sticker ? `<div class="eh-media">${one}${two}${sticker(s.sticker, ctx, sec)}</div>` : '';
-      return `<section class="ehero eh-${s.layout}${s.layout === 'split' && s.shape !== 'rect' ? ' eh-sh-' + s.shape : ''}" id="${sec.id}" data-sid="${sec.id}" data-type="editorial-hero"${vars ? ` style="${vars}"` : ''}><div class="wrap">${meta}<div class="eh-grid">${copy}${media}</div></div></section>`;
+      return `<section class="ehero eh-${s.layout}${s.layout === 'split' && s.shape !== 'rect' ? ' eh-sh-' + s.shape : ''}${s.background ? ' eh-tint' : ''}" id="${sec.id}" data-sid="${sec.id}" data-type="editorial-hero"${vars ? ` style="${vars}"` : ''}><div class="wrap">${meta}<div class="eh-grid">${copy}${media}</div></div></section>`;
     },
   },
 

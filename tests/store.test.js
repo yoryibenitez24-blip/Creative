@@ -488,3 +488,81 @@ test('image framing: preview and export render object-position; Unsplash crops s
   moved.pages.home.find(x => x.type === 'hero').settings.heading = 'Changed';
   assert.equal(diffParts(b, renderParts(normalizeStore(moved), { page: 'home' }, opts)).frames, undefined);
 });
+
+test('creative sections: render in preview and export, keep editor hooks, normalise old documents', () => {
+  const s = createStore('general'), pic = 'unsplash:' + ALL_PHOTO_IDS[0];
+  const types = ['editorial-hero', 'rail', 'polaroids', 'steps', 'spec-list', 'drop-countdown', 'split-feature'];
+  for (const t of types) assert.ok(SECTIONS[t] && SECTIONS[t].pages.includes('home'), t);
+  const secs = [
+    { id: 'e1', type: 'editorial-hero', settings: { layout: 'split', shape: 'blob', heading: 'Made for *making*', image: pic, image2: pic, sticker: 'Capsule 001 · Small run', metaLeft: 'Capsule 001', background: '#d4f25a' } },
+    { id: 'e2', type: 'editorial-hero', settings: { layout: 'stack', heading: 'Plain', image: pic } },
+    { id: 'e3', type: 'editorial-hero', settings: { layout: 'collage', heading: 'Collage', image: pic, image2: pic } },
+    { id: 'r1', type: 'rail', settings: { source: 'all', limit: 4 } },
+    { id: 'p1', type: 'polaroids', settings: { items: [{ image: pic, caption: 'Weekday' }, { image: pic, caption: 'Weekend', link: 'collection:all' }] } },
+    { id: 't1', type: 'steps', settings: {} }, { id: 't2', type: 'steps', settings: { style: 'cards' } },
+    { id: 'l1', type: 'spec-list', settings: { image: pic, rows: 'Fabric | Cotton\nFit | Relaxed' } },
+    { id: 'd1', type: 'drop-countdown', settings: { image: pic, endsAt: '2030-01-01T10:00' } },
+    { id: 'f1', type: 'split-feature', settings: { image: pic, shape: 'arch', sticker: 'Soft · Bold' } },
+    { id: 'm1', type: 'marquee', settings: { style: 'ticker', separator: '★', tilt: true, background: '#17402d', textColor: '#d4f25a' } },
+    { id: 'q1', type: 'testimonials', settings: { style: 'big', rating: '4.9' } },
+  ];
+  const st = normalizeStore({ ...structuredClone(s), pages: { ...structuredClone(s.pages), home: secs } });
+  for (const sec of st.pages.home) for (const [k, v] of Object.entries(SECTIONS[sec.type].defaults)) assert.ok(k in sec.settings, `${sec.type} default ${k} filled`);
+  assert.deepEqual(st.pages.home[0].settings.imagePos, { x: 50, y: 50 }, 'image fields get frames');
+  assert.ok('image2Pos' in st.pages.home[0].settings && 'imagePos' in st.pages.home[4].settings.items[0]);
+  const html = renderPage(st, { page: 'home' }, { mode: 'export', imageUrl });
+  assert.doesNotMatch(html, /could not be shown|undefined|NaN|\[object Object\]/);
+  for (const id of secs.map(x => x.id)) assert.ok(html.includes(`data-sid="${id}"`), id);
+  assert.match(html, /<h1 class="eh-title"><span>Made for <em class="it">making<\/em><\/span><i class="eh-dot"/);
+  assert.match(html, /eh-sh-blob/); assert.match(html, /eh-tint/); assert.match(html, /class="sticker /); assert.match(html, /<textPath href="#stk-e1"[^>]*>CAPSULE 001 · SMALL RUN · /);
+  assert.match(html, /class="rail-track" data-carousel-track/); assert.match(html, /data-carousel-prev aria-label="Previous items"/); assert.equal((html.match(/class="rail-item"/g) || []).length, 4);
+  assert.match(html, /<span class="rail-no">01<\/span>/); assert.match(html, /class="rail-hanger"/);
+  assert.match(html, /class="pol p1"><a href=/); assert.match(html, /steps-list n5/); assert.match(html, /st-cards/);
+  assert.match(html, /<dt>Fabric<\/dt><span class="sl-dots" aria-hidden="true"><\/span><dd>Cotton<\/dd>/);
+  assert.match(html, /data-countdown="2030-01-01T10:00" role="timer"/); assert.match(html, /class="burst b0"/);
+  assert.match(html, /sf-media sh-arch/); assert.match(html, /mq-ticker mq-tilt mq-bg/); assert.match(html, /<i aria-hidden="true">★<\/i>/);
+  assert.match(html, /tq-big/); assert.match(html, /tq-mark/);
+  // editor: inline-editable headings carry the raw *markup*; the export never does
+  const pv = renderPage(st, { page: 'home' }, { mode: 'preview', imageUrl, editor: true });
+  assert.match(pv, /data-edit="heading" data-raw="Made for \*making\*"/); assert.match(pv, /data-edit="metaLeft"/); assert.match(pv, /data-block="items\.0"/);
+  assert.doesNotMatch(html, /data-raw=/);
+  // every new section works on every content page with its defaults
+  for (const page of ['about', 'contact', 'product', 'collection']) for (const type of types) {
+    const x = structuredClone(st); x.pages[page] = [...x.pages[page], { id: 'zz', type, settings: structuredClone(SECTIONS[type].defaults) }];
+    const h = renderPage(normalizeStore(x), page === 'product' ? { page, productId: x.products[0].id } : page === 'collection' ? { page, collectionId: 'all' } : { page }, { mode: 'export', imageUrl });
+    assert.doesNotMatch(h, /could not be shown|undefined|NaN/, `${type} on ${page}`);
+  }
+});
+
+test('creative theme options: web fonts, accent italics, tagged cards, footer wordmark', () => {
+  const s = createStore('checkmate');
+  assert.equal(s.theme.fonts.accent, 'instrument'); assert.equal(s.theme.cardStyle, 'tagged');
+  const css = storeCss(s);
+  assert.ok(css.startsWith('@import url("https://fonts.googleapis.com/css2?family=Anton&family=Manrope'), css.slice(0, 120));
+  assert.match(css, /--font-a:"Instrument Serif"/); assert.match(css, /\.pcard \.badge\{/); assert.match(css, /--on-accent:#ffffff/);
+  assert.equal(storeCss(createStore('general')).startsWith('@import'), false, 'system-font themes load nothing');
+  const old = normalizeStore({ theme: { fonts: { heading: 'inter', body: 'inter' }, cardStyle: 'tagged' } });
+  assert.equal(old.theme.fonts.accent, 'display'); assert.equal(old.theme.cardStyle, 'tagged');
+  assert.equal(normalizeStore({ theme: { fonts: { accent: 'nope' } } }).theme.fonts.accent, 'display');
+  const html = renderPage(s, { page: 'home' }, { mode: 'export', imageUrl });
+  assert.match(html, /class="site-footer ft-dark"/); assert.match(html, /class="ft-wordmark" aria-hidden="true" style="--wl:/);
+});
+
+test('creative templates: 10 new, flagged for the gallery, multi-page, built from the creative sections', () => {
+  const ids = ['rail', 'checkmate', 'cutout', 'hyperglow', 'raster', 'kiln', 'nightshift', 'glasshouse', 'bubbleblock', 'dialtone'];
+  const creative = STORE_TEMPLATES.filter(t => t.creative).map(t => t.id);
+  for (const id of ids) assert.ok(creative.includes(id), id);
+  assert.ok(STORE_TEMPLATES.length >= 46);
+  for (const id of ids) {
+    const s = createStore(id), types = new Set(s.pages.home.map(x => x.type));
+    assert.ok(['editorial-hero', 'rail', 'polaroids', 'steps', 'spec-list', 'drop-countdown', 'split-feature'].filter(t => types.has(t)).length >= 3, id + ' uses creative sections');
+    assert.ok(s.pages.product.some(x => x.type === 'product-main') && s.pages.about.length && s.pages.contact.length, id);
+    const dc = s.pages.home.find(x => x.type === 'drop-countdown'); if (dc) assert.ok(dc.settings.endsAt, id + ' countdown has an end');
+    assert.doesNotMatch(renderPage(s, { page: 'product', productId: s.products[0].id }, { mode: 'export', imageUrl }), /could not be shown|undefined|NaN/);
+  }
+  // upgraded classics keep their ids and gain creative sections
+  assert.ok(createStore('merch').pages.home.some(x => x.type === 'drop-countdown'));
+  assert.ok(createStore('coffee').pages.home.some(x => x.type === 'steps'));
+  assert.ok(createStore('plants').pages.home.some(x => x.type === 'spec-list'));
+  assert.ok(createStore('boutique').pages.home.some(x => x.type === 'polaroids'));
+});
