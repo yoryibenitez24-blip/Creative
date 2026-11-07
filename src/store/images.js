@@ -1,12 +1,14 @@
 // Image resolution for the builder (browser only).
-//   genUrl(ref)                     → blob: URL of a procedural 'gen:' image (cached for the session)
+//   genUrl(ref)                     → blob: URL of a procedural 'gen:' image (cached for the session); 'unsplash:' → small photo URL
 //   createImageResolver(assetStore, onLoad) → { url(ref), ready(refs): Promise<void> }
 //       'asset:<id>' refs are loaded from the AssetStore lazily; onLoad() is called when one arrives.
 //   uploadImage(file, assetStore)   → Promise<ImageRef>  (downscaled to ≤ 2000 px; 'asset:<id>' or a data: URL)
 import { artSvg, artDataUrl, isGen } from './art.js';
+import { photoUrl } from './photos.js';
 
 const genCache = new Map();
 export function genUrl(ref) {
+  if (typeof ref === 'string' && ref.startsWith('unsplash:')) return photoUrl(ref.slice(9), 480);
   if (!isGen(ref)) return ref && /^(data:|blob:|https?:)/.test(ref) ? ref : '';
   let u = genCache.get(ref);
   if (!u) {

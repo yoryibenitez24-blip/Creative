@@ -16,7 +16,7 @@ function Thumb({ id, name }) {
     const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { setVisible(true); io.disconnect(); } }, { rootMargin: '300px' });
     io.observe(el); return () => io.disconnect();
   }, []);
-  const html = useMemo(() => visible ? renderPage(createStore(id), { page: 'home' }, { mode: 'preview', imageUrl: genUrl, script: false }) : '', [visible, id]);
+  const html = useMemo(() => visible ? renderPage(createStore(id), { page: 'home' }, { mode: 'preview', imageUrl: genUrl, script: false, small: true }) : '', [visible, id]);
   return <div className="stTplThumb" ref={ref} aria-hidden="true">{visible && <iframe title={name + ' preview'} srcDoc={html} tabIndex={-1} loading="lazy" sandbox="allow-same-origin" />}</div>;
 }
 

@@ -55,6 +55,7 @@ const photo = join(work, 'tee.png'); await writeFile(photo, c.toBuffer('image/pn
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 }, acceptDownloads: true });
 await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
+await ctx.route(/images\.unsplash\.com/, r => r.abort('internetdisconnected')); // simulate offline: photos must fall back to procedural art
 await ctx.route(/wa\.me/, r => r.fulfill({ status: 200, contentType: 'text/html', body: '<p>whatsapp stub</p>' }));
 const page = await ctx.newPage();
 const errors = []; page.on('pageerror', e => errors.push(e.message));
@@ -76,6 +77,9 @@ await step('template gallery lists 24+ templates with category filter; pick "Eve
   await page.getByRole('button', { name: 'Use template Everyday Goods' }).click();
   await frame().locator('h1.hero-title').waitFor();
   assert.equal(await frame().locator('h1.hero-title').textContent(), 'Good things for every day');
+  // curated photos are hot-linked with a 1x/2x srcset; offline (this test has no network) they fall back to procedural art
+  assert.match(await page.locator('iframe[title="Store preview"]').getAttribute('srcdoc'), /srcset="https:\/\/images\.unsplash\.com\/photo-[^"]+ 1x, [^"]+ 2x"/);
+  await page.waitForFunction(() => { const f = document.querySelector('iframe[title="Store preview"]').contentDocument; const i = f && f.querySelector('section[data-type="hero"] img'); return i && i.complete && i.naturalWidth > 0 && /^(blob:|data:)/.test(i.currentSrc || i.src); }, null, { timeout: 20000 });
 });
 
 await step('add a product with an uploaded image and Size × Color variants', async () => {
@@ -96,7 +100,7 @@ await step('add a product with an uploaded image and Size × Color variants', as
   await page.getByLabel('Stock of M / Blue').fill('5');
   // preview shows this product's page with the uploaded image (blob URL from the asset store)
   await frame().locator('h1.ptitle-h', { hasText: 'Test Tee' }).waitFor();
-  const src = await frame().locator('[data-main-image]').getAttribute('src');
+  const src = await frame().locator('.pmain-img [data-slide="0"] img').getAttribute('src');
   assert.match(src, /^blob:/);
   const st = await page.evaluate(() => window.__store.products.find(p => p.title === 'Test Tee'));
   assert.equal(st.slug, 'test-tee'); assert.ok(st.images[0].startsWith('asset:sha256-'));
@@ -176,10 +180,26 @@ await step('export the store as a ZIP and unzip it', async () => {
   }
 });
 
-await step('shop the exported site from file://: variants, quantity, cart total, WhatsApp checkout', async () => {
+await step('shop the exported site from file://: wishlist, search, mobile menu, variants, quantity, cart total, WhatsApp checkout', async () => {
   const shop = await ctx.newPage();
   const errs = []; shop.on('pageerror', e => errs.push(e.message));
   await shop.goto(pathToFileURL(join(siteDir, 'products/test-tee.html')).href);
+  // wishlist + search work in the exported site
+  await shop.getByRole('button', { name: 'Save Test Tee to wishlist' }).click();
+  assert.equal(await shop.locator('[data-wish-count]').textContent(), '1');
+  await shop.getByRole('button', { name: 'Wishlist', exact: true }).click();
+  await shop.locator('[data-wish-lines] a', { hasText: 'Test Tee' }).first().waitFor();
+  await shop.keyboard.press('Escape');
+  await shop.getByRole('button', { name: 'Search', exact: true }).click();
+  await shop.getByRole('searchbox', { name: 'Search products' }).fill('test');
+  await shop.locator('[data-search-results] a', { hasText: 'Test Tee' }).waitFor();
+  await shop.keyboard.press('Escape');
+  await shop.setViewportSize({ width: 390, height: 844 });
+  await shop.getByRole('button', { name: 'Open menu' }).click();
+  await shop.locator('[data-navdrawer] a', { hasText: 'About' }).waitFor();
+  await shop.getByRole('button', { name: 'Close menu' }).click();
+  assert.ok(await shop.locator('[data-navdrawer]').isHidden());
+  await shop.setViewportSize({ width: 1600, height: 1000 });
   await shop.locator('label.pill', { hasText: 'M' }).click();
   await shop.locator('label.pill', { hasText: 'Blue' }).click();
   assert.equal(await shop.locator('[data-sku]').textContent(), 'TEST-TEE-M-BLUE');

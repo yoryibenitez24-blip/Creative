@@ -15,6 +15,7 @@ import { createZip } from '../ecom/zip.js';
 import { artSvg, isGen, parseGen } from './art.js';
 import { imageRefs, slugify } from './model.js';
 import { renderPage, sitePages, storeCss, storeScript, esc } from './render.js';
+import { PHOTO_CREDITS_NOTE } from './photos.js';
 
 const enc = new TextEncoder();
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/svg+xml': 'svg', 'image/avif': 'avif' };
@@ -42,7 +43,7 @@ export async function collectImages(store, loadAsset) {
     } else if (ref.startsWith('data:')) {
       const d = decodeDataUrl(ref); if (!d) continue;
       bytes = d.bytes; name = `images/img-${fnv(ref)}.${EXT[d.type] || 'png'}`;
-    } else continue; // absolute https URLs stay remote
+    } else continue; // 'unsplash:' photos and absolute https URLs stay hot-linked
     map.set(ref, name); files.push({ name, data: bytes });
   }
   return { map, files };
@@ -90,6 +91,11 @@ HOW ORDERS WORK
   ${mode}
   This website never collects card details. Real payments need your own payment links or payment provider;
   confirm stock, shipping and payment with each customer before sending goods.
+
+IMAGES
+  Your uploaded images are included in images/. Sample template photos are loaded from images.unsplash.com,
+  so they need an internet connection (offline, simple illustrations are shown instead).
+  ${PHOTO_CREDITS_NOTE}
 
 UPDATING
   Edit the store in Zertake Studio and export again, then replace the files on your host.

@@ -10,18 +10,21 @@
 //     fonts: { heading, body },          // keys of FONT_STACKS (system / web-safe stacks only)
 //     headingWeight: 400..900, headingCase: 'none'|'uppercase', radius: 0..32 (px),
 //     buttons: 'solid'|'outline'|'pill'|'sharp', density: 'compact'|'comfortable'|'airy',
-//     headerStyle: 'left'|'centered'|'minimal', cardStyle: 'plain'|'card'|'bordered',
-//     imageRatio: 'square'|'portrait'|'landscape'
+//     headerStyle: 'split'|'left'|'centered'|'minimal', cardStyle: 'plain'|'card'|'bordered',
+//     imageRatio: 'square'|'portrait'|'landscape', shadow: 'none'|'soft'|'strong',
+//     headingScale: 'regular'|'large'|'huge', tracking: 'tight'|'normal'|'wide'
 //   },
 //   currency: { code: 'USD', locale: 'en-US' },
-//   announcement: { enabled, text, link: LinkTarget },
+//   announcement: { enabled, text, link: LinkTarget, style: 'static'|'marquee' },   // marquee: messages separated by '|'
+//   fallbackArt: ImageRef|null,         // procedural art shown when a photo cannot load (offline)
 //   layout: { header: Section, footer: Section },     // shared by every page
 //   pages: { home, collection, product, about, contact, cart, checkout: Section[] },
 //   products: [{ id, title, slug, description, price, compareAt|null, images: ImageRef[],
 //                options: [{ name, values: string[] }],
 //                variants: [{ id, options: string[] (aligned with product.options), price|null (null = product price),
 //                             sku, stock|null (null = not tracked) }],
-//                category, tags: string[], featured, status: 'active'|'draft' }],
+//                category, tags: string[] ('new' shows a New badge), featured, status: 'active'|'draft',
+//                rating: 0..5|null, reviews: int (shown as stars on cards), art: 'gen:…'|null (offline fallback image) }],
 //   collections: [{ id, title, slug, description, image, rule: { type: 'all'|'manual'|'category'|'tag', value, productIds } }],
 //   navigation: { main: [{ id, label, target: LinkTarget }], footer: [...] },
 //   social: { instagram, facebook, tiktok, youtube, x, pinterest },   // full URLs, '' = hidden
@@ -31,7 +34,8 @@
 // }
 //
 // Section   = { id, type, hidden?: bool, settings: {...} } — types and settings: src/store/sections.js
-// ImageRef  = 'asset:sha256-…' (blob in the app AssetStore) | 'gen:…' (procedural art, src/store/art.js) | 'data:…' | 'https://…'
+// ImageRef  = 'asset:sha256-…' (blob in the app AssetStore) | 'unsplash:<id>' (curated photo from src/store/photos.js, hot-linked)
+//             | 'gen:…' (procedural art, src/store/art.js) | 'data:…' | 'https://…'
 // LinkTarget= 'home' | 'collection:<id>' | 'collection:all' | 'product:<id>' | 'page:about' | 'page:contact' | 'cart' | 'checkout'
 //             | 'url:<absolute url, mailto: or tel:>' | '#<anchor>'
 
@@ -46,17 +50,21 @@ export const CHECKOUT_MODES = [['whatsapp', 'WhatsApp order'], ['email', 'Email 
 export const CURRENCIES = [['USD', 'en-US'], ['EUR', 'de-DE'], ['GBP', 'en-GB'], ['CAD', 'en-CA'], ['AUD', 'en-AU'], ['JPY', 'ja-JP'], ['INR', 'en-IN'], ['BRL', 'pt-BR'], ['MXN', 'es-MX'], ['CHF', 'de-CH'], ['SEK', 'sv-SE'], ['NZD', 'en-NZ'], ['ZAR', 'en-ZA'], ['AED', 'en-AE'], ['SGD', 'en-SG']];
 export const FONT_STACKS = {
   system: ['System sans', 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'],
+  inter: ['Neo-grotesk (Inter)', '"Inter Display", Inter, "SF Pro Display", "Helvetica Neue", Arial, sans-serif'],
+  avenir: ['Geometric (Avenir)', '"Avenir Next", Avenir, Futura, "Century Gothic", "Inter", "Segoe UI", sans-serif'],
+  iowan: ['Book serif (Iowan)', '"Iowan Old Style", Charter, "Bitstream Charter", "Palatino Linotype", Palatino, Georgia, serif'],
+  display: ['Display serif (Didot)', 'Didot, "Bodoni 72", "Bodoni MT", "Playfair Display", Charter, "Bitstream Charter", Georgia, serif'],
   helvetica: ['Helvetica / Arial', '"Helvetica Neue", Helvetica, Arial, sans-serif'],
   grotesk: ['Grotesk', '"Arial Black", "Helvetica Neue", Arial, sans-serif'],
   verdana: ['Humanist sans', 'Verdana, "Trebuchet MS", Tahoma, sans-serif'],
   trebuchet: ['Trebuchet', '"Trebuchet MS", "Lucida Grande", "Lucida Sans Unicode", sans-serif'],
   georgia: ['Georgia serif', 'Georgia, "Times New Roman", Times, serif'],
-  didone: ['Didone serif', 'Didot, "Bodoni MT", "Bodoni 72", "Playfair Display", Georgia, serif'],
+  didone: ['Didone serif', 'Didot, "Bodoni MT", "Bodoni 72", "Playfair Display", Charter, Georgia, serif'],
   garamond: ['Garamond serif', 'Garamond, "EB Garamond", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif'],
   palatino: ['Palatino', '"Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif'],
   mono: ['Monospace', 'ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace'],
   rounded: ['Rounded', 'ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", "Trebuchet MS", sans-serif'],
-  condensed: ['Condensed', '"Arial Narrow", "Roboto Condensed", "Helvetica Neue", Impact, sans-serif'],
+  condensed: ['Condensed grotesk', '"Bebas Neue", Oswald, "Barlow Condensed", "Roboto Condensed", "Arial Narrow", "Helvetica Neue Condensed", Impact, "Inter Display", sans-serif'],
   impact: ['Impact display', 'Impact, Haettenschweiler, "Arial Narrow Bold", "Arial Black", sans-serif'],
 };
 
@@ -72,7 +80,7 @@ const str = (v, d = '') => v == null ? d : String(v);
 export const DEFAULT_THEME = {
   colors: { background: '#ffffff', surface: '#f5f5f4', text: '#171717', muted: '#6b6b6b', primary: '#171717', primaryText: '#ffffff', accent: '#e85d2a', border: '#e5e5e5' },
   fonts: { heading: 'system', body: 'system' }, headingWeight: 700, headingCase: 'none', radius: 8,
-  buttons: 'solid', density: 'comfortable', headerStyle: 'left', cardStyle: 'plain', imageRatio: 'square',
+  buttons: 'pill', density: 'comfortable', headerStyle: 'split', cardStyle: 'plain', imageRatio: 'portrait', shadow: 'soft', headingScale: 'large', tracking: 'tight',
 };
 
 export function newSection(type, settings = {}) {
@@ -108,6 +116,8 @@ export function normalizeProduct(p) {
     options: (Array.isArray(p.options) ? p.options : []).slice(0, 3).map(o => ({ name: str(o.name).trim(), values: [...new Set((o.values || []).map(v => str(v).trim()).filter(Boolean))] })).filter(o => o.name),
     variants: [], category: str(p.category).trim(), tags: (Array.isArray(p.tags) ? p.tags : str(p.tags).split(/[;,]/)).map(t => str(t).trim()).filter(Boolean),
     featured: !!p.featured, status: pick(p.status, ['active', 'draft'], 'active'),
+    rating: p.rating == null || p.rating === '' ? null : Math.round(num(p.rating, 0, 0, 5) * 10) / 10, reviews: Math.round(num(p.reviews, 0, 0)),
+    art: typeof p.art === 'string' && p.art.startsWith('gen:') ? p.art : null,
   };
   const given = (Array.isArray(p.variants) ? p.variants : []).map(v => ({
     id: str(v.id) || uid('v'), options: (v.options || []).map(x => str(x)), price: v.price == null || v.price === '' ? null : num(v.price, null, 0),
@@ -152,11 +162,13 @@ export function normalizeStore(input) {
       fonts: { heading: FONT_STACKS[th.fonts?.heading] ? th.fonts.heading : 'system', body: FONT_STACKS[th.fonts?.body] ? th.fonts.body : 'system' },
       headingWeight: Math.round(num(th.headingWeight, 700, 300, 900) / 100) * 100, headingCase: pick(th.headingCase, ['none', 'uppercase'], 'none'), radius: num(th.radius, 8, 0, 32),
       buttons: pick(th.buttons, ['solid', 'outline', 'pill', 'sharp'], 'solid'), density: pick(th.density, ['compact', 'comfortable', 'airy'], 'comfortable'),
-      headerStyle: pick(th.headerStyle, ['left', 'centered', 'minimal'], 'left'), cardStyle: pick(th.cardStyle, ['plain', 'card', 'bordered'], 'plain'),
-      imageRatio: pick(th.imageRatio, ['square', 'portrait', 'landscape'], 'square'),
+      headerStyle: pick(th.headerStyle, ['split', 'left', 'centered', 'minimal'], 'split'), cardStyle: pick(th.cardStyle, ['plain', 'card', 'bordered'], 'plain'),
+      imageRatio: pick(th.imageRatio, ['square', 'portrait', 'landscape'], 'portrait'),
+      shadow: pick(th.shadow, ['none', 'soft', 'strong'], 'soft'), headingScale: pick(th.headingScale, ['regular', 'large', 'huge'], 'large'), tracking: pick(th.tracking, ['tight', 'normal', 'wide'], 'tight'),
     },
     currency: { code: /^[A-Z]{3}$/.test(s.currency?.code || '') ? s.currency.code : 'USD', locale: str(s.currency?.locale, 'en-US') || 'en-US' },
-    announcement: { enabled: s.announcement ? !!s.announcement.enabled : false, text: str(s.announcement?.text), link: s.announcement?.link ? normalizeLink(s.announcement.link) : '' },
+    announcement: { enabled: s.announcement ? !!s.announcement.enabled : false, text: str(s.announcement?.text), link: s.announcement?.link ? normalizeLink(s.announcement.link) : '', style: pick(s.announcement?.style, ['static', 'marquee'], 'static') },
+    fallbackArt: typeof s.fallbackArt === 'string' && s.fallbackArt.startsWith('gen:') ? s.fallbackArt : null,
     layout: {
       header: normalizeSection(s.layout?.header?.type === 'header' ? s.layout.header : { type: 'header' }),
       footer: normalizeSection(s.layout?.footer?.type === 'footer' ? s.layout.footer : { type: 'footer' }),
@@ -221,10 +233,10 @@ export const categories = store => [...new Set(store.products.map(p => p.categor
 export function findProduct(store, id) { return store.products.find(p => p.id === id) || null; }
 export function imageRefs(store) {
   const out = new Set(), add = r => { if (typeof r === 'string' && r) out.add(r); };
-  add(store.logo.image);
-  for (const p of store.products) p.images.forEach(add);
+  add(store.logo.image); add(store.fallbackArt);
+  for (const p of store.products) { p.images.forEach(add); add(p.art); }
   for (const c of store.collections) add(c.image);
-  const walk = v => { if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') Object.values(v).forEach(walk); else if (typeof v === 'string' && /^(asset:|gen:|data:image\/)/.test(v)) add(v); };
+  const walk = v => { if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === 'object') Object.values(v).forEach(walk); else if (typeof v === 'string' && /^(asset:|gen:|unsplash:|data:image\/)/.test(v)) add(v); };
   for (const page of PAGE_KEYS) walk(store.pages[page].map(s => s.settings));
   walk([store.layout.header.settings, store.layout.footer.settings]);
   return [...out];

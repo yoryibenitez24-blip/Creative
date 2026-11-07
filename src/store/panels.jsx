@@ -63,6 +63,8 @@ export function SectionInspector({ store, page, selectedId, edit, env }) {
     return <Inspector title="Announcement bar">
       <Toggle label="Show announcement bar" value={a.enabled} onChange={v => edit(d => { d.announcement.enabled = v; }, 'Announcement')} />
       <TextInput label="Announcement text" value={a.text} onChange={v => edit(d => { d.announcement.text = v; }, 'Announcement', 'ann-text')} />
+      <Segmented label="Style" value={a.style} options={[['static', 'Static'], ['marquee', 'Scrolling ticker']]} onChange={v => edit(d => { d.announcement.style = v; }, 'Announcement')} />
+      <p className="stHint">Separate several messages with “|”.</p>
       <LinkPicker label="Announcement link" value={a.link || 'home'} store={store} onChange={v => edit(d => { d.announcement.link = v; }, 'Announcement')} />
       <p className="stHint">The bar uses the theme’s primary colours and appears on every page.</p>
     </Inspector>;
@@ -77,7 +79,7 @@ export function SectionInspector({ store, page, selectedId, edit, env }) {
   }, def.label, coalesce ? sec.id + k : undefined);
   return <Inspector title={def.label} note={REQUIRED[page] === sec.type ? 'Required on this page — it can be moved but not removed.' : global ? 'Shared by every page.' : null}>
     {sec.type === 'header' && <>
-      <Segmented label="Header style" value={store.theme.headerStyle} options={[['left', 'Left'], ['centered', 'Centered'], ['minimal', 'Minimal']]} onChange={v => edit(d => { d.theme.headerStyle = v; }, 'Header style')} />
+      <Segmented label="Header style" value={store.theme.headerStyle} options={[['split', 'Split'], ['left', 'Left'], ['centered', 'Centered'], ['minimal', 'Minimal']]} onChange={v => edit(d => { d.theme.headerStyle = v; }, 'Header style')} />
       <LogoFields store={store} edit={edit} env={env} />
       <p className="stHint">Menu links are edited under Design → Navigation.</p>
     </>}
@@ -110,14 +112,17 @@ export function ThemePanel({ store, edit, env }) {
     <Select label="Heading font" value={t.fonts.heading} options={fonts} onChange={v => th(x => { x.fonts.heading = v; }, 'Heading font')} />
     <Select label="Body font" value={t.fonts.body} options={fonts} onChange={v => th(x => { x.fonts.body = v; }, 'Body font')} />
     <ValueSlider label="Heading weight" value={t.headingWeight} min={300} max={900} step={100} format={v => String(v)} onChange={v => th(x => { x.headingWeight = v; }, 'Heading weight', 'hw')} />
+    <Segmented label="Heading size" value={t.headingScale} options={[['regular', 'Regular'], ['large', 'Large'], ['huge', 'Huge']]} onChange={v => th(x => { x.headingScale = v; }, 'Heading size')} />
+    <Segmented label="Letter spacing" value={t.tracking} options={[['tight', 'Tight'], ['normal', 'Normal'], ['wide', 'Wide']]} onChange={v => th(x => { x.tracking = v; }, 'Letter spacing')} />
     <Segmented label="Heading case" value={t.headingCase} options={[['none', 'Normal'], ['uppercase', 'UPPERCASE']]} onChange={v => th(x => { x.headingCase = v; }, 'Heading case')} />
     <p className="stGroupTitle">Shape & layout</p>
     <ValueSlider label="Corner radius" value={t.radius} min={0} max={32} format={v => v + ' px'} onChange={v => th(x => { x.radius = v; }, 'Corner radius', 'radius')} />
     <Segmented label="Buttons" value={t.buttons} options={[['solid', 'Solid'], ['outline', 'Outline'], ['pill', 'Pill'], ['sharp', 'Sharp']]} onChange={v => th(x => { x.buttons = v; }, 'Button style')} />
     <Segmented label="Product cards" value={t.cardStyle} options={[['plain', 'Plain'], ['card', 'Card'], ['bordered', 'Bordered']]} onChange={v => th(x => { x.cardStyle = v; }, 'Card style')} />
     <Segmented label="Image shape" value={t.imageRatio} options={[['square', 'Square'], ['portrait', 'Portrait'], ['landscape', 'Landscape']]} onChange={v => th(x => { x.imageRatio = v; }, 'Image shape')} />
+    <Segmented label="Shadows" value={t.shadow} options={[['none', 'None'], ['soft', 'Soft'], ['strong', 'Strong']]} onChange={v => th(x => { x.shadow = v; }, 'Shadows')} />
     <Segmented label="Spacing" value={t.density} options={[['compact', 'Compact'], ['comfortable', 'Comfortable'], ['airy', 'Airy']]} onChange={v => th(x => { x.density = v; }, 'Spacing')} />
-    <Segmented label="Header style" value={t.headerStyle} options={[['left', 'Left'], ['centered', 'Centered'], ['minimal', 'Minimal']]} onChange={v => th(x => { x.headerStyle = v; }, 'Header style')} />
+    <Segmented label="Header style" value={t.headerStyle} options={[['split', 'Split'], ['left', 'Left'], ['centered', 'Centered'], ['minimal', 'Minimal']]} onChange={v => th(x => { x.headerStyle = v; }, 'Header style')} />
     <p className="stGroupTitle">Logo</p>
     <LogoFields store={store} edit={edit} env={env} />
   </div>;
@@ -164,7 +169,8 @@ export function SettingsPanel({ store, edit }) {
     <TextInput label="Opening hours" value={store.contact.hours} onChange={v => s(d => { d.contact.hours = v; }, 'Contact', 'c-hours')} />
     <p className="stGroupTitle">Announcement</p>
     <Toggle label="Show announcement bar" value={store.announcement.enabled} onChange={v => s(d => { d.announcement.enabled = v; }, 'Announcement')} />
-    <TextInput label="Announcement text" value={store.announcement.text} onChange={v => s(d => { d.announcement.text = v; }, 'Announcement', 'ann-text')} />
+    <TextInput label="Announcement text (separate messages with |)" value={store.announcement.text} onChange={v => s(d => { d.announcement.text = v; }, 'Announcement', 'ann-text')} />
+    <Segmented label="Announcement style" value={store.announcement.style} options={[['static', 'Static'], ['marquee', 'Scrolling ticker']]} onChange={v => s(d => { d.announcement.style = v; }, 'Announcement')} />
     <p className="stGroupTitle">Search engines</p>
     <TextInput label="SEO title" value={store.seo.title} onChange={v => s(d => { d.seo.title = v; }, 'SEO', 'seo-t')} />
     <TextArea label="SEO description" value={store.seo.description} onChange={v => s(d => { d.seo.description = v; }, 'SEO', 'seo-d')} />
@@ -246,6 +252,10 @@ export function ProductEditor({ store, productId, edit, env }) {
       </div>
       <Segmented label="Status" value={p.status} options={[['active', 'Active'], ['draft', 'Draft']]} onChange={v => up(x => { x.status = v; }, 'Product status')} />
       <Toggle label="Featured product" value={p.featured} onChange={v => up(x => { x.featured = v; }, 'Featured')} />
+      <div className="stPair">
+        <Field label="Rating (0–5)"><NumField label="Rating" value={p.rating ?? ''} min={0} max={5} step={0.1} placeholder="—" onChange={v => up(x => { x.rating = v || null; }, 'Rating', 'rating')} /></Field>
+        <Field label="Number of reviews"><NumField label="Number of reviews" value={p.reviews} min={0} step={1} onChange={v => up(x => { x.reviews = Math.round(v); }, 'Reviews', 'reviews')} /></Field>
+      </div>
       <TextInput label="Category" value={p.category} list="st-cats" onChange={v => up(x => { x.category = v; }, 'Category', 'cat')} />
       <datalist id="st-cats">{categories(store).map(c => <option key={c} value={c} />)}</datalist>
       <TextInput label="Tags (comma separated)" value={p.tags.join(', ')} onChange={v => up(x => { x.tags = v.split(',').map(t => t.trim()).filter(Boolean); }, 'Tags', 'tags')} />

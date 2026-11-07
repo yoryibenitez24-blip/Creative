@@ -11,6 +11,8 @@ import { cartKit } from '../src/store/cart.js';
 import { buildSiteFiles, exportStoreZip, previewShellHtml, deployInstructions } from '../src/store/exporter.js';
 import { artSvg, ART_KINDS, gen } from '../src/store/art.js';
 import { readZip } from '../src/ecom/zip.js';
+import { ALL_PHOTO_IDS, PHOTO_CREDITS_NOTE } from '../src/store/photos.js';
+import { photoSrc } from '../src/store/render.js';
 
 const imageUrl = ref => 'images/' + ref.length + '.svg';
 
@@ -95,8 +97,12 @@ test('every section type renders on its pages with default settings', () => {
     assert.ok(html.includes('data-sid="sx"') || type === 'related-products', `${type} on ${page}`);
     assert.doesNotMatch(html, /could not be shown|undefined|NaN/, `${type} on ${page}`);
   }
-  const hero = SECTIONS.hero;
-  for (const layout of ['image', 'split', 'gradient', 'carousel', 'text']) assert.match(hero.render({ ...hero.defaults, layout, image: gen('box', '#eeeeee', '#333333', '#ff0000') }, { e: x => x, t: x => x, img: () => 'i.svg', btn: l => l, icon: () => '', link: () => '#' }, { id: 'h' }), new RegExp('hl-' + layout));
+  for (const layout of ['image', 'split', 'gradient', 'carousel', 'text']) {
+    const st = structuredClone(s); st.pages.home = [{ id: 'hx', type: 'hero', settings: { ...SECTIONS.hero.defaults, layout, image: 'unsplash:' + ALL_PHOTO_IDS[0] } }];
+    const html = renderPage(normalizeStore(st), { page: 'home' }, { mode: 'export', imageUrl });
+    assert.match(html, new RegExp('hl-' + layout));
+    assert.equal(/class="site-header[^"]* over"/.test(html), ['image', 'carousel', 'gradient'].includes(layout), 'transparent header only over photo/gradient heroes');
+  }
 });
 
 test('links: paths, relative hrefs and route resolution', () => {
@@ -119,7 +125,7 @@ test('collections by category, tag and manual pick', () => {
   const s = createStore('general');
   const cat = s.collections[0];
   assert.ok(collectionProducts(s, cat).every(p => p.category === cat.rule.value));
-  const t = normalizeStore({ ...s, collections: [{ id: 'c1', title: 'Tagged', rule: { type: 'tag', value: 'kitchen' } }, { id: 'c2', title: 'Pick', rule: { type: 'manual', productIds: [s.products[2].id, s.products[0].id] } }] });
+  const t = normalizeStore({ ...s, collections: [{ id: 'c1', title: 'Tagged', rule: { type: 'tag', value: 'tech' } }, { id: 'c2', title: 'Pick', rule: { type: 'manual', productIds: [s.products[2].id, s.products[0].id] } }] });
   assert.ok(collectionProducts(t, t.collections[0]).length > 0);
   assert.deepEqual(collectionProducts(t, t.collections[1]).map(p => p.id), [s.products[2].id, s.products[0].id]);
 });
@@ -212,7 +218,13 @@ test('export: ZIP has every page, assets and images; all relative links resolve'
   assert.ok(checked > 200, String(checked));
   const js = dec.decode(files.find(f => f.name === root + 'assets/store.js').data);
   assert.ok(js.includes('products/' + store.products[0].slug + '.html'));
-  assert.match(dec.decode(files.find(f => f.name === root + 'README.txt').data), /Netlify[\s\S]*GitHub Pages/);
+  const readme = dec.decode(files.find(f => f.name === root + 'README.txt').data);
+  assert.match(readme, /Netlify[\s\S]*GitHub Pages/); assert.ok(readme.includes(PHOTO_CREDITS_NOTE), 'README credits the photos');
+  assert.ok(!files.some(f => /unsplash/.test(f.name)), 'curated photos stay hot-linked');
+  // photos carry an offline fallback that points at an exported procedural image
+  const idx = dec.decode(files.find(f => f.name === root + 'index.html').data);
+  assert.match(idx, /src="https:\/\/images\.unsplash\.com\/photo-[^"]+" srcset="[^"]+ 1x, [^"]+ 2x"/);
+  for (const [, fb] of idx.matchAll(/this\.src='([^']+)'/g)) assert.ok(names.has(posix.normalize(posix.join(root, fb))), 'fallback ' + fb);
   assert.match(deployInstructions(store), /never collects card details/);
 });
 
@@ -222,6 +234,24 @@ test('preview shell contains every page and a router', () => {
   for (const pg of sitePages(s)) assert.ok(html.includes(JSON.stringify(pg.path)), pg.path);
   assert.ok(!/<\/script>(?![\s\S]*<\/body>)/.test(html.slice(0, html.lastIndexOf('</script>'))));
   assert.equal(html.match(/<\/script>/g).length, 1, 'embedded pages cannot terminate the shell script');
+});
+
+test('templates use only curated photos from photos.js, with niche photos everywhere', () => {
+  const ids = new Set(ALL_PHOTO_IDS);
+  for (const t of STORE_TEMPLATES) {
+    const s = createStore(t.id), json = JSON.stringify(s);
+    const used = [...json.matchAll(/unsplash:([0-9a-f-]+)/g)].map(m => m[1]);
+    assert.ok(used.length >= 8, t.id + ' uses photos');
+    for (const id of used) assert.ok(ids.has(id), `${t.id}: ${id} is not a curated photo`);
+    assert.ok(s.products.every(p => p.images.length && p.images.every(r => r.startsWith('unsplash:')) && p.art.startsWith('gen:')), t.id + ' products: photos + fallback art');
+    assert.ok(s.fallbackArt.startsWith('gen:'));
+    const hero = s.pages.home.find(x => x.type === 'hero');
+    assert.ok(hero.settings.layout === 'text' || hero.settings.image || hero.settings.slides.length, t.id + ' hero has a photo');
+    const html = renderPage(s, { page: 'home' }, { mode: 'export', imageUrl });
+    for (const [, id] of html.matchAll(/images\.unsplash\.com\/photo-([0-9a-f-]+)\?/g)) assert.ok(ids.has(id), id);
+  }
+  const p = photoSrc('unsplash:' + ALL_PHOTO_IDS[0], 'card');
+  assert.match(p.src, /w=640/); assert.match(p.srcset, /w=1280[^ ]* 2x$/); assert.ok(p.alt.length > 3);
 });
 
 test('procedural art renders every kind deterministically', () => {

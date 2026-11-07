@@ -21,7 +21,8 @@
 /* layout */
 .stBody { flex: 1; display: grid; grid-template-columns: 300px 1fr 320px; min-height: 0; }
 .stLeft, .stRight { background: var(--z-panel, #161618); overflow-y: auto; min-height: 0; }
-.stLeft { border-right: 1px solid var(--z-line); } .stRight { border-left: 1px solid var(--z-line); }
+.stLeft { border-right: 1px solid var(--z-line); } .stRight { border-left: 1px solid var(--z-line); overflow-x: hidden; }
+.stFields > *, .stField, .stList, .stListItem, .stListBody > * { min-width: 0; }
 .stTabs { display: flex; margin: 12px; } .stTabs button { flex: 1; padding: 6px 4px; }
 .stSubTabs { display: flex; gap: 14px; padding: 0 16px; border-bottom: 1px solid var(--z-line); }
 .stSubTabs button { background: none; border: 0; color: var(--z-dim); padding: 8px 0 10px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
@@ -137,8 +138,8 @@
 .stTpl { border-radius: 14px; background: #18181b; border: 1px solid #26262b; overflow: hidden; display: flex; flex-direction: column; transition: border-color .15s, transform .15s; }
 .stTpl:hover { border-color: #4a4a52; transform: translateY(-2px); }
 .stTplThumb { position: relative; height: 200px; overflow: hidden; background: #222; }
-.stTplThumb iframe { position: absolute; top: 0; left: 0; width: 1280px; height: 4000px; border: 0; transform: scale(.25); transform-origin: 0 0; pointer-events: none; transition: top 4s ease-in-out; }
-.stTpl:hover .stTplThumb iframe { top: -480px; }
+.stTplThumb iframe { position: absolute; top: 0; left: 0; width: 1280px; height: 2400px; border: 0; transform: scale(.25); transform-origin: 0 0; pointer-events: none; transition: top 4s ease-in-out; }
+.stTpl:hover .stTplThumb iframe { top: -380px; }
 @media (prefers-reduced-motion: reduce) { .stTpl:hover .stTplThumb iframe { top: 0; } }
 .stTplInfo { padding: 12px 14px 14px; display: grid; gap: 4px; flex: 1; align-content: start; }
 .stTplTop { display: flex; justify-content: space-between; align-items: center; }
