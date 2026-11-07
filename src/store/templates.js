@@ -545,9 +545,9 @@ def({
   description: 'Warm off-white studio label: grotesk headline with a blue dot, small uppercase meta labels and a clothes rail you slide.',
   theme: { colors: { background: '#f2eee6', surface: '#e7e1d6', text: '#151515', muted: '#6c675f', primary: '#151515', primaryText: '#f2eee6', accent: '#2a55ff', border: '#dcd5c8' }, fonts: { heading: 'spacegrotesk', body: 'inter', accent: 'instrument' }, headingWeight: 600, headingCase: 'none', radius: 14, buttons: 'pill', density: 'comfortable', headerStyle: 'left', cardStyle: 'plain', imageRatio: 'portrait', headingScale: 'large', tracking: 'tight', shadow: 'soft' },
   art: ['#e7e1d6', '#2a55ff'], swatches: ['#151515', '#f2eee6', '#2a55ff', '#9a8f80'], heroArt: 'tshirt',
-  products: [['Studio Tank', 45, 0, 'tshirt', 'Tops', { Size: SIZES, Color: ['Black', 'Off-white'] }, { ph: ['@p0', '@u0'], tags: ['new'], rating: 4.8, reviews: 64 }], ['Work Shirt', 98, 0, 'jacket', 'Shirts', { Size: SML, Color: ['Sage', 'Bone'] }, { ph: ['@p3', '@shirts:h1'], rating: 4.9, reviews: 41 }],
+  products: [['Studio Tank', 45, 0, 'tshirt', 'Tops', { Size: SIZES, Color: ['Black', 'Off-white'] }, { ph: ['@p0', '@u0'], tags: ['new'], rating: 4.8, reviews: 64 }], ['Work Shirt', 98, 0, 'jacket', 'Shirts', { Size: SML, Color: ['Sage', 'Bone'] }, { ph: ['@p3', '@h2'], rating: 4.9, reviews: 41 }],
     ['Loop Hoodie', 120, 0, 'hoodie', 'Tops', { Size: SIZES, Color: ['Grey', 'Black'] }, { ph: ['@p1', '@u2'] }], ['Knit Poncho', 160, 0, 'jacket', 'Knitwear', { Color: ['Cream', 'Oat'] }, { ph: ['@p2', '@u3'] }], ['Studio Sweat', 88, 0, 'hoodie', 'Tops', { Size: SIZES, Color: ['White', 'Grey'] }, { ph: ['@p4', '@u1'] }], ['Field Jacket', 210, 240, 'jacket', 'Outerwear', { Size: SML, Color: ['Denim'] }, { ph: ['@p5', '@u4'] }]],
-  home: [S('editorial-hero', { layout: 'split', metaLeft: 'Capsule 001 / Rail Studio', metaRight: '06 objects / one creative spirit', heading: 'Made for making', dot: true, text: 'Studio wear for people who make things. Heavy cotton, honest cuts, built to get paint on.', buttonLabel: 'Shop the capsule', buttonLink: '#rail', button2Label: 'The studio', button2Link: 'page:about', image: '@shirts:h1', image2: '@p0', caption: 'Work Shirt — bone', sticker: 'Capsule 001 · Made in small runs' }),
+  home: [S('editorial-hero', { layout: 'split', metaLeft: 'Capsule 001 / Rail Studio', metaRight: '06 objects / one creative spirit', heading: 'Made for making', dot: true, text: 'Studio wear for people who make things. Heavy cotton, honest cuts, built to get paint on.', buttonLabel: 'Shop the capsule', buttonLink: '#rail', button2Label: 'The studio', button2Link: 'page:about', image: '@h2', image2: '@p0', caption: 'Studio Tank — off-white', sticker: 'Capsule 001 · Made in small runs' }),
     S('rail', { eyebrow: 'Capsule 001 / Rail Studio', heading: 'On the rail', metaRight: '06 objects / one creative spirit', source: 'all', limit: 6 }),
     S('marquee', { text: 'Made in small runs | Free repairs for life | Ships in 48 hours | Carbon-neutral delivery', style: 'ticker', separator: '●', speed: 40 }),
     S('split-feature', { eyebrow: 'The studio', heading: 'Built for the *studio floor*', text: 'Every piece is tested in our own workshop for a season before it goes on the rail.', image: '@u3', shape: 'arch', imageSide: 'left', background: '#151515', textColor: '#f2eee6', items: [{ icon: 'leaf', title: '400 gsm organic cotton', text: 'Dense, soft and breathable.' }, { icon: 'refresh', title: 'Repairs for life', text: 'Send it back, we fix it free.' }, { icon: 'award', title: 'Reinforced seams', text: 'Bar-tacked where it matters.' }] }),
@@ -555,7 +555,7 @@ def({
     S('polaroids', { heading: 'One tank. *Three ways.*', items: [{ image: '@u0', caption: 'Studio', note: 'Under an apron', link: '' }, { image: '@u1', caption: 'Street', note: 'Layered under denim', link: '' }, { image: '@u2', caption: 'Sunday', note: 'With everything', link: '' }] }),
     S('newsletter', { heading: 'Capsule notes', text: 'One email when a new capsule lands on the rail.' })],
   productSections: [S('spec-list', { eyebrow: 'Studio standard', heading: 'Made *properly*', rows: 'Fabric | Organic cotton, OEKO-TEX\nStitching | Double needle, bar-tacked\nRepairs | Free for life\nPackaging | Recycled paper', image: null })],
-  footer: { wordmark: true }, announcement: 'Capsule 001 is live | Free repairs for life', payments: 'Card, Wallets',
+  footer: { text: 'Studio wear for people who make things. Small runs, honest cuts, repairs for life.', wordmark: true }, announcement: 'Capsule 001 is live | Free repairs for life', payments: 'Card, Wallets',
 });
 
 def({
@@ -577,7 +577,7 @@ def({
     S('drop-countdown', { eyebrow: 'Limited check collection 02', heading: 'The check drop *lands soon*', text: '300 pieces. Four checks. When they are gone, they are gone.', buttonLabel: 'Get early access', buttonLink: '#newsletter', image: '@p2', sticker: 'Limited · Drop 02 · 300 pieces', background: '#17402d', textColor: '#d4f25a' }),
     S('newsletter', { heading: 'Get the drop first', text: 'Early access, styling notes and zero spam.' })],
   productSections: [S('steps', { heading: 'Ordering is *easy*', style: 'cards', items: STEPS_SHOP.slice(1, 5) })],
-  footer: { dark: true, wordmark: true }, announcement: 'Drop 02 is live | Free exchanges | Ships in 48 h', annStyle: 'marquee', payments: 'Card, Wallets', nav: ['Shirts', 'Blouses', 'Tailoring'],
+  footer: { text: 'Loud shirts, soft cotton. Designed to mix, made to be noticed.', dark: true, wordmark: true }, announcement: 'Drop 02 is live | Free exchanges | Ships in 48 h', annStyle: 'marquee', payments: 'Card, Wallets', nav: ['Shirts', 'Blouses', 'Tailoring'],
 });
 
 def({
@@ -594,7 +594,7 @@ def({
     S('spec-list', { eyebrow: 'Colophon', heading: 'Printing *notes*', rows: 'Print run | 300 per style\nPaper stock | 280 gsm heavyweight cotton\nInk | Water-based, cracks beautifully\nBinding | Flatlock seams\nReprints | Never' }),
     S('drop-countdown', { eyebrow: 'Next issue', heading: 'Issue 10 *goes to print*', text: 'Subscribers get the link an hour early.', buttonLabel: 'Subscribe', buttonLink: '#newsletter', image: '@u4', sticker: 'Issue 10 · Coming soon', background: '#0d0d0d', textColor: '#efeee8' }),
     S('newsletter', { heading: 'Subscribe to the issue', text: 'One email per print run.' })],
-  footer: { wordmark: true }, announcement: 'Issue 09 out now | Free zine with every order', annStyle: 'marquee', payments: 'Card, Wallets',
+  footer: { text: 'Streetwear published like a zine. One issue at a time, never reprinted.', wordmark: true }, announcement: 'Issue 09 out now | Free zine with every order', annStyle: 'marquee', payments: 'Card, Wallets',
 });
 
 def({
@@ -613,7 +613,7 @@ def({
     S('testimonials', { style: 'big', heading: 'Glowing *reviews*', rating: '4.8', ratingText: 'From 5,000+ glow-getters', items: Q(['My skin literally looks like glass. Obsessed.', 'Ama D.', 'Liquid Chrome Serum', '@fashion:u0'], ['The palette is unreal — holo on the lid, wearable at work.', 'Lena V.', 'Holo Eye Palette', '@fashion:u3']) }),
     S('drop-countdown', { eyebrow: 'Restock alert', heading: 'Holo palette *restock*', text: 'It sold out in four hours last time. Set a reminder.', buttonLabel: 'Notify me', buttonLink: '#newsletter', image: '@p4', sticker: 'Restock · Holo · Limited', background: '#ff4fd8', textColor: '#1b1430' }),
     S('newsletter', { heading: 'Join the glow list', text: 'Restocks, routines and member-only shades.' })],
-  footer: { dark: true }, announcement: 'Free shipping over $40 | Refills save 20%', payments: 'Card, Wallets',
+  footer: { text: 'High-shine skincare and holo colour. Vegan, refillable, a little bit extra.', dark: true }, announcement: 'Free shipping over $40 | Refills save 20%', payments: 'Card, Wallets',
 });
 
 def({
@@ -630,7 +630,7 @@ def({
     S('steps', { eyebrow: 'Process', heading: 'Ordered to last', style: 'line', items: [{ icon: 'card', title: 'Order', text: 'Pay securely online.' }, { icon: 'box', title: 'Built to order', text: 'In our Berlin workshop.' }, { icon: 'truck', title: 'Delivered', text: 'Within 3 weeks.' }, { icon: 'refresh', title: 'Parts for life', text: 'Every part replaceable.' }] }),
     S('rich-text', { eyebrow: 'Principle', text: 'Less, but better. Every object in the index is designed to be repaired, not replaced.', size: 'large', align: 'left' }),
     S('newsletter', { heading: 'Index updates', text: 'A new object, twice a year.' })],
-  currency: ['EUR', 'de-DE'], footer: { wordmark: true }, payments: 'Card, Bank transfer',
+  currency: ['EUR', 'de-DE'], footer: { text: 'Objects for daily use, designed on a grid and built to last decades.', wordmark: true }, payments: 'Card, Bank transfer',
 });
 
 def({
@@ -650,6 +650,7 @@ def({
     S('testimonials', { heading: 'Kind *words*', items: Q(['My morning coffee tastes better in these cups. I am not joking.', 'Inês P.', 'Speckled Cup Set'], ['The class was the best date we have had in years.', 'Sam & Leo', 'Wheel Class for Two'], ['Every plate is slightly different and I love it.', 'Hana M.', 'Lagoon Plate Set']) }),
     S('newsletter', { heading: 'Kiln opening dates', text: 'Be first to shop each new batch.' })],
   currency: ['EUR', 'pt-PT'], payments: 'Card, Wallets',
+  footer: { text: 'Wheel-thrown stoneware from a small studio in Lisbon. Every piece one of a kind.' },
 });
 
 def({
@@ -667,7 +668,7 @@ def({
     S('steps', { eyebrow: 'How drops work', heading: 'Four steps to *the pair*', style: 'line', items: [{ icon: 'card', title: 'Join the raffle', text: 'One entry per person.' }, { icon: 'chat', title: 'Get the text', text: 'Winners hear at 00:05.' }, { icon: 'clock', title: 'Check out in 10 min', text: 'Your pair is held.' }, { icon: 'bolt', title: 'Lace up', text: 'Ships next morning.' }] }),
     S('spec-list', { eyebrow: 'Afterglow Runner', heading: 'Built for *night shifts*', rows: 'Upper | Recycled mesh, reflective yarn\nMidsole | Nitrogen-infused foam\nDrop | 8 mm\nWeight | 248 g (size 42)\nGlow | 360° reflective details', image: '@p3', imageSide: 'right' }),
     S('newsletter', { heading: 'Drop alerts', text: 'A text and an email 10 minutes before every drop.' })],
-  footer: { wordmark: true }, announcement: 'Drop 03 raffle open | One pair per person', annStyle: 'marquee', payments: 'Card, Wallets',
+  footer: { text: 'Limited sneakers released at midnight. One pair per person, no bots.', wordmark: true }, announcement: 'Drop 03 raffle open | One pair per person', annStyle: 'marquee', payments: 'Card, Wallets',
 });
 
 def({
@@ -687,6 +688,7 @@ def({
     S('steps', { eyebrow: 'Care guide', heading: 'Happy plants in *four steps*', style: 'line', items: [{ icon: 'globe', title: 'Find the light', text: 'Bright, indirect for most.' }, { icon: 'clock', title: 'Water less', text: 'Check the soil first.' }, { icon: 'leaf', title: 'Feed in spring', text: 'Once a month.' }, { icon: 'refresh', title: 'Repot yearly', text: 'One size up.' }] }),
     S('newsletter', { heading: 'Seasonal care notes', text: 'Four letters a year, one per season.' })],
   payments: 'Card, Wallets', freeShipping: 60,
+  footer: { text: 'Healthy plants, handpicked pots and care advice that fits your life.' },
 });
 
 def({
@@ -705,6 +707,7 @@ def({
     S('testimonials', { style: 'big', heading: 'Parents *agree*', rating: '4.9', ratingText: 'From 3,100+ happy families', items: Q(['Our toddler has played with the train every day for a month.', 'Priya N.', 'Mum of two'], ['Beautifully made and the gift wrap was adorable.', 'Tom G.', 'Uncle of the year']) }),
     S('newsletter', { heading: 'Join the play club', text: 'Birthday reminders and 10% off your first order.' })],
   payments: 'Card, Wallets', freeShipping: 50,
+  footer: { text: 'Wooden classics and bright little wonders for ages 1–8.' },
 });
 
 def({
@@ -724,6 +727,7 @@ def({
     S('testimonials', { heading: 'Regulars *say*', items: Q(['Best house blend I have tried. My moka pot is happy.', 'Rosa M.', 'Subscriber'], ['Fast, fresh and the bags are actually compostable.', 'Ben T.', 'Subscriber'], ['The brew guide fixed my pour-over in one morning.', 'Kai L.', 'Verified buyer']) }),
     S('newsletter', { heading: 'The roast report', text: 'New origins and brew tips, every other week.' })],
   checkout: 'whatsapp', announcement: 'Free delivery over $40 | Roasted every Monday', payments: 'Card, Cash', freeShipping: 40,
+  footer: { text: 'Small-batch coffee roasted every Monday. Friendly flavour, on the line.' },
 });
 
 const photoSet = t => PHOTOS[t.photos] || PHOTOS.general;

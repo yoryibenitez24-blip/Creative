@@ -35,7 +35,8 @@ export const burst = (n, r) => Array.from({ length: n * 2 }, (_, i) => { const a
 /** Rotating circular text badge (decorative: the words are repeated in nearby copy or are pure flavour). */
 export function sticker(text, ctx, sec, cls = '') {
   const t = String(text || '').trim(); if (!t) return '';
-  const id = 'stk-' + sec.id + (cls ? '-' + cls : ''), words = t.toUpperCase().replace(/\s*·\s*$/, '') + ' · ';
+  const id = 'stk-' + sec.id + (cls ? '-' + cls : ''), one = t.toUpperCase().replace(/\s*·\s*$/, '') + ' · ';
+  let words = one; while (words.length < 30) words += one;
   return `<span class="sticker ${cls}" aria-hidden="true"><svg viewBox="0 0 200 200"><defs><path id="${id}" d="M100,100 m-72,0 a72,72 0 1,1 144,0 a72,72 0 1,1 -144,0"/></defs><circle class="stk-bg" cx="100" cy="100" r="99"/><g class="stk-spin"><text><textPath href="#${id}" textLength="448" lengthAdjust="spacing">${ctx.e(words)}</textPath></text></g><polygon class="stk-star" points="${burst(8, 0.42).split(' ').map(pt => pt.split(',').map(v => (+v * 0.7 + 65).toFixed(1)).join(',')).join(' ')}"/></svg></span>`;
 }
 export const FEATURE_ICONS = ['truck', 'shield', 'refresh', 'star', 'heart', 'leaf', 'clock', 'chat', 'gift', 'bolt', 'check', 'lock', 'globe', 'award', 'users', 'play', 'sparkle', 'box'];
@@ -193,7 +194,7 @@ export const SECTIONS = {
       const pays = String(s.payments || '').split(',').map(x => x.trim()).filter(Boolean);
       return `<footer class="site-footer${s.dark ? ' ft-dark' : ''}" data-sid="${sec.id}" data-type="footer"><div class="wrap"><div class="ft-grid">
         <div class="ft-brand"><a class="logo" href="${ctx.link('home')}">${ctx.e(st.logo.text || st.name)}</a>${s.text ? `<p${ctx.ed('text')}>${ctx.e(s.text)}</p>` : ''}${social}</div>${menu}${contact}${nl}</div>
-        <div class="ft-bottom"><p>${ctx.e(s.copyright || `© ${new Date().getFullYear()} ${st.name}`)}</p>${pays.length ? `<ul class="pays" aria-label="Payment methods">${pays.map(p => `<li title="${ctx.e(p)}">${ctx.icon(PAY_ICON(p))}<span>${ctx.e(p)}</span></li>`).join('')}</ul>` : ''}</div>${s.wordmark ? `<p class="ft-wordmark" aria-hidden="true">${ctx.e(st.logo.text || st.name)}</p>` : ''}</div></footer>`;
+        <div class="ft-bottom"><p>${ctx.e(s.copyright || `© ${new Date().getFullYear()} ${st.name}`)}</p>${pays.length ? `<ul class="pays" aria-label="Payment methods">${pays.map(p => `<li title="${ctx.e(p)}">${ctx.icon(PAY_ICON(p))}<span>${ctx.e(p)}</span></li>`).join('')}</ul>` : ''}</div>${s.wordmark ? `<p class="ft-wordmark" aria-hidden="true" style="--wl:${Math.max(4, (st.logo.text || st.name).length)}">${ctx.e(st.logo.text || st.name)}</p>` : ''}</div></footer>`;
     },
   },
 

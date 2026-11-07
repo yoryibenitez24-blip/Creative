@@ -109,6 +109,7 @@
 .caIntro.calm .ciBadge { transform: none; }
 .caIntro.calm .caIntroGrid { opacity: .3; }
 .caIntro.calm .ciFrameFill { fill: #ece5dd; } .caIntro.calm .ciUrl { fill: #fbf6ef; }
+.caIntro.calm .ciDot.d0 { fill: #ff6b57; } .caIntro.calm .ciDot.d1 { fill: #ffbf47; } .caIntro.calm .ciDot.d2 { fill: #5ccf8e; }
 @keyframes ciCalmOut { to { opacity: 0; visibility: hidden; } }
 
 /* after the intro: the admin's cards rise in one after another */

@@ -371,6 +371,7 @@ const BASE_CSS = `*,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 var(--font-b);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden}
 img{max-width:100%;display:block}
+main{overflow-x:clip}
 :has(>img.fz){overflow:hidden}
 a{color:inherit;text-decoration-thickness:1px;text-underline-offset:3px}
 h1,h2,h3{font-family:var(--font-h);font-weight:var(--hw);text-transform:var(--hcase);line-height:1.04;margin:0 0 .45em;letter-spacing:var(--track);text-wrap:balance}
@@ -750,7 +751,7 @@ body.drawer-open{overflow:hidden}
 .meta{font:600 11.5px/1.35 var(--font-b);letter-spacing:.16em;text-transform:uppercase;margin:0 0 12px;opacity:.8}
 .sticker{position:absolute;z-index:4;width:clamp(92px,10.5vw,148px);aspect-ratio:1;pointer-events:none;color:var(--stk-fg,var(--on-accent));filter:drop-shadow(0 10px 18px rgba(0,0,0,.18))}
 .sticker svg{display:block;width:100%;height:100%;overflow:visible}.stk-bg{fill:var(--stk-bg,var(--accent))}.stk-star{fill:currentColor}
-.sticker text{font:700 17px var(--font-b);letter-spacing:.1em;fill:currentColor}
+.sticker text{font:700 18.5px var(--font-b);letter-spacing:.06em;fill:currentColor}
 .stk-spin{transform-box:view-box;transform-origin:50% 50%;animation:zspin 16s linear infinite}
 @keyframes zspin{to{transform:rotate(360deg)}}
 .hero-stk{right:clamp(16px,7vw,110px);top:clamp(110px,22vh,220px)}.hl-split .hero-stk{right:auto;left:calc(50% - 40px);top:auto;bottom:clamp(24px,8vh,80px)}
@@ -839,13 +840,13 @@ body.drawer-open{overflow:hidden}
 .sf-media .sticker{right:-16px;top:-16px}
 .tq-wrap{display:grid;grid-template-columns:.8fr 1.2fr;gap:clamp(28px,5vw,88px);align-items:start}
 .tq-rate{display:flex;align-items:center;gap:18px;margin:28px 0 22px}.tq-rate b{font:var(--hw) calc(clamp(68px,8vw,124px) * var(--hs))/.86 var(--font-h);letter-spacing:-.03em}.tq-rate small{display:block;color:var(--muted);font-size:13.5px;margin-top:6px}.tq-rate .stars-bg .ico,.tq-rate .stars-fg .ico{width:20px;height:20px}
-.tq-big .quote{position:relative;padding-top:64px}.tq-mark{position:absolute;top:2px;left:24px;font:400 128px/1 var(--font-a);color:var(--accent);height:70px}
+.tq-big .quote{position:relative;padding-top:64px}.tq-big .quote blockquote{font:500 calc(clamp(17px,1.4vw,20px) * 1)/1.5 var(--font-b);letter-spacing:0;text-transform:none}.tq-mark{position:absolute;top:2px;left:24px;font:400 128px/1 var(--font-a);color:var(--accent);height:70px}
 .mq-bg{background:var(--mq-bg);color:var(--mq-fg,inherit);border:0}.mq-bg i{color:inherit}.mq-outline.mq-bg span{-webkit-text-stroke-color:var(--mq-fg,var(--text))}
 .mq-ticker{padding:13px 0;background:var(--mq-bg,var(--text));color:var(--mq-fg,var(--bg));border:0}.mq-ticker .mq-run{gap:22px;padding-right:22px}.mq-ticker .mq-run span{font:700 13.5px/1 var(--font-b);letter-spacing:.16em;text-transform:uppercase}.mq-ticker .mq-run i{font-size:13px;color:inherit}
 .mq-tilt{position:relative;z-index:3;transform:rotate(-2deg);margin:clamp(18px,2.4vw,34px) -3vw;width:calc(100% + 6vw)}
 .ft-dark{background:var(--text);color:var(--bg)}.ft-dark h3,.ft-dark .ft-brand p,.ft-dark .ft-bottom{color:color-mix(in srgb,var(--bg) 62%,transparent)}.ft-dark .ft-bottom{border-color:color-mix(in srgb,var(--bg) 18%,transparent)}
 .ft-dark .social a{border-color:color-mix(in srgb,var(--bg) 25%,transparent)}.ft-dark .social a:hover{background:var(--bg);color:var(--text)}.ft-dark .nl-mini{border-color:var(--bg)}.ft-dark .pays li{background:transparent;color:var(--bg);border-color:color-mix(in srgb,var(--bg) 25%,transparent)}
-.ft-wordmark{margin:clamp(36px,5vw,72px) 0 0;font:var(--hw) clamp(56px,15vw,260px)/.82 var(--font-h);text-transform:var(--hcase);letter-spacing:-.04em;white-space:nowrap;overflow:hidden;text-align:center;color:inherit}
+.ft-wordmark{margin:clamp(36px,5vw,72px) 0 -.08em;padding-bottom:.02em;font:var(--hw) clamp(52px,min(15vw,calc(150vw / var(--wl,9))),300px)/.9 var(--font-h);text-transform:var(--hcase);letter-spacing:-.04em;white-space:nowrap;overflow:hidden;text-align:center;color:inherit}
 @media (max-width:900px){
 .eh-grid,.sl-photo .sl-grid,.dr-photo .dr-card,.sf-card,.tq-wrap{grid-template-columns:1fr}.speclist.rev .sl-media,.sfeat.rev .sf-media{order:0}
 .eh-split .eh-b{left:auto;right:-4%;width:34%;bottom:-6%}.eh-split .sticker{right:auto;left:-6px;top:-26px}.eh-collage .eh-media{max-width:520px;margin:0 auto;width:100%}

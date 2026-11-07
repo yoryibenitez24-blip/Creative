@@ -192,10 +192,10 @@ export const PHOTOS = {
     product: [['1600880292203-757bb62b4baf', 'Colleagues high-fiving at a desk'], ['1556761175-b413da4baf72', 'Team meeting in an open office'], ['1460925895917-afdab827c52f', 'Analytics on a laptop']],
   },
   shirts: {
-    hero: [['1626497764746-6dc36546b388', 'Colourful shirts on a white clothes rail'], ['1603252109303-2751441dd157', 'White shirts on wooden hangers against a mustard wall']],
+    hero: [['1626497764746-6dc36546b388', 'Colourful shirts on a white clothes rail'], ['1580657018950-c7f7d6a6d990', 'Check tweed jackets on mannequins in a shop']],
     product: [
       ['1596755094514-f87e34085b2c', 'Patterned chambray shirt on a hanger'],
-      ['1603252109303-2751441dd157', 'White shirts on wooden hangers'],
+      ['1598033129183-c4f50c736f10', 'Crisp white shirt with a polka-dot tie'],
       ['1626497764746-6dc36546b388', 'Dip-dyed shirts on a rail'],
       ['1608234807905-4466023792f5', 'Woman in a white bow blouse'],
       ['1588359348347-9bc6cbbb689e', 'Smiling man in a pale blue shirt'],
