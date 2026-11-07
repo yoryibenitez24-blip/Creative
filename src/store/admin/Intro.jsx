@@ -1,5 +1,5 @@
 // Entrance animation of the commerce app (~2.2 s): a flat line-art illustration of a little shopping street that
-// draws itself stroke by stroke (navy lines on teal, like an editorial spot illustration): a storefront with a
+// draws itself stroke by stroke (white lines on a very dark blue, like an editorial spot illustration): a storefront with a
 // scalloped awning and an OPEN sign, a tall shopping bag, a phone with a wifi antenna, a swinging price tag, a drifting
 // cloud, a credit card that slides in, a parcel that drops onto the street and a few sparkles. Then a circular wipe
 // reveals the admin (CommerceApp adds .caEnter for a moment so its cards rise in).
@@ -112,7 +112,6 @@ export default function Intro({ onDone, storeName }) {
         <g className="ciSpark b"><L t={1040} d="M282 48 v12 M276 54 h12" thin /></g>
         <g className="ciSpark c"><L t={1100} d="M362 196 v10 M357 201 h10" thin /></g>
       </svg>
-      <div className="caIntroText"><strong>Zertake Commerce</strong><span>{storeName ? `Opening ${storeName}` : 'Opening your store'}</span></div>
     </div>
     <button type="button" className="caIntroSkip" onClick={e => { e.stopPropagation(); finish(); }}>Skip</button>
   </div>;
