@@ -70,6 +70,16 @@ await step('E-commerce: first visit → setup wizard → template → intro → 
   await page.getByRole('button', { name: 'Exit commerce' }).click(); await page.getByRole('main', { name: 'Zertake home' }).waitFor();
   assert.equal(path(), '/');
 });
+await step('the entrance animation plays every time E-commerce is entered from another section (also via Back), not on in-app moves', async () => {
+  const intro = page.getByTestId('commerce-intro');
+  await page.getByRole('main', { name: 'Zertake home' }).getByRole('button', { name: 'Open E-commerce' }).click();
+  await intro.waitFor({ timeout: 10000 }); await page.keyboard.press('Escape'); await intro.waitFor({ state: 'detached' });
+  await page.getByRole('button', { name: 'Exit commerce' }).click(); await page.getByRole('main', { name: 'Zertake home' }).waitFor();
+  await page.goBack(); await intro.waitFor({ timeout: 10000 }); await page.keyboard.press('Escape'); await intro.waitFor({ state: 'detached' });
+  await page.getByRole('button', { name: 'Online Store', exact: true }).first().click();
+  await page.waitForTimeout(300); assert.equal(await intro.count(), 0, 'moving inside commerce does not replay it');
+  await page.getByRole('button', { name: 'Exit commerce' }).click(); await page.getByRole('main', { name: 'Zertake home' }).waitFor();
+});
 const commerceMain = page.getByRole('main', { name: 'Commerce content' });
 await step('a deep link (/commerce/ironclad/orders) reloads to that page; Back and Forward move between pages', async () => {
   await page.goto(base + '/commerce/ironclad/orders'); await page.keyboard.press('Escape').catch(() => {});
