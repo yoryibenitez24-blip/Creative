@@ -14,13 +14,15 @@
 //   storeScript(store, imageUrl, {preview})  → assets/store.js (cart kit + runtime + data)
 //   resolveHref(fromPath, href)              → site-root-relative path ('products/x.html'), or null for external links
 
-import { SECTIONS } from './sections.js';
+import { SECTIONS, sectionMotion } from './sections.js';
 import { FONT_STACKS, webFontUrl, collectionProducts, activeProducts, PAGE_LABELS } from './model.js';
 import { cartKit } from './cart.js';
 import { storeRuntime } from './runtime.js';
+import { motionRuntime } from './motion.js';
 import { photoUrl, PHOTOS } from './photos.js';
 import { editorAgent } from './agent.js';
 import { checkoutConfig, commerceScript } from './commerce.js';
+import { integrationSnippets } from './integrations.js';
 import { frameOf, productFrame, frameStyle, isDefaultFrame } from './frame.js';
 
 export const ALL_COLLECTION = { id: 'all', title: 'All products', slug: 'all', description: '', image: null, rule: { type: 'all', value: '', productIds: [] } };
@@ -205,8 +207,30 @@ function makeCtx(store, route, opts) {
 export function renderSection(sec, ctx) {
   const def = SECTIONS[sec.type];
   if (!def || sec.hidden) return '';
-  try { return def.render(sec.settings, ctx, sec); }
+  try { const html = def.render(sec.settings, ctx, sec); return def.global ? html : withMotion(html, sec, ctx.store.theme.motion); }
   catch (err) { return `<section class="sec" data-sid="${sec.id}"><div class="wrap"><p class="empty">This section could not be shown (${esc(err.message)}).</p></div></section>`; }
+}
+
+/**
+ * Animation hooks on a section's root element (read by src/store/motion.js): data-anim / -delay / -dur / -ease, data-fx and an
+ * `fx-<name>` class; background effects (aurora, spotlight) get their decorative layer as the root's first child.
+ */
+export function motionAttrs(sec, level) {
+  const m = sectionMotion(sec, level || 'subtle');
+  if (m.anim === 'none' && m.fx === 'none') return '';
+  return (m.anim !== 'none' ? ` data-anim="${m.anim}"${m.delay ? ` data-anim-delay="${m.delay}"` : ''}${m.duration ? ` data-anim-dur="${m.duration}"` : ''}${m.ease !== 'spring' ? ` data-anim-ease="${m.ease}"` : ''}` : '') + (m.fx !== 'none' ? ` data-fx="${m.fx}"` : '');
+}
+const DECOR = { aurora: '<div class="zm-aurora" aria-hidden="true"><i></i><i></i><i></i></div>', spotlight: '<i class="zm-spot" aria-hidden="true"></i>' };
+function withMotion(html, sec, level) {
+  const attrs = motionAttrs(sec, level), fx = sectionMotion(sec, level || 'subtle').fx;
+  const spot = sec.type === 'motion-hero' && sec.settings.backdrop === 'spotlight' && fx !== 'spotlight' && level !== 'off' ? DECOR.spotlight : '';
+  const aur = sec.type === 'motion-hero' && sec.settings.backdrop === 'aurora' && fx !== 'aurora' ? DECOR.aurora : '';
+  if (!attrs && !spot && !aur) return html;
+  const key = `data-sid="${sec.id}"`, at = html.indexOf(key); if (at < 0) return html;
+  const start = html.lastIndexOf('<', at), end = html.indexOf('>', at); if (start < 0 || end < 0) return html;
+  let tag = html.slice(start, end);
+  if (fx !== 'none') tag = /\sclass="/.test(tag) ? tag.replace(/\sclass="/, ` class="fx-${fx} `) : tag + ` class="fx-${fx}"`;
+  return html.slice(0, start) + tag + attrs + '>' + (DECOR[fx] || '') + spot + aur + html.slice(end + 1);
 }
 
 function pageTitle(store, ctx) {
@@ -238,7 +262,7 @@ export function renderParts(store, route, opts) {
   return {
     path: ctx.path, root: ctx.root, title: pageTitle(store, ctx), desc: ctx.product ? ctx.product.description.slice(0, 160) : store.seo.description,
     themeColor: store.theme.colors.background, css: preview ? storeCss(store) : '',
-    bodyClass: `page-${route.page}${ctx.overlayHeader ? ' has-over' : ''}`, bodyStyle: overFg ? `--over-fg:${overFg}` : '',
+    bodyClass: `page-${route.page}${ctx.overlayHeader ? ' has-over' : ''} motion-${store.theme.motion || 'subtle'}`, bodyStyle: overFg ? `--over-fg:${overFg}` : '',
     ann: SECTIONS.announcement.render({}, ctx), header: renderSection(store.layout.header, ctx), footer: renderSection(store.layout.footer, ctx),
     overlays: cart + wish + search,
     sections: sections.map(s => ({ id: s.id, html: renderSection(s, ctx) })),
@@ -253,6 +277,7 @@ export function composePage(p, opts = {}) {
   const preview = opts.mode !== 'export';
   const css = preview ? `<style data-store-css>${p.css}</style>` : `<link rel="stylesheet" href="${p.root}assets/styles.css">`;
   const js = opts.script === false ? '' : preview ? `<script>${p.script}</script>` : `<script src="${p.root}assets/store.js"></script>`;
+  const ig = opts.commerce && !opts.editor ? integrationSnippets(opts.commerce, { trackers: !preview }) : { head: '', bodyEnd: '' }; // tags + consent banner (integrations.js); trackers only in the export
   return `<!doctype html>
 <html lang="en" data-root="${p.root}" data-path="${p.path}">
 <head>
@@ -262,7 +287,7 @@ export function composePage(p, opts = {}) {
 ${p.desc ? `<meta name="description" content="${esc(p.desc)}">` : ''}
 <meta property="og:title" content="${esc(p.title)}">
 <meta name="theme-color" content="${p.themeColor}">
-${css}
+${css}${ig.head && '\n' + ig.head}
 </head>
 <body class="${p.bodyClass}"${p.bodyStyle ? ` style="${p.bodyStyle}"` : ''}>
 <a class="skip" href="#main">Skip to content</a>
@@ -273,7 +298,7 @@ ${p.sections.map(s => m('s:' + s.id, s.html)).join('\n')}
 </main>
 ${m('footer', p.footer)}
 ${m('overlays', p.overlays)}
-${js}${opts.editor ? `<script>(${editorAgent.toString()})(window, document);</script>` : ''}
+${js}${opts.editor ? `<script>(${editorAgent.toString()})(window, document);</script>` : ''}${ig.bodyEnd && '\n' + ig.bodyEnd}
 </body>
 </html>`;
 }
@@ -336,7 +361,7 @@ export function runtimeData(store, imageUrl, preview = false, commerce = null) {
 
 export function storeScript(store, imageUrl, { preview = false, commerce = null } = {}) {
   const data = JSON.stringify(runtimeData(store, imageUrl, preview, commerce)).replace(/</g, '\\u003c').replace(/[\u2028\u2029]/g, '');
-  return `/* Storefront runtime — generated by Zertake Studio */\n(function () {\n'use strict';\nvar K = (${cartKit.toString()})();\n${commerceScript()}var D = ${data};\n(${storeRuntime.toString()})(K, D, window, document, CK);\n})();\n`;
+  return `/* Storefront runtime — generated by Zertake Studio */\n(function () {\n'use strict';\nvar K = (${cartKit.toString()})();\n${commerceScript()}var D = ${data};\n(${motionRuntime.toString()})(window, document);\n(${storeRuntime.toString()})(K, D, window, document, CK);\n})();\n`;
 }
 
 export function storeCss(store) {
@@ -357,9 +382,93 @@ export function storeCss(store) {
   const card = t.cardStyle === 'card' ? '.pcard{background:var(--surface);border-radius:var(--r-lg);padding:8px;box-shadow:var(--shadow)}.pcard-body{padding:14px 10px 8px}'
     : t.cardStyle === 'bordered' ? '.pcard{border:1px solid var(--border);border-radius:var(--r-lg);padding:8px}.pcard-body{padding:14px 10px 8px}'
     : t.cardStyle === 'tagged' ? TAGGED_CSS : '';
-  return vars + '\n' + BASE_CSS + btn + card;
+  const motion = t.motion || 'subtle';
+  const vt = motion === 'off' ? '' : '@view-transition{navigation:auto}' + (motion === 'expressive' ? '::view-transition-old(root){animation:zvt-out .32s cubic-bezier(.4,0,1,1) both}::view-transition-new(root){animation:zvt-in .6s cubic-bezier(.16,1,.3,1) both}@keyframes zvt-out{to{opacity:0;translate:0 -14px}}@keyframes zvt-in{from{opacity:0;translate:0 22px}}' : '') + '@media (prefers-reduced-motion:reduce){@view-transition{navigation:none}}\n';
+  return vars + '\n' + vt + BASE_CSS + btn + card + MOTION_CSS + (motion === 'expressive' ? MOTION_X_CSS : '');
 }
 
+// Motion layer (src/store/motion.js) and the motion sections (motion hero, stats, sticky stack, pinned lookbook, flip cards).
+const MOTION_CSS = `/* ---- motion ---- */
+.zm-split{text-wrap:balance}.zm-w{display:inline-block;overflow:hidden;vertical-align:top;padding:0 .06em .12em;margin:0 -.06em -.12em}.zm-wi{display:inline-block;will-change:translate}
+.zm-tilt{transform-style:preserve-3d;will-change:transform}.zm-glare{position:absolute;left:-50%;top:-50%;width:200%;height:200%;z-index:1;pointer-events:none;opacity:0;transition:opacity .4s;background:radial-gradient(closest-side,rgba(255,255,255,.28),transparent 60%);mix-blend-mode:soft-light}
+.zm-spot{position:absolute;left:0;top:0;width:600px;height:600px;border-radius:50%;pointer-events:none;z-index:1;background:radial-gradient(closest-side,color-mix(in srgb,var(--accent) 34%,transparent),color-mix(in srgb,var(--accent) 8%,transparent) 55%,transparent);mix-blend-mode:screen}
+.fx-spotlight,.fx-aurora,.fx-beam{position:relative;isolation:isolate;overflow:clip}
+.zm-aurora{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none}.zm-aurora i{position:absolute;width:62vmax;height:62vmax;border-radius:50%;filter:blur(90px);opacity:.5;animation:zaur 22s ease-in-out infinite alternate}
+.zm-aurora i:nth-child(1){left:-20vmax;top:-30vmax;background:var(--accent)}.zm-aurora i:nth-child(2){right:-24vmax;top:-10vmax;background:color-mix(in srgb,var(--primary) 70%,#4f7cff);animation-duration:28s;animation-direction:alternate-reverse}.zm-aurora i:nth-child(3){left:20%;bottom:-40vmax;background:color-mix(in srgb,var(--accent) 45%,#22d3ee);animation-duration:34s}
+@keyframes zaur{0%{transform:translate3d(0,0,0) rotate(0) scale(1)}50%{transform:translate3d(14vmax,8vmax,0) rotate(40deg) scale(1.15)}100%{transform:translate3d(-6vmax,14vmax,0) rotate(-20deg) scale(.92)}}
+.zm-beamed{position:relative;isolation:isolate}.zm-beam{position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;z-index:3;overflow:hidden;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+.zm-beam>i{position:absolute;left:50%;top:50%;width:300%;aspect-ratio:1;translate:-50% -50%;background:conic-gradient(from 0deg,transparent 0 64%,color-mix(in srgb,var(--accent) 80%,transparent) 80%,#fff 85%,transparent 90%);animation:zbeam 5.5s linear infinite}
+@keyframes zbeam{to{rotate:360deg}}
+.zm-zoom{clip-path:inset(9% 7% round var(--r-lg));transition:clip-path 1.3s cubic-bezier(.16,1,.3,1)}.zm-zoom img{transition:scale 1.8s cubic-bezier(.16,1,.3,1)}.zm-zoom:not(.zm-zin) img:not(.fz){scale:1.28}.zm-zin{clip-path:inset(0 round 0)}
+.zm-caret::after{content:"";display:inline-block;width:.07em;height:.9em;margin-left:.06em;background:currentColor;vertical-align:-.08em;animation:zcaret 1s steps(2) infinite}@keyframes zcaret{50%{opacity:0}}
+.zm-fly{position:fixed;z-index:80;object-fit:cover;border-radius:18px;pointer-events:none;box-shadow:0 20px 50px -10px rgba(0,0,0,.45)}
+.zm-idle *,.zm-idle::before,.zm-idle::after{animation-play-state:paused!important}
+.editing .zm-par{animation:none!important;translate:none!important;scale:none!important}.editing .zm-glare,.editing .zm-spot{display:none}
+@supports (animation-timeline:view()){.js-motion:not(.editing) .zm-par{animation:zpar linear both;animation-timeline:view()}}
+@keyframes zpar{from{translate:0 calc(var(--zd,.6) * 46px)}to{translate:0 calc(var(--zd,.6) * -46px)}}
+.marquee:hover .mq-track{animation-play-state:paused}
+body:not(.motion-off) .prose a,body:not(.motion-off) .site-footer li a,body:not(.motion-off) .rail-cap a{text-decoration:none;background:linear-gradient(currentColor 0 0) 0 100%/0 1px no-repeat;transition:background-size .45s cubic-bezier(.2,.7,.2,1)}
+body:not(.motion-off) .prose a{background-size:100% 1px}body:not(.motion-off) .prose a:hover,body:not(.motion-off) .site-footer li a:hover,body:not(.motion-off) .rail-cap a:hover{background-size:100% 1px;text-decoration:none}
+/* motion hero */
+.mhero{position:relative;overflow:hidden;isolation:isolate;background:var(--mh-bg,var(--text));color:var(--mh-fg,var(--bg));display:flex;align-items:center}
+.mh-medium{min-height:600px}.mh-large{min-height:clamp(600px,92vh,860px)}.mh-full{min-height:clamp(620px,100vh,1000px)}
+.mh-grid{position:relative;z-index:2;display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(28px,5vw,80px);align-items:center;width:100%;padding-top:clamp(110px,14vh,150px);padding-bottom:clamp(56px,9vh,110px)}
+.mh-copy .eyebrow{color:inherit;opacity:.8}.mh-title{font-size:calc(clamp(48px,7.6vw,132px) * var(--hs));line-height:.92;margin:0 0 .3em;letter-spacing:-.03em}
+.mh-rot{font:500 clamp(18px,1.7vw,24px)/1.3 var(--font-b);margin:0 0 18px;opacity:.92}.mh-words{color:var(--accent);font-weight:700;white-space:nowrap}
+.mh-text{max-width:500px;opacity:.75;font-size:clamp(16px,1.25vw,18px)}.mh-text p:last-child{margin:0}
+.mh-cd{margin-top:26px}.mh-cd div{background:color-mix(in srgb,currentColor 8%,transparent);border:1px solid color-mix(in srgb,currentColor 16%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}.mh-cd span{font-family:var(--font-b);font-weight:700;letter-spacing:.02em}
+.mhero .btn:not(.btn-ghost){background:var(--mh-fg,var(--bg));color:var(--mh-bg,var(--text));border-color:var(--mh-fg,var(--bg))}.mhero .btn:not(.btn-ghost):hover{box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 30%,transparent),0 18px 40px -16px var(--accent)}
+.mh-media{position:relative;min-height:clamp(380px,46vw,620px)}
+.mh-a,.mh-b{position:absolute;margin:0;overflow:hidden;border-radius:var(--r-lg);background:color-mix(in srgb,currentColor 8%,transparent)}.mh-a img,.mh-b img{width:100%;height:100%;object-fit:cover}
+.mh-a{inset:0 0 0 12%;box-shadow:0 50px 100px -40px rgba(0,0,0,.7)}.mh-b{width:42%;aspect-ratio:4/5;left:-4%;bottom:-6%;z-index:2;border:1px solid color-mix(in srgb,currentColor 20%,transparent);box-shadow:0 40px 80px -30px rgba(0,0,0,.75)}
+.mh-center .mh-grid{position:static;grid-template-columns:1fr;text-align:center}.mh-center .mh-copy{position:relative;z-index:2}.mh-center .mh-copy{max-width:980px;margin:0 auto}.mh-center .mh-text{margin:0 auto}.mh-center .btns,.mh-center .cd{justify-content:center}.mh-center .eyebrow::before{display:none}
+.mh-center .mh-media{position:absolute;inset:0;z-index:-1;min-height:0}.mh-center .mh-a{inset:0;border-radius:0;box-shadow:none}.mh-center .mh-a::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--mh-bg,#000) 55%,transparent),color-mix(in srgb,var(--mh-bg,#000) 82%,transparent))}
+.mh-beams{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}.mh-beams i{position:absolute;top:-20%;left:calc(8% + var(--b) * 21%);width:1px;height:140%;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--accent) 70%,transparent) 50%,transparent);opacity:.35;rotate:18deg}
+.mh-beams i::after{content:"";position:absolute;left:-1px;top:0;width:3px;height:120px;border-radius:3px;background:linear-gradient(180deg,transparent,var(--accent),#fff);box-shadow:0 0 18px 2px var(--accent);animation:zbeamdrop calc(5s + var(--b) * 1.3s) linear infinite;animation-delay:calc(var(--b) * -1.7s)}
+@keyframes zbeamdrop{from{transform:translateY(-140px)}to{transform:translateY(120vh)}}
+/* stats */
+.zstats-sec{background:var(--sec-bg,transparent);color:var(--sec-fg,inherit)}.zstats-sec .sec-sub{color:inherit;opacity:.72}
+.zstats{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--gap)}.zstats.n3{grid-template-columns:repeat(3,minmax(0,1fr))}.zstats.n2{grid-template-columns:repeat(2,minmax(0,1fr))}.zstats.n1{grid-template-columns:1fr}
+.zstat{container-type:inline-size;min-width:0;position:relative;display:flex;flex-direction:column;gap:10px;padding:clamp(24px,2.6vw,36px);border-radius:var(--r-lg);background:color-mix(in srgb,currentColor 5%,transparent);border:1px solid color-mix(in srgb,currentColor 12%,transparent)}
+.zs-plain .zstat{background:none;border:0;border-left:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:0;padding:4px 0 4px 22px}
+.zstat-n{font:var(--hw) min(calc(clamp(40px,5vw,84px) * var(--hs)),calc(100cqi / (var(--zsl,4) * .74)))/1 var(--font-h);letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap}.zstat-u{font-size:.55em;letter-spacing:0;margin:0 .06em}.zstat-l{opacity:.7;font-size:15px}
+/* sticky stack */
+.zstack-sec{background:var(--sec-bg,transparent);color:var(--sec-fg,inherit)}.zstack{display:grid;gap:clamp(20px,3vw,36px);padding-bottom:4vh}
+.zst-card{position:sticky;top:calc(96px + var(--i) * 22px);display:grid;grid-template-columns:1fr 1.15fr;min-height:min(560px,72vh);border-radius:calc(var(--r-lg) * 1.2);overflow:hidden;background:var(--surface);color:var(--text);box-shadow:0 -24px 60px -36px rgba(0,0,0,.55);transform-origin:50% 0;will-change:scale}
+.zst-card.alt{background:var(--primary);color:var(--on-primary)}.zst-card.alt .btn{background:var(--on-primary);color:var(--primary);border-color:var(--on-primary)}
+.zst-copy{display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:clamp(28px,4vw,64px)}.zst-copy h3{font-size:calc(clamp(34px,4.4vw,72px) * var(--hs));margin:0}.zst-copy p{opacity:.78;max-width:420px;margin:0 0 12px}.zst-copy .btn{align-self:flex-start}
+.zst-media{position:relative;min-height:320px}.zst-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* pinned lookbook (static: a swipeable row; .zm-pin: sticky viewport, scroll moves the row sideways) */
+.zlb{background:var(--sec-bg,transparent);color:var(--sec-fg,inherit);padding-bottom:calc(var(--pad) * .6)}
+.zlb-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:clamp(20px,3vw,40px)}.zlb-head .sec-sub{color:inherit;opacity:.7}.zlb-count{margin:0;white-space:nowrap}
+.zlb-track{list-style:none;margin:0;padding:0 clamp(16px,4vw,48px) 14px;display:flex;gap:clamp(14px,2vw,28px);overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.zlb-track::-webkit-scrollbar{display:none}
+.zlb-item{flex:0 0 clamp(260px,30vw,460px);scroll-snap-align:start}.zlb-item:nth-child(3n+2){flex-basis:clamp(300px,38vw,580px)}.zlb-item a{color:inherit;text-decoration:none}
+.zlb-img{position:relative;display:block;aspect-ratio:3/4;border-radius:var(--r-lg);overflow:hidden;background:color-mix(in srgb,currentColor 8%,transparent)}.zlb-item:nth-child(3n+2) .zlb-img{aspect-ratio:4/4.4}.zlb-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:scale 1.2s cubic-bezier(.2,.7,.2,1)}.zlb-item:hover .zlb-img img{scale:1.05}
+.zlb-cap{display:flex;align-items:baseline;gap:12px;margin-top:14px}.zlb-cap b{font:var(--hw) calc(22px * var(--hs))/1.1 var(--font-h);text-transform:var(--hcase)}.zlb-cap small{opacity:.65}.zlb-no{font:700 12px var(--font-b);letter-spacing:.1em;opacity:.5}
+.zlb-bar{display:none}
+.zlb.zm-pin{padding:0;overflow:visible}.zm-pin .zlb-pin{position:sticky;top:0;height:100vh;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:clamp(70px,10vh,110px) 0 clamp(24px,5vh,56px)}
+.zm-pin .zlb-track{overflow:visible;scroll-snap-type:none;width:max-content;will-change:translate}.zm-pin .zlb-item{flex-basis:clamp(240px,26vw,420px)}.zm-pin .zlb-item:nth-child(3n+2){flex-basis:clamp(280px,34vw,540px)}.zm-pin .zlb-img{max-height:56vh}
+.zm-pin .zlb-bar{display:block;height:2px;margin-top:clamp(18px,3vh,32px);background:color-mix(in srgb,currentColor 14%,transparent);border-radius:2px;overflow:hidden}.zlb-bar i{display:block;height:100%;background:var(--accent);transform-origin:0 50%;scale:0 1}
+@supports (animation-timeline:view()){.zm-pin{view-timeline-name:--zlb}.zm-pin .zlb-track{animation:zlbx linear both;animation-timeline:--zlb;animation-range:contain 0% contain 100%}}
+@keyframes zlbx{from{translate:0 0}to{translate:var(--lbd,0) 0}}
+/* flip cards */
+.zflip-sec{background:var(--sec-bg,transparent);color:var(--sec-fg,inherit)}.zflips{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap)}.zflips.n4{grid-template-columns:repeat(4,minmax(0,1fr))}.zflips.n2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.zflip{position:relative;perspective:1400px;aspect-ratio:4/5}.zflip-in{position:relative;height:100%;transform-style:preserve-3d;transition:rotate .9s cubic-bezier(.3,1.3,.4,1)}
+.zflip-face{position:absolute;inset:0;border-radius:var(--r-lg);overflow:hidden;-webkit-backface-visibility:hidden;backface-visibility:hidden}.zflip-front img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.zflip-front::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,.6))}.zflip-label{position:absolute;left:22px;right:60px;bottom:20px;z-index:1;color:#fff;display:grid;gap:4px}.zflip-label small{opacity:.75;text-transform:uppercase;letter-spacing:.14em;font-size:11px}.zflip-label b{font:var(--hw) calc(clamp(22px,2vw,30px) * var(--hs))/1.1 var(--font-h);text-transform:var(--hcase)}
+.zflip-back{rotate:y 180deg;background:var(--primary);color:var(--on-primary);padding:clamp(24px,2.6vw,36px);display:flex;flex-direction:column;gap:16px}.zflip-back b{font:var(--hw) calc(26px * var(--hs))/1.1 var(--font-h)}.zflip-back ul{list-style:none;margin:0;padding:0;display:grid;gap:12px;flex:1}.zflip-back li{display:flex;gap:10px;align-items:flex-start}.zflip-back .ico{width:18px;height:18px;color:var(--accent);margin-top:3px}.zflip-back .more{align-self:flex-start}
+@media (hover:hover){.zflip:hover .zflip-in{rotate:y 180deg}}.zflip:focus-within .zflip-in,.zflip.flipped .zflip-in{rotate:y 180deg}.zflip.flipped:hover .zflip-in{rotate:y 0deg}
+.zflip-btn{position:absolute;right:14px;bottom:14px;z-index:3;width:40px;height:40px;border-radius:50%;border:0;display:grid;place-items:center;background:color-mix(in srgb,var(--bg) 85%,transparent);color:var(--text);cursor:pointer}.zflip-btn .ico{width:18px;height:18px}
+.editing .zflip-in{transition:none}
+@media (max-width:900px){.mh-grid{grid-template-columns:1fr;padding-top:96px}.mh-media{min-height:420px}.mh-a{inset:0 0 0 18%}.zstats{grid-template-columns:1fr 1fr!important}.zst-card{grid-template-columns:1fr;top:calc(76px + var(--i) * 14px)}.zst-media{min-height:240px;order:-1}.zflips,.zflips.n4{grid-template-columns:1fr 1fr}.zlb-head{flex-direction:column;align-items:flex-start}}
+@media (max-width:640px){.mh-title{font-size:calc(clamp(42px,13vw,72px) * var(--hs))}.mh-media{min-height:360px}.mh-b{width:46%}.zflips,.zflips.n4,.zflips.n2{grid-template-columns:1fr}.zflip{aspect-ratio:4/4.6}.zlb-item,.zlb-item:nth-child(3n+2),.zm-pin .zlb-item,.zm-pin .zlb-item:nth-child(3n+2){flex-basis:74vw}.zm-pin .zlb-img{max-height:52vh}.zst-copy{padding:24px 22px 26px}.zst-card{min-height:0}}
+`;
+/** Extra polish for theme.motion = 'expressive': hover reveals, button glow, softer card lift. */
+const MOTION_X_CSS = `.bento .tile .bento-copy{transition:translate .6s cubic-bezier(.2,.9,.25,1)}
+@media (hover:hover){.bento .tile.has-img .bento-copy p{opacity:0;translate:0 12px;transition:opacity .45s,translate .6s cubic-bezier(.2,.9,.25,1)}.bento .tile.has-img:hover .bento-copy p{opacity:.9;translate:0 0}.bento .tile.has-img .bento-copy{translate:0 18px}.bento .tile.has-img:hover .bento-copy{translate:0 0}}
+.btn{transition:transform .35s cubic-bezier(.2,.9,.25,1),box-shadow .35s,background .2s,color .2s,filter .2s}.btn:active{transform:scale(.97)}
+.drawer-panel,.navdrawer-panel{animation:none}
+`;
 const TAGGED_CSS = `.pcard{background:var(--surface);border-radius:var(--r-lg);padding:10px;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s}.pcard:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
 .pcard-media{border-radius:max(4px,calc(var(--r-lg) - 6px))}.pcard-body{padding:14px 8px 6px}.pcard-body h3{font-size:16.5px}
 .pcard .wish{opacity:1;transform:none;background:var(--bg)}
@@ -408,13 +517,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .badge{position:absolute;top:14px;left:14px;z-index:2;background:var(--bg);color:var(--text);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:6px 11px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .badge.sale{background:var(--accent);color:#fff}.badge.sold{background:var(--text);color:var(--bg)}
 .ico{flex:none;vertical-align:middle}
-/* reveal on scroll (only when the runtime runs; respects reduced motion) */
-.js:not(.editing) [data-reveal]{opacity:0;transform:translateY(32px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}
-.js:not(.editing) [data-reveal].in{opacity:1;transform:none}
-.js:not(.editing) [data-reveal] .grid>*{transition:opacity .7s,transform .7s}
-.js:not(.editing) [data-reveal]:not(.in) .grid>*{opacity:0;transform:translateY(20px)}
-.grid>*:nth-child(2){transition-delay:.08s}.grid>*:nth-child(3){transition-delay:.16s}.grid>*:nth-child(4){transition-delay:.24s}.grid>*:nth-child(5){transition-delay:.32s}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}.js:not(.editing) [data-reveal],.js:not(.editing) [data-reveal]:not(.in) .grid>*{opacity:1;transform:none}}
+/* motion: nothing is hidden by CSS — src/store/motion.js sets initial states inline once it runs (see MOTION_CSS) */
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}}
 /* announcement */
 .ann{background:var(--primary);color:var(--on-primary);font-size:13px;letter-spacing:.03em;overflow:hidden;position:relative;z-index:31}.ann a{text-decoration:none;display:block}
 .ann-static{display:flex;justify-content:center;gap:18px;padding:10px 16px;text-align:center;flex-wrap:wrap}.ann-static i,.ann-run i{opacity:.6;font-style:normal}

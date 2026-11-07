@@ -1,0 +1,233 @@
+/* Zertake Commerce — Settings (src/store/admin/Settings.jsx, src/store/admin/settings/*.jsx). Prefix "cs".
+   Shopify-style layout: settings sidebar (back, search, store card, grouped list) + centred 720px column of sections
+   made of rounded row cards, and a floating "Unsaved changes" pill. Every colour comes from the admin's --ca-* tokens
+   (dist/css/admin.css), so light and dark themes follow automatically. */
+
+.caSettingsMode .caMain { padding-right: 0; }
+.csShell { display: grid; grid-template-columns: 276px minmax(0, 1fr); gap: 0 28px; align-items: start; min-height: 100%; }
+
+/* ---------- sidebar ---------- */
+.csSide { position: sticky; top: 0; display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 108px); overflow-y: auto; padding: 14px 12px 16px; margin-bottom: 16px;
+  background: var(--ca-surface); border: 1px solid var(--ca-card-line); border-radius: var(--ca-r); box-shadow: var(--ca-shadow); backdrop-filter: var(--ca-blur); -webkit-backdrop-filter: var(--ca-blur); scrollbar-width: thin; }
+.csSide > * { flex: none; }
+.csBack { display: inline-flex !important; align-items: center; gap: 8px !important; align-self: flex-start; height: 34px; padding: 0 12px 0 8px; border: 0; border-radius: 999px; background: transparent; color: var(--ca-dim); font-size: 13px; font-weight: 600; cursor: pointer; }
+.csBack:hover { background: var(--ca-hover) !important; color: var(--ca-text) !important; }
+.csStore { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 16px; background: var(--ca-surface-2); border: 1px solid var(--ca-line); }
+.csAvatar { flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--ca-hot); color: var(--ca-on-hot); font-weight: 800; font-size: 16px; }
+.csStoreText { display: grid; min-width: 0; line-height: 1.25; }
+.csStoreText strong { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.csStoreText small { font-size: 12px; color: var(--ca-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.csSearch { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 6px 0 12px; border-radius: 12px; border: 1px solid var(--ca-line-2); background: var(--ca-input); color: var(--ca-dim); transition: border-color .15s, box-shadow .15s; }
+.csSearch:focus-within { border-color: var(--ca-accent); box-shadow: 0 0 0 3px var(--ca-accent-soft); }
+.csSearch input { flex: 1; min-width: 0; height: 100%; border: 0; padding: 0; background: transparent; color: var(--ca-text); font-size: 13.5px; outline: none; }
+.csSearch input:focus-visible { outline: none; }
+.csSearch input::placeholder { color: var(--ca-faint); }
+.csSearch input::-webkit-search-cancel-button { display: none; }
+.csResults ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.csResults button { width: 100%; display: flex !important; align-items: flex-start; gap: 8px !important; padding: 7px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--ca-text); text-align: left; cursor: pointer; }
+.csResults button svg { margin-top: 3px; color: var(--ca-accent); flex: none; }
+.csResults button:hover, .csResults button:focus-visible { background: var(--ca-accent-soft) !important; }
+.csResults span { display: grid; line-height: 1.3; } .csResults strong { font-size: 13px; font-weight: 600; } .csResults small { font-size: 11.5px; color: var(--ca-dim); }
+.csNone { font-size: 12.5px; color: var(--ca-dim); padding: 4px 10px; }
+.csNav { display: grid; gap: 10px; }
+.csGroupLabel { display: block; padding: 0 10px 4px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ca-faint); }
+.csGroup ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.csNav button { position: relative; width: 100%; display: flex !important; align-items: center; gap: 10px !important; height: 32px; padding: 0 10px; border: 0; border-radius: 10px; background: transparent; color: var(--ca-text-2); font-size: 13.5px; font-weight: 550; text-align: left; cursor: pointer; transition: background .12s, color .12s; }
+.csNav button svg { flex: none; color: var(--ca-dim); }
+.csNav button span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.csNav button:hover { background: var(--ca-hover) !important; color: var(--ca-text) !important; }
+.csNav button.on, .csNav button.on:hover { background: var(--ca-ink) !important; color: var(--ca-on-ink) !important; font-weight: 650; }
+.csNav button.on svg { color: inherit; }
+.csDot { width: 7px; height: 7px; border-radius: 50%; background: var(--ca-neutral); flex: none; }
+.csDot.ok { background: var(--ca-good); } .csDot.warn { background: var(--ca-warn); } .csDot.bad { background: var(--ca-bad); }
+
+/* ---------- main column ---------- */
+.csMain { position: relative; min-width: 0; padding-bottom: 72px; }
+.csColumn { max-width: 720px; margin: 0 auto; display: grid; gap: 26px; padding: 4px 4px 0; }
+.csHead { display: flex; align-items: center; gap: 14px; padding: 6px 0 2px; }
+.csHeadIcon { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: var(--ca-surface); border: 1px solid var(--ca-card-line); box-shadow: var(--ca-shadow); color: var(--ca-text); flex: none; }
+.csHead h1 { font-size: 26px; font-weight: 700; letter-spacing: -.03em; line-height: 1.15; }
+.csHead p { margin-top: 3px; color: var(--ca-dim); font-size: 13.5px; }
+
+.csSection { display: grid; gap: 10px; scroll-margin-top: 80px; }
+.csSecHead { display: flex; align-items: flex-end; gap: 12px; padding: 0 4px; }
+.csSecText { flex: 1; min-width: 0; }
+.csSecHead h2 { font-size: 15px; font-weight: 680; letter-spacing: -.01em; }
+.csSecHead p { margin-top: 2px; font-size: 13px; color: var(--ca-dim); line-height: 1.45; }
+.csSecActions { display: flex; gap: 6px; flex: none; }
+.csSecActions .caBtn { height: 34px; }
+
+.csCard { background: var(--ca-surface); border: 1px solid var(--ca-card-line); border-radius: 18px; box-shadow: var(--ca-shadow); backdrop-filter: var(--ca-blur); -webkit-backdrop-filter: var(--ca-blur); overflow: hidden; min-width: 0; }
+.csSection > .csCard + .csCard, .csGroupCard + .csGroupCard { margin-top: 0; }
+.csCardHead { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid var(--ca-line); }
+.csCardHead strong { font-size: 14px; } .csCardHead .csRowSub { flex: 1; }
+.csPad { padding: 16px 20px; display: grid; gap: 14px; min-width: 0; }
+.csCard > * + .csPad, .csCard > .csPad + * { border-top: 1px solid var(--ca-line); }
+.csCard > .csRow + .csPad, .csCard > .csPad + .csRow { border-top: 1px solid var(--ca-line); }
+
+/* rows */
+.csRow { min-width: 0; scroll-margin-top: 90px; border-radius: 0; transition: background .4s; }
+.csCard > .csRow + .csRow, .csCard > .csConnect + .csRow, .csCard > .csNote + .csRow, .csCard > .csRow + .csNote, .csCard > .csTable + .csNote, .csCard > .csNote + .csNote, .csCard > .csPad + .csNote, .csCard > .csNote + .csPad { border-top: 1px solid var(--ca-line); }
+.csRowHead, .csRowBtn { display: flex !important; align-items: center; gap: 12px !important; min-height: 56px; padding: 10px 20px; width: 100%; }
+.csRowBtn { border: 0; background: transparent; color: var(--ca-text); text-align: left; cursor: pointer; font: inherit; transition: background .12s; }
+.csRowBtn:hover { background: var(--ca-hover) !important; color: var(--ca-text) !important; }
+.csRowIcon { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--ca-surface-2); border: 1px solid var(--ca-line); color: var(--ca-text-2); flex: none; }
+.csRowMain { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.csRowLabel { font-size: 13.5px; font-weight: 600; color: var(--ca-text); cursor: inherit; }
+label.csRowLabel { cursor: pointer; }
+.csRowSub { font-size: 12.5px; color: var(--ca-dim); line-height: 1.45; }
+.csRowSub.grow { flex: 1; }
+.csRowValue { flex: none; max-width: 48%; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ca-text-2); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.csRowValue.dim { color: var(--ca-faint); }
+.csRowValue .caBtn { height: 32px; padding: 0 14px; }
+.csRowAside { flex: none; }
+.csChev { color: var(--ca-faint); flex: none; }
+.csRowBody { padding: 0 20px 16px; display: grid; gap: 12px; min-width: 0; }
+.csRowBody.tight { padding-top: 14px; }
+.csRow.danger .csRowLabel { color: var(--ca-bad); }
+.csRowFoot { padding: 12px 20px; border-top: 1px solid var(--ca-line); display: flex; justify-content: flex-end; }
+.csRow .caCheck { flex: none; }
+.csRowHead > .csIconBtn:last-child { margin-left: auto; }
+.csRow.compact .csRowHead { min-height: 44px; padding-top: 6px; padding-bottom: 6px; }
+.csRow.compact .caCheck label { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.csRow code, .csConnect code, .csNote code, .csRowSub code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--ca-surface-2); border: 1px solid var(--ca-line); padding: 1px 6px; border-radius: 6px; color: var(--ca-text); }
+.csFlash { animation: csFlash 1.6s ease-out; }
+@keyframes csFlash { 0%, 30% { background: var(--ca-accent-soft); box-shadow: inset 0 0 0 2px var(--ca-accent); } 100% { background: transparent; box-shadow: none; } }
+section.csFlash { animation: csFlashSec 1.6s ease-out; border-radius: 18px; }
+@keyframes csFlashSec { 0%, 30% { box-shadow: 0 0 0 3px var(--ca-accent); } 100% { box-shadow: none; } }
+
+/* inline select */
+.csSelect { flex: none; max-width: 52%; height: 34px; padding: 0 30px 0 12px; border-radius: 10px; border: 1px solid var(--ca-line-2); background: var(--ca-input) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center; color: var(--ca-text); font-size: 13px; font-weight: 550; cursor: pointer; appearance: none; -webkit-appearance: none; text-overflow: ellipsis; }
+.csSelect:hover { border-color: var(--ca-dim); }
+.csSelect option { background: var(--ca-solid); color: var(--ca-text); }
+.csInlineSelect .csRowHead { padding: 0; min-height: 0; }
+
+/* switch */
+.csSwitch { appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 40px; height: 24px; margin: 0; padding: 0; border: 0; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06); background: var(--ca-line-2); cursor: pointer; transition: background .18s; }
+.csSwitch::before { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: transform .18s cubic-bezier(.3, .9, .4, 1); }
+.csSwitch:checked { background: var(--ca-accent); }
+.csSwitch:checked::before { transform: translateX(16px); }
+.csSwitch:disabled { opacity: .45; cursor: default; }
+.csSwitch:focus-visible { outline: 2px solid var(--ca-focus); outline-offset: 2px; }
+
+/* choice cards */
+.csChoice { display: grid; gap: 8px; }
+.csChoiceItem { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--ca-line-2); cursor: pointer; transition: border-color .15s, background .15s; }
+.csChoiceItem:hover { background: var(--ca-hover); }
+.csChoiceItem.on { border-color: var(--ca-accent); background: var(--ca-accent-soft); }
+.csChoiceItem input { margin: 3px 0 0; accent-color: var(--ca-accent); }
+.csChoiceItem span { display: grid; gap: 2px; } .csChoiceItem strong { font-size: 13.5px; font-weight: 650; } .csChoiceItem small { font-size: 12.5px; color: var(--ca-dim); line-height: 1.45; }
+
+/* fields */
+.csMono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; letter-spacing: -.01em; }
+.caInput.csBad { border-color: var(--ca-bad); box-shadow: 0 0 0 3px var(--ca-bad-bg); }
+.csErr { color: var(--ca-bad); font-size: 12px; line-height: 1.4; }
+.csOk { color: var(--ca-good); font-size: 12.5px; display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+.csDim { color: var(--ca-dim); font-size: 12.5px; display: inline-flex; align-items: center; gap: 5px; }
+.csCount { float: right; font-weight: 500; color: var(--ca-faint); font-variant-numeric: tabular-nums; }
+.csCount.over { color: var(--ca-bad); }
+.csFieldset { border: 0; margin: 14px 0 0; padding: 0; } .csFieldset legend { font-size: 12.5px; font-weight: 650; color: var(--ca-text-2); margin-bottom: 8px; }
+.csChecks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; }
+.csInline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; } .csInline.between { justify-content: space-between; }
+.csMini { font-size: 12px; } code.csMini { font: 11.5px ui-monospace, Menlo, monospace; color: var(--ca-text-2); }
+
+/* pills, notes, copy lines, menus */
+.csPill { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 11.5px; font-weight: 650; white-space: nowrap; background: var(--ca-neutral-bg); color: var(--ca-neutral); vertical-align: middle; }
+.csPill.ok { background: var(--ca-good-bg); color: var(--ca-good); } .csPill.warn { background: var(--ca-warn-bg); color: var(--ca-warn); }
+.csPill.bad { background: var(--ca-bad-bg); color: var(--ca-bad); } .csPill.info { background: var(--ca-info-bg); color: var(--ca-info); }
+.csNote { display: block; padding: 12px 20px; font-size: 12.5px; color: var(--ca-dim); line-height: 1.5; background: var(--ca-surface-2); }
+.csPad > .csNote, .csRowBody > .csNote { border-radius: 12px; padding: 10px 12px; }
+.csNote svg { display: inline; vertical-align: -2px; margin-right: 6px; }
+.csNote.info { background: var(--ca-info-bg); color: var(--ca-info); } .csNote.bad { background: var(--ca-bad-bg); color: var(--ca-bad); }
+.csNote .caLink { color: inherit; text-decoration: underline; font-weight: 650; padding: 0; border: 0; background: none; cursor: pointer; font-size: inherit; }
+.csCopy { display: flex; align-items: center; gap: 4px; min-width: 0; padding: 3px 3px 3px 10px; border-radius: 10px; background: var(--ca-surface-2); border: 1px solid var(--ca-line); }
+.csCopy code { flex: 1; min-width: 0; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ca-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: none; border: 0; padding: 0; }
+.csCopy.wrap code { white-space: pre-wrap; word-break: break-all; padding: 6px 0; }
+.csRowHead > .csCopy { flex: none; padding: 0; background: none; border: 0; } .csRowHead > .csCopy code { display: none; }
+.csInline.between > .csCopy { flex: none; padding: 0; background: none; border: 0; } .csInline.between > .csCopy code { display: none; }
+.csIconBtn { flex: none; width: 30px; height: 30px; display: grid !important; place-items: center; border: 0; border-radius: 9px; background: transparent; color: var(--ca-dim); cursor: pointer; }
+.csIconBtn:hover:not(:disabled) { background: var(--ca-hover) !important; color: var(--ca-text) !important; }
+.csIconBtn:disabled { opacity: .4; cursor: default; }
+.csMenu { position: relative; flex: none; }
+.csMenuList { position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; min-width: 170px; list-style: none; margin: 0; padding: 6px; border-radius: 14px; background: var(--ca-solid); border: 1px solid var(--ca-line); box-shadow: var(--ca-shadow-lg); }
+.csMenuList button { width: 100%; text-align: left; height: 34px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; color: var(--ca-text); font-size: 13px; cursor: pointer; }
+.csMenuList button:hover { background: var(--ca-hover) !important; }
+.csMenuList button.danger { color: var(--ca-bad); }
+.csCode { margin: 0; max-height: 280px; overflow: auto; padding: 12px 14px; border-radius: 12px; background: var(--ca-surface-2); border: 1px solid var(--ca-line); font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ca-text-2); }
+.csTable { margin: 0 !important; }
+.csTable th:first-child, .csTable td:first-child { padding-left: 20px; } .csTable th:last-child, .csTable td:last-child { padding-right: 20px; }
+
+/* previews */
+.csPreview { display: grid; gap: 2px; padding: 14px 16px; border-radius: 14px; background: var(--ca-surface-2); border: 1px dashed var(--ca-line-2); }
+.csPreview span { font-size: 12px; color: var(--ca-dim); font-weight: 600; }
+.csPreview strong { font-size: 22px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.csPreview small { font-size: 12px; color: var(--ca-dim); }
+.csStatement { display: grid; border-radius: 12px; overflow: hidden; border: 1px solid var(--ca-line); font-size: 12.5px; }
+.csStatement > span { display: grid; grid-template-columns: 70px 1fr auto; gap: 12px; padding: 9px 14px; }
+.csStmtHead { background: var(--ca-surface-2); color: var(--ca-dim); font-weight: 650; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.csStmtLine .mono { font-family: ui-monospace, Menlo, monospace; letter-spacing: .02em; font-weight: 600; }
+.csBannerPreview { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; background: #111; color: #fff; font-size: 13px; line-height: 1.45; }
+.csBannerPreview p { flex: 1; }
+.csBannerPreview div { display: flex; gap: 6px; flex: none; }
+.csBannerPreview span { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .35); font-size: 12px; }
+.csBannerPreview span.on { background: #fff; color: #111; border-color: #fff; font-weight: 650; }
+
+/* payments */
+.csConnect { display: flex; align-items: center; gap: 14px; padding: 18px 20px; background: linear-gradient(120deg, rgba(99, 91, 255, .10), transparent 60%); }
+.csLogo { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 14px; letter-spacing: -.02em; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .15); }
+.csLogo.stripe { background: #635bff; font-size: 20px; }
+.csConnectText { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.csConnectText strong { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15px; }
+.csConnectText > span { font-size: 12.5px; color: var(--ca-dim); }
+.csGroupCard { margin-bottom: 0; }
+.csSection > .csGroupCard ~ .csGroupCard { margin-top: 2px; }
+.csGroupHead { display: flex; justify-content: space-between; padding: 12px 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ca-text-2); background: var(--ca-surface-2); border-bottom: 1px solid var(--ca-line); }
+.csGroupHead span { color: var(--ca-dim); font-weight: 600; text-transform: none; letter-spacing: 0; }
+.csCard .segmented.caSeg { flex: none; }
+
+/* apps */
+.csApps { display: grid; gap: 10px; }
+.csApp { overflow: visible; }
+.csAppHead { width: 100%; display: flex !important; align-items: center; gap: 14px !important; padding: 14px 18px; border: 0; background: transparent; color: var(--ca-text); text-align: left; cursor: pointer; border-radius: 18px; font: inherit; }
+.csAppHead:hover { background: var(--ca-hover) !important; color: var(--ca-text) !important; }
+.csApp.open .csAppHead { border-radius: 18px 18px 0 0; }
+.csAppHead .csRowSub { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.csAppBody { padding: 4px 18px 18px 72px; display: grid; gap: 12px; }
+.csWhere { font-size: 12.5px; color: var(--ca-dim); }
+.csWhere summary { cursor: pointer; color: var(--ca-accent); font-weight: 650; width: fit-content; }
+.csWhere p { margin-top: 6px; line-height: 1.5; }
+
+/* floating unsaved-changes pill */
+.csSaveDock { position: sticky; top: 6px; z-index: 40; height: 0; display: flex; align-items: flex-start; justify-content: center; pointer-events: none; }
+.csSavePill { pointer-events: auto; display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 18px; border-radius: 999px; background: var(--ca-ink); color: var(--ca-on-ink); box-shadow: var(--ca-shadow-lg); animation: csPillIn .22s cubic-bezier(.2, .9, .3, 1.2); }
+.csSaveText { font-size: 13px; font-weight: 650; margin-right: 6px; white-space: nowrap; }
+.csSaveText::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ca-flame); margin-right: 8px; vertical-align: 1px; }
+.csSaveErr { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--ca-flame); color: #fff; font-size: 11px; }
+.csSavePill .caBtn { height: 32px; padding: 0 14px; background: rgba(127, 127, 127, .24); color: var(--ca-on-ink); }
+.csSavePill .caBtn:hover:not(:disabled) { background: rgba(127, 127, 127, .36); color: var(--ca-on-ink); }
+.csSavePill .caBtn.caPrimary { background: var(--ca-accent); color: var(--ca-on-accent); box-shadow: none; }
+.csSavePill .caBtn.caPrimary:hover:not(:disabled) { background: var(--ca-accent); color: var(--ca-on-accent); filter: brightness(1.08); }
+@keyframes csPillIn { from { transform: translateY(-10px) scale(.96); opacity: 0; } }
+
+/* the shared caForm grid inside settings cards */
+.csPad .caForm, .csRowBody .caForm { gap: 12px 14px; }
+.csCard .caSubCard { background: var(--ca-surface-2); }
+.csCard .caNotify { grid-template-columns: 190px minmax(0, 1fr); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1180px) { .csShell { grid-template-columns: 240px minmax(0, 1fr); gap: 0 18px; } }
+@media (max-width: 980px) {
+  .csShell { grid-template-columns: minmax(0, 1fr); }
+  .csSide { position: static; max-height: none; margin-bottom: 18px; }
+  .csNav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .csCard .caNotify { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .csNav { grid-template-columns: minmax(0, 1fr); }
+  .csRowHead { flex-wrap: wrap; }
+  .csSelect, .csRowValue { max-width: 100%; }
+  .csAppBody { padding-left: 18px; }
+  .csChecks { grid-template-columns: minmax(0, 1fr); }
+  .csConnect { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) { .csFlash, section.csFlash, .csSavePill { animation: none; } }

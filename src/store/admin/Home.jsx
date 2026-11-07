@@ -14,6 +14,9 @@ import { setupProgress, SETUP_STEPS } from './setup.js';
 import { DASH_PRESETS, WEEKDAYS, dashRange, previousRange, fmtDay, change, weekdayActivity, customerSegments, repeatRate, grossProfit, dashboardCsv } from './dashboard.js';
 import { exportStoreZip } from '../exporter.js';
 import { slugify } from '../model.js';
+import { UpcomingBookings } from './Services.jsx';
+import { upcomingBookings } from './services.js';
+import { SampleDataButton } from './SampleData.jsx';
 
 const STEP_INFO = {
   product: ['Add your products', 'An active product with a title, a price and a photo: save one in the product editor or upload your own image.', Package, 'Add product'],
@@ -23,7 +26,7 @@ const STEP_INFO = {
   domain: ['Add a domain', 'Enter the domain you will point at the exported store.', Globe, 'Add domain'],
   launch: ['Launch your store', 'Export the store as a ZIP and upload it to Netlify, GitHub Pages or any static host.', Rocket, 'Export store'],
 };
-const WIDGETS = [['setup', 'Setup guide'], ['kpis', 'Key metrics'], ['sales', 'Total sales'], ['activeDay', 'Most active day'], ['repeat', 'Repeat customer rate'], ['best', 'Best selling products'], ['recent', 'Recent orders'], ['inventory', 'Inventory alerts'], ['notes', 'Staff notes'], ['tips', 'Tips']];
+const WIDGETS = [['setup', 'Setup guide'], ['kpis', 'Key metrics'], ['sales', 'Total sales'], ['activeDay', 'Most active day'], ['repeat', 'Repeat customer rate'], ['bookings', 'Upcoming bookings'], ['best', 'Best selling products'], ['recent', 'Recent orders'], ['inventory', 'Inventory alerts'], ['notes', 'Staff notes'], ['tips', 'Tips']];
 const WKEY = 'zertake.dashboardWidgets', PKEY = 'zertake.dashboardPeriod';
 const loadHidden = () => { try { const v = JSON.parse(localStorage.getItem(WKEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
 const loadPeriod = () => { try { const v = localStorage.getItem(PKEY); return DASH_PRESETS.some(p => p[0] === v) ? v : '30d'; } catch { return '30d'; } };
@@ -120,7 +123,7 @@ export default function Home() {
             <td>{best.some(x => x.product?.rating) ? (p?.rating ? <span className="caStars" aria-label={`${p.rating} out of 5`}>{[1, 2, 3, 4, 5].map(i => <Star key={i} size={12} className={i <= Math.round(p.rating) ? 'on' : ''} aria-hidden="true" />)}</span> : '—')
               : stock == null ? <span className="caMuted">Not tracked</span> : <Badge tone={stock <= 0 ? 'bad' : stock <= commerce.settings.general.lowStockThreshold ? 'warn' : 'ok'}>{stock} in stock</Badge>}</td>
           </tr>; })}</tbody></table></div>
-          : <Empty art="products" title="No sales in this period" action={<Btn kind="primary" icon={Plus} onClick={() => go({ page: 'order-new' })}>Create order</Btn>}>Products sold in the {periodLabel} are ranked here by revenue.</Empty>;
+          : <Empty art="products" title="No sales in this period" action={<div className="caInline svCenter"><Btn kind="primary" icon={Plus} onClick={() => go({ page: 'order-new' })}>Create order</Btn><SampleDataButton onlyLoad /></div>}>Products sold in the {periodLabel} are ranked here by revenue.</Empty>;
   const showSetup = show('setup') && !commerce.onboarding.dismissed && !setup.complete;
 
   return <div className="caPage caHome">
@@ -212,6 +215,9 @@ export default function Home() {
           </div>
         </div> },
       ].filter(Boolean)} />
+      {show('bookings') && (commerce.bookings.length > 0 || store.products.some(p => p.kind === 'service')) && <TabCard id="home-bookings" label="Upcoming bookings" className="caBookingsCard" tabs={[
+        { key: 'bookings', label: 'Upcoming bookings', count: upcomingBookings(commerce).length || null, actions: <Btn kind="plain" onClick={() => go('bookings')}>Calendar<ChevronRight size={14} /></Btn>, content: <UpcomingBookings /> },
+      ]} />}
       <TabCard id="home-store" label="Store notes and alerts" className="caStoreCard" footActions tabs={[
         show('inventory') && { key: 'inventory', label: 'Inventory', count: lowCount || null, actions: <Btn kind="plain" onClick={() => go('inventory')}>View inventory<ChevronRight size={14} /></Btn>, content: <InventoryAlerts /> },
         show('notes') && { key: 'notes', label: 'Staff notes', content: <StaffNotes /> },
@@ -277,7 +283,7 @@ function RecentOrders() {
         <span className="caOTags"><Badge tone={FIN[o.financialStatus][1]}>{FIN[o.financialStatus][0]}</Badge>{o.status === 'cancelled' ? <Badge tone="bad">Cancelled</Badge> : <Badge tone={FUL[o.fulfillmentStatus][1]}>{FUL[o.fulfillmentStatus][0]}</Badge>}</span>
         <span className="caOTotal"><BigNum value={fmt(o.totals.total)} /></span>
       </button></li>)}</ul>
-      : <Empty art="orders" title="No orders yet" action={<Btn kind="primary" onClick={() => go({ page: 'order-new' })}>Create order</Btn>}>Orders placed in the store preview or created by you show up here.</Empty>;
+      : <Empty art="orders" title="No orders yet" action={<div className="caInline svCenter"><Btn kind="primary" onClick={() => go({ page: 'order-new' })}>Create order</Btn><SampleDataButton onlyLoad /></div>}>Orders placed in the store preview or created by you show up here.</Empty>;
 }
 
 function InventoryAlerts() {

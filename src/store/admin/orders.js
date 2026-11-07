@@ -108,7 +108,7 @@ export function createOrder(store, commerce, input, now) {
   const g = c.settings.general, draft = !!input.draft;
   const number = draft ? g.nextDraftNumber++ : g.nextOrderNumber++;
   const order = normalizeOrder({
-    id: cid('o'), number, name: draft ? 'D' + number : g.orderPrefix + number, draft, source: input.source || 'manual', createdAt: isoOf(now), updatedAt: isoOf(now),
+    id: cid('o'), number, name: draft ? 'D' + number : g.orderPrefix + number + (g.orderSuffix || ''), draft, source: input.source || 'manual', createdAt: isoOf(now), updatedAt: isoOf(now),
     customerId: input.customerId || null, email: input.email, phone: input.phone, shippingAddress: input.shippingAddress,
     lines: input.lines, codes: t.appliedCodes, shippingRateId: t.shippingRateId, shippingName: t.shippingName, paymentMethod: input.paymentMethod, note: input.note, tags: input.tags,
     totals: { subtotal: t.subtotal, discountTotal: t.discountTotal, shipping: t.shipping, shippingDiscount: t.shippingDiscount, tax: t.tax, taxInclusive: t.taxInclusive, total: t.total, applied: t.applied },

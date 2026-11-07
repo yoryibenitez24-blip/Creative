@@ -5,6 +5,7 @@ import { Server, Trash2, Upload } from 'lucide-react';
 import { useAdmin, Page, Card, Btn, Text, Area, AreaChart, BarList, Segmented, Empty, fmtDate, pct, Check } from './ui.jsx';
 import { aggregateAnalytics, presetRange, visitorsByLocation, unlocatedSessions, storeLocation } from './analytics.js';
 import VisitorGlobe from './VisitorGlobe.jsx';
+import { SampleDataButton } from './SampleData.jsx';
 
 const PRESETS = [['today', 'Today'], ['7d', 'Last 7 days'], ['30d', 'Last 30 days'], ['90d', 'Last 90 days'], ['12m', 'Last 12 months'], ['custom', 'Custom']];
 
@@ -48,7 +49,7 @@ export default function Analytics() {
         </aside>}
         <div className="caAnaMain">
           {!valid ? <Card><p className="caWarn">The start date must be on or before the end date.</p></Card> : <>
-          {!hasData && <Card><Empty art="analytics" title="No data for this period yet" action={<Btn onClick={() => go({ page: 'order-new' })}>Create an order</Btn>}>Shop your store with <strong>View store</strong> (top bar) or create orders, and the numbers show up here.</Empty></Card>}
+          {!hasData && <Card><Empty art="analytics" title="No data for this period yet" action={<div className="caInline svCenter"><Btn onClick={() => go({ page: 'order-new' })}>Create an order</Btn><SampleDataButton onlyLoad /></div>}>Shop your store with <strong>View store</strong> (top bar) or create orders, and the numbers show up here.</Empty></Card>}
           <div className="caGrid c2">
             <Card title="Total sales over time"><AreaChart label="Total sales over time" points={pts('sales')} compare={prev ? prev.days.map(d => ({ value: d.sales })) : null} format={(v, axis) => fmt(v, axis)} /></Card>
             <Card title="Sessions over time"><AreaChart label="Sessions over time" points={pts('sessions')} compare={prev ? prev.days.map(d => ({ value: d.sessions })) : null} format={v => String(Math.round(v * 10) / 10)} /></Card>

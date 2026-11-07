@@ -6,7 +6,7 @@
 // product page (variants with sold-out states, image swatches, gallery + zoom + video, quantity, add to cart, buy now,
 // sticky add-to-cart bar, low-stock alert, pay-later amount, dispatch timer, delivery dates, size-guide modal,
 // sample-data pop-ups when the merchant enabled them), bundles, collection filters, checkout per mode, countdowns,
-// carousels, menu drawer, reveal-on-scroll, mailto forms.
+// carousels, menu drawer, mailto forms. Reveals and other motion: src/store/motion.js (window.__zm, inlined before this).
 // Element behaviour is attached by hydrate(root); the builder preview calls window.__storeHydrate(node) after patching
 // a part of the page in place, and window.__storeSetData(data) when products change. In the preview (D.preview)
 // internal links are reported to the parent window instead of navigating.
@@ -164,13 +164,18 @@ export function storeRuntime(K, D, win, doc, CK) {
   var lastFocus = null;
   function openLayer(el, focusSel) {
     if (!el) return;
-    lastFocus = doc.activeElement; el.hidden = false; doc.body.classList.add('drawer-open');
+    lastFocus = doc.activeElement; el.hidden = false; doc.body.classList.add('drawer-open'); if (win.__zm) win.__zm.layer(el);
     var f = $(focusSel || 'input,button', el); if (f) f.focus();
   }
   function closeLayers() {
     var any = false;
     $$('[data-drawer],[data-wish-drawer],[data-navdrawer],[data-search],[data-modal]').forEach(function (el) { if (!el.hidden) { el.hidden = true; any = true; } });
     if (any) { doc.body.classList.remove('drawer-open'); $$('[data-menu-toggle]').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); }); if (lastFocus && lastFocus.focus) lastFocus.focus(); }
+  }
+  /** Fly the product photo to the cart icon (expressive motion), then open the drawer. */
+  function addedFrom(src) {
+    var img = src && src.querySelector ? src.querySelector('img') : null, ms = img && win.__zm ? win.__zm.fly(img) : 0;
+    if (ms) win.setTimeout(openDrawer, ms); else openDrawer();
   }
   function openDrawer() {
     var d = $('[data-drawer]'); if (!d) { win.location.href = root + 'cart.html'; return; }
@@ -193,7 +198,7 @@ export function storeRuntime(K, D, win, doc, CK) {
     if (t.closest('[data-menu-toggle]')) { var mt = t.closest('[data-menu-toggle]'); closeLayers(); mt.setAttribute('aria-expanded', 'true'); openLayer($('[data-navdrawer]'), '[data-menu-close].hicon'); return; }
     var mo = t.closest('[data-modal-open]'); if (mo) { e.preventDefault(); closeLayers(); openLayer(doc.getElementById(mo.getAttribute('data-modal-open')), '[data-modal-close].hicon'); return; }
     var qa = t.closest('[data-quick-add]');
-    if (qa) { e.preventDefault(); e.stopPropagation(); var qp = K.product(D, qa.getAttribute('data-quick-add')), qv = qp && K.firstAvailable(qp); if (qv) { save(K.add(load(), D, qp.id, qv.id, 1)); openDrawer(); } return; }
+    if (qa) { e.preventDefault(); e.stopPropagation(); var qp = K.product(D, qa.getAttribute('data-quick-add')), qv = qp && K.firstAvailable(qp); if (qv) { save(K.add(load(), D, qp.id, qv.id, 1)); addedFrom(qa.closest('.pcard')); } return; }
     var wb = t.closest('[data-wish]');
     if (wb) { e.preventDefault(); e.stopPropagation(); var id = wb.getAttribute('data-wish'), w = wload(), i = w.indexOf(id); if (i >= 0) w.splice(i, 1); else w.push(id); wsave(w); return; }
     var cr = t.closest('[data-code-remove]'); if (cr) { e.preventDefault(); var rc = cr.getAttribute('data-code-remove'); lastMsg = {}; setJSON(CKEY, codes().filter(function (c) { return c !== rc; })); forceBox = true; render(); forceBox = false; return; }
@@ -203,7 +208,7 @@ export function storeRuntime(K, D, win, doc, CK) {
     if (ba) {
       e.preventDefault(); var cart = load(), added = 0;
       $$('[data-bundle-item]', ba.closest('[data-bundle]')).forEach(function (cb) { if (!cb.checked) return; var p = K.product(D, cb.getAttribute('data-bundle-item')), v = p && K.firstAvailable(p); if (v) { cart = K.add(cart, D, p.id, v.id, 1); added++; } });
-      if (added) { save(cart); openDrawer(); } return;
+      if (added) { save(cart); addedFrom(ba.closest('[data-bundle]')); } return;
     }
     var sa = t.closest('[data-sticky-add]');
     if (sa) { var f = sa.closest('[data-sid]') && $('[data-product-form]', sa.closest('[data-sid]')); if (f) { var b = $('[data-add-to-cart]', f); if (f.requestSubmit) f.requestSubmit(b || undefined); else if (b) b.click(); } return; }
@@ -290,7 +295,7 @@ export function storeRuntime(K, D, win, doc, CK) {
       var q = Math.max(1, Math.floor(+($('input[name=qty]', form) || {}).value || 1));
       save(K.add(load(), D, p.id, v.id, q));
       if (e.submitter && e.submitter.hasAttribute('data-buy-now')) { if (D.preview) win.parent.postMessage({ storeNav: root + 'checkout.html', from: doc.documentElement.getAttribute('data-path') }, '*'); else win.location.href = root + 'checkout.html'; }
-      else openDrawer();
+      else addedFrom($('[data-gallery] .pslide:not([hidden])', sec) || $('[data-gallery]', sec));
     });
     // sticky add-to-cart bar: visible once the main buy button has scrolled out of view
     var bar = $('[data-sticky-atc]', sec);
@@ -367,7 +372,7 @@ export function storeRuntime(K, D, win, doc, CK) {
       var end = new Date(el.getAttribute('data-countdown')).getTime(); if (isNaN(end)) return;
       function tick() {
         var s = Math.max(0, Math.floor((end - Date.now()) / 1000)), v = { d: Math.floor(s / 86400), h: Math.floor(s / 3600) % 24, m: Math.floor(s / 60) % 60, s: s % 60 };
-        Object.keys(v).forEach(function (k) { var x = $('[data-cd="' + k + '"]', el); if (x) x.textContent = String(v[k]).padStart(2, '0'); });
+        Object.keys(v).forEach(function (k) { var x = $('[data-cd="' + k + '"]', el), t = String(v[k]).padStart(2, '0'); if (x && x.textContent !== t) { if (win.__zm && el.hasAttribute('data-scramble')) win.__zm.scramble(x, t, 380); else x.textContent = t; } });
         return s > 0 && el.isConnected;
       }
       tick(); var timer = win.setInterval(function () { if (!tick()) win.clearInterval(timer); }, 1000);
@@ -430,13 +435,8 @@ export function storeRuntime(K, D, win, doc, CK) {
         if (to) go(K.mailtoUrl(to, form.getAttribute('data-subject') || 'Message', body));
       });
     });
-    var rev = $$('[data-reveal]', scope).filter(function (el) { return once(el, 'rv'); });
-    if (rev.length) {
-      if ('IntersectionObserver' in win && !reduce) {
-        var io = new win.IntersectionObserver(function (es) { es.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } }); }, { rootMargin: '0px 0px -8% 0px' });
-        rev.forEach(function (el) { io.observe(el); });
-      } else rev.forEach(function (el) { el.classList.add('in'); });
-    }
+    // reveals, scroll and pointer effects: src/store/motion.js (window.__zm)
+    if (win.__zm) win.__zm.scan(scope);
     recent(scope);
     render(); wrender(); onScroll();
   }

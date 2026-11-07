@@ -146,6 +146,9 @@
 .stTplInfo { padding: 12px 14px 14px; display: grid; gap: 4px; flex: 1; align-content: start; }
 .stTplTop { display: flex; justify-content: space-between; align-items: center; }
 .stTplTag { display: inline-block; margin-left: 8px; padding: 2px 7px; border-radius: 999px; background: linear-gradient(90deg, #d4f25a, #c9a7f5); color: #14141a; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; vertical-align: 3px; }
+.stTplTag.premium { background: linear-gradient(110deg, #17130c 38%, #4a3b1d 50%, #17130c 62%); background-size: 260% 100%; color: #ecd39b; box-shadow: inset 0 0 0 1px rgba(217,188,127,.55); animation: stPremium 4.5s ease-in-out infinite; }
+@keyframes stPremium { 0%, 100% { background-position: 100% 0; } 50% { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .stTplTag.premium { animation: none; } }
 .stTplInfo h2 { margin: 0; font-size: 15px; }
 .stSwatches { display: flex; gap: 3px; } .stSwatches i { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255,255,255,.15); }
 .stTplNiche { margin: 0; color: #c9c9d1; font-size: 12px; }

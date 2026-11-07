@@ -9,8 +9,27 @@
 //   kind: 'commerce', version: 1, storeId,
 //   settings: {
 //     general:  { legalName, email, phone, address, unitSystem: 'metric'|'imperial', weightUnit: 'g'|'kg'|'lb'|'oz',
-//                 orderPrefix: '#', nextOrderNumber: 1001, nextDraftNumber: 1, lowStockThreshold: 5 },
-//     payments: { manualMethods: [{ id, name, instructions, enabled }], providerNotes },
+//                 orderPrefix: '#', orderSuffix: '', nextOrderNumber: 1001, nextDraftNumber: 1, lowStockThreshold: 5,
+//                 businessEntity: 'individual'|'sole_proprietorship'|'llc'|'corporation'|'partnership'|'nonprofit', country: 'US',
+//                 timezone: IANA zone, currencyDisplay: 'symbol'|'code'|'symbol_code', backupRegion: 'US',
+//                 autoFulfill: 'none'|'digital'|'all', autoArchive: bool },
+//     payments: { manualMethods: [{ id, name, instructions, enabled }], providerNotes,
+//                 stripe: Stripe Connect settings (public values only; schema + normalizeStripe() in src/store/integrations.js) },
+//     integrations: { backend: { provider: 'none'|'supabase', url, anonKey, functionsUrl }, ga4, gtm, metaPixel, tiktokPixel,
+//                 pinterestTag, clarity, turnstile, recaptcha, sentry, email, discord, telegram, consent }  (src/store/integrations.js)
+//     checkout: { contactMethod: 'email'|'phone_or_email', fullName: 'last_only'|'first_and_last', company|address2|shippingPhone:
+//                 'hidden'|'optional'|'required', marketing: { email, sms, preChecked }, tipping: { enabled, presets: [%] },
+//                 orderNotes, termsCheckbox, addressAutocomplete, abandoned: { enabled, delayHours, audience: 'all'|'subscribers' },
+//                 turnstile: bool (bot check when a Turnstile site key is set) }
+//     customerAccounts: { mode: 'disabled'|'optional'|'required', loginMethod: 'code'|'password', selfServeReturns, storeCredit }
+//     users:    { owner: { name, email }, staff: [{ id, name, email, role: 'admin'|'staff'|'limited', permissions: string[] }] }
+//     markets:  [{ id, name, countries: ISO[], currency: '' (store currency) | 'EUR'…, enabled, primary }]
+//     salesChannels: { [online|whatsapp|instagram|facebook|google|tiktok|pinterest]: { enabled, handle } }
+//     customerEvents: { forward: bool, events: { [EVENT_TYPE]: bool } }   (which storefront events reach the pixels)
+//     metafields: [{ id, owner: 'product'|'variant'|'collection'|'customer'|'order', name, key, type, description }]
+//     languages: { primary: 'en', published: ['en'], autoRedirect }
+//     privacy:  { dataSaleOptOut, cookieTitle, cookieText }   (the banner itself: integrations.consent)
+//     security: { confirmDanger: bool }
 //     shipping: { zones: [{ id, name, countries: ['US', 'CA'] | ['*'] (rest of world),
 //                          rates: [{ id, name, type: 'flat'|'free_over'|'weight', price, threshold (free_over),
 //                                    tiers: [{ upTo: grams, price }] (weight; ascending) }] }] },
@@ -61,6 +80,8 @@
 //   The collected order payloads (a JSON array of the objects above) can be imported back in Orders › Import (importOrderPayloads()).
 
 import { normalizeGeo } from './geo.js';
+import { withServiceData } from './services.js';
+import { normalizeStripe, normalizeIntegrations } from '../integrations.js';
 
 export const COMMERCE_VERSION = 1;
 export const ONBOARDING_STEPS = ['product', 'theme', 'shipping', 'payments', 'domain', 'launch'];
@@ -190,7 +211,8 @@ export function createCommerce(store) {
   return normalizeCommerce({
     storeId: store?.id || '',
     settings: {
-      general: { email: store?.contact?.email || '', phone: store?.contact?.phone || '', address: store?.contact?.address || '', legalName: store?.name || '' },
+      general: { email: store?.contact?.email || '', phone: store?.contact?.phone || '', address: store?.contact?.address || '', legalName: store?.name || '', timezone: localZone() },
+      payments: { stripe: { currency: String(store?.currency?.code || 'usd').toLowerCase() } },
       shipping: { zones: [
         { name: 'Domestic', countries: ['US'], rates: [{ name: 'Standard', type: 'free_over', price: 5.99, threshold: 75 }, { name: 'Express', type: 'flat', price: 14.99 }] },
         { name: 'Rest of world', countries: ['*'], rates: [{ name: 'International', type: 'weight', tiers: [{ upTo: 1000, price: 14 }, { upTo: 5000, price: 29 }, { upTo: 20000, price: 59 }] }] },
@@ -198,6 +220,54 @@ export function createCommerce(store) {
       locations: [{ name: 'Main warehouse', address: store?.contact?.address || '', isDefault: true }],
     },
   });
+}
+
+// ---------- settings (Settings › General, Checkout, Customer accounts, Users, Markets, …) ----------
+export const BUSINESS_ENTITIES = [['individual', 'Individual'], ['sole_proprietorship', 'Sole proprietorship'], ['llc', 'Limited liability company (LLC)'], ['corporation', 'Corporation'], ['partnership', 'Partnership'], ['nonprofit', 'Non-profit']];
+export const FIELD_MODES = [['required', 'Required'], ['optional', 'Optional'], ['hidden', 'Don’t include']];
+export const STAFF_ROLES = [['admin', 'Administrator'], ['staff', 'Staff'], ['limited', 'Limited (orders only)']];
+export const STAFF_PERMISSIONS = [['orders', 'Orders'], ['products', 'Products'], ['customers', 'Customers'], ['discounts', 'Discounts'], ['analytics', 'Analytics'], ['marketing', 'Marketing'], ['online_store', 'Online Store'], ['settings', 'Settings']];
+export const SALES_CHANNELS = [['online', 'Online Store', 'Your exported static site'], ['whatsapp', 'WhatsApp', 'Share products and take orders in chats'], ['instagram', 'Instagram', 'Link products from posts and your bio'], ['facebook', 'Facebook', 'Shop tab on your Facebook page'], ['google', 'Google', 'Free listings through Merchant Center'], ['tiktok', 'TikTok', 'Product links in videos and your profile'], ['pinterest', 'Pinterest', 'Rich pins for your product pages']];
+export const METAFIELD_OWNERS = [['product', 'Products'], ['variant', 'Variants'], ['collection', 'Collections'], ['customer', 'Customers'], ['order', 'Orders']];
+export const METAFIELD_TYPES = [['single_line_text', 'Single line text'], ['multi_line_text', 'Multi-line text'], ['number_integer', 'Integer'], ['number_decimal', 'Decimal'], ['boolean', 'True or false'], ['date', 'Date'], ['url', 'URL'], ['color', 'Color'], ['json', 'JSON']];
+export const LANGUAGES = [['en', 'English'], ['es', 'Spanish'], ['fr', 'French'], ['de', 'German'], ['it', 'Italian'], ['pt', 'Portuguese'], ['nl', 'Dutch'], ['sv', 'Swedish'], ['da', 'Danish'], ['pl', 'Polish'], ['ja', 'Japanese'], ['zh', 'Chinese'], ['ko', 'Korean'], ['ar', 'Arabic'], ['hi', 'Hindi']];
+const localZone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; } };
+const iso2 = (v, d) => /^[A-Z]{2}$/.test(str(v).trim().toUpperCase()) ? str(v).trim().toUpperCase() : d;
+const generalExtra = g => ({
+  orderSuffix: str(g.orderSuffix).slice(0, 6), businessEntity: pick(g.businessEntity, BUSINESS_ENTITIES.map(b => b[0]), 'individual'), country: iso2(g.country, 'US'),
+  timezone: /^[A-Za-z_]+(\/[A-Za-z0-9_+-]+)*$/.test(str(g.timezone)) ? str(g.timezone) : 'UTC', currencyDisplay: pick(g.currencyDisplay, ['symbol', 'code', 'symbol_code'], 'symbol'),
+  backupRegion: iso2(g.backupRegion, iso2(g.country, 'US')), autoFulfill: pick(g.autoFulfill, ['none', 'digital', 'all'], 'none'), autoArchive: bool(g.autoArchive),
+});
+function settingsExtra(st) {
+  const ck = st.checkout || {}, mode = v => pick(v, ['required', 'optional', 'hidden'], 'optional'), ca = st.customerAccounts || {}, u = st.users || {}, lang = st.languages || {}, pv = st.privacy || {}, ce = st.customerEvents || {};
+  const markets = arr(st.markets).map(m => ({ id: str(m.id) || cid('mkt'), name: str(m.name, 'Market').trim() || 'Market', countries: [...new Set(arr(m.countries).map(c => str(c).trim().toUpperCase()).filter(c => c === '*' || /^[A-Z]{2}$/.test(c)))],
+    currency: /^[A-Z]{3}$/.test(str(m.currency)) ? str(m.currency) : '', enabled: bool(m.enabled, true), primary: bool(m.primary) }));
+  if (markets.length && !markets.some(m => m.primary)) markets[0].primary = true;
+  let prim = false; for (const m of markets) { if (m.primary && prim) m.primary = false; if (m.primary) { prim = true; m.enabled = true; } }
+  const codes = LANGUAGES.map(l => l[0]), primary = pick(lang.primary, codes, 'en');
+  return {
+    checkout: {
+      contactMethod: pick(ck.contactMethod, ['email', 'phone_or_email'], 'email'), fullName: pick(ck.fullName, ['last_only', 'first_and_last'], 'first_and_last'),
+      company: pick(ck.company, ['required', 'optional', 'hidden'], 'hidden'), address2: mode(ck.address2), shippingPhone: mode(ck.shippingPhone),
+      marketing: { email: bool(ck.marketing?.email, true), sms: bool(ck.marketing?.sms), preChecked: bool(ck.marketing?.preChecked) },
+      tipping: { enabled: bool(ck.tipping?.enabled), presets: (arr(ck.tipping?.presets).length ? arr(ck.tipping.presets) : [10, 15, 20]).slice(0, 3).map(p => Math.round(num(p, 10, 0, 100))) },
+      orderNotes: bool(ck.orderNotes, true), termsCheckbox: bool(ck.termsCheckbox), addressAutocomplete: bool(ck.addressAutocomplete, true),
+      abandoned: { enabled: bool(ck.abandoned?.enabled), delayHours: pick(+ck.abandoned?.delayHours, [1, 6, 10, 24], 10), audience: pick(ck.abandoned?.audience, ['all', 'subscribers'], 'all') },
+      turnstile: bool(ck.turnstile, true),
+    },
+    customerAccounts: { mode: pick(ca.mode, ['disabled', 'optional', 'required'], 'disabled'), loginMethod: pick(ca.loginMethod, ['code', 'password'], 'code'), selfServeReturns: bool(ca.selfServeReturns), storeCredit: bool(ca.storeCredit) },
+    users: { owner: { name: str(u.owner?.name), email: str(u.owner?.email).trim() },
+      staff: arr(u.staff).map(m => ({ id: str(m.id) || cid('st'), name: str(m.name).trim(), email: str(m.email).trim().toLowerCase(), role: pick(m.role, STAFF_ROLES.map(r => r[0]), 'staff'),
+        permissions: [...new Set(arr(m.permissions).map(String).filter(p => STAFF_PERMISSIONS.some(x => x[0] === p)))] })).filter(m => m.email || m.name) },
+    markets,
+    salesChannels: Object.fromEntries(SALES_CHANNELS.map(([k]) => [k, { enabled: bool(st.salesChannels?.[k]?.enabled, k === 'online'), handle: str(st.salesChannels?.[k]?.handle).trim() }])),
+    customerEvents: { forward: bool(ce.forward, true), events: Object.fromEntries(EVENT_TYPES.map(k => [k, bool(ce.events?.[k], true)])) },
+    metafields: arr(st.metafields).map(m => ({ id: str(m.id) || cid('mf'), owner: pick(m.owner, METAFIELD_OWNERS.map(o => o[0]), 'product'), name: str(m.name).trim(),
+      key: str(m.key).trim().toLowerCase().replace(/[^a-z0-9_.]+/g, '_').slice(0, 64), type: pick(m.type, METAFIELD_TYPES.map(t => t[0]), 'single_line_text'), description: str(m.description) })).filter(m => m.name || m.key),
+    languages: { primary, published: [...new Set([primary, ...arr(lang.published).filter(l => codes.includes(l))])], autoRedirect: bool(lang.autoRedirect) },
+    privacy: { dataSaleOptOut: bool(pv.dataSaleOptOut), cookieTitle: str(pv.cookieTitle), cookieText: str(pv.cookieText) },
+    security: { confirmDanger: bool(st.security?.confirmDanger, true) },
+  };
 }
 
 /** Return a complete, valid commerce document (defaults filled, unknown values repaired). Does not mutate the input. */
@@ -221,17 +291,18 @@ export function normalizeCommerce(input) {
       barcode: str(m.barcode), seoTitle: str(m.seoTitle), seoDescription: str(m.seoDescription),
       variants: Object.fromEntries(Object.entries(m.variants || {}).map(([vid, v]) => [vid, { cost: v?.cost == null || v.cost === '' ? null : money(v.cost), weight: v?.weight == null || v.weight === '' ? null : Math.round(num(v.weight, 0, 0)), barcode: str(v?.barcode), continueSelling: bool(v?.continueSelling) }])) };
   }
-  return {
+  return withServiceData(s, { // + bookings, serviceProjects, abandonedCheckouts, sampleData (src/store/admin/services.js)
     kind: 'commerce', version: COMMERCE_VERSION, storeId: str(s.storeId),
     settings: {
       general: { legalName: str(g.legalName), email: str(g.email), phone: str(g.phone), address: str(g.address), unitSystem: pick(g.unitSystem, ['metric', 'imperial'], 'metric'),
         weightUnit: pick(g.weightUnit, Object.keys(WEIGHT_UNITS), 'kg'), orderPrefix: str(g.orderPrefix, '#').slice(0, 6),
         nextOrderNumber: Math.max(Math.round(num(g.nextOrderNumber, 1001, 1)), maxNumber + 1), nextDraftNumber: Math.max(Math.round(num(g.nextDraftNumber, 1, 1)), maxDraft + 1),
-        lowStockThreshold: Math.round(num(g.lowStockThreshold, 5, 0, 100000)) },
+        lowStockThreshold: Math.round(num(g.lowStockThreshold, 5, 0, 100000)), ...generalExtra(g) },
       payments: {
         manualMethods: (Array.isArray(st.payments?.manualMethods) ? st.payments.manualMethods : [{ name: 'Bank transfer', instructions: 'Transfer the order total to our bank account and use the order number as the reference.', enabled: false }, { name: 'Cash on delivery', instructions: 'Pay in cash when your order arrives.', enabled: false }])
           .map(m => ({ id: str(m.id) || cid('pm'), name: str(m.name, 'Manual payment').trim() || 'Manual payment', instructions: str(m.instructions), enabled: bool(m.enabled) })),
         providerNotes: str(st.payments?.providerNotes),
+        stripe: normalizeStripe(st.payments?.stripe),
       },
       shipping: { zones: arr(st.shipping?.zones).map(z => ({ id: str(z.id) || cid('z'), name: str(z.name, 'Zone').trim() || 'Zone', countries: [...new Set(arr(z.countries).map(c => str(c).trim().toUpperCase()).filter(c => c === '*' || /^[A-Z]{2}$/.test(c)))], rates: arr(z.rates).map(normRate) })) },
       taxes: { inclusive: bool(st.taxes?.inclusive), shippingTaxed: bool(st.taxes?.shippingTaxed), rates: arr(st.taxes?.rates).map(r => ({ id: str(r.id) || cid('tx'), country: str(r.country).trim().toUpperCase().slice(0, 2), region: str(r.region).trim(), name: str(r.name, 'Tax').trim() || 'Tax', rate: num(r.rate, 0, 0, 100) })).filter(r => r.country) },
@@ -240,6 +311,8 @@ export function normalizeCommerce(input) {
       domains: { primary: str(st.domains?.primary).trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, ''), provider: pick(st.domains?.provider, ['netlify', 'github', 'cloudflare', 'vercel', 'other'], 'netlify'), notes: str(st.domains?.notes), connected: bool(st.domains?.connected) },
       policies,
       backend: { orderWebhookUrl: str(st.backend?.orderWebhookUrl).trim(), eventsWebhookUrl: str(st.backend?.eventsWebhookUrl).trim(), notes: str(st.backend?.notes) },
+      integrations: normalizeIntegrations(st.integrations),
+      ...settingsExtra(st),
     },
     orders,
     customers: arr(s.customers).map(normalizeCustomer),
@@ -253,7 +326,7 @@ export function normalizeCommerce(input) {
     staffNotes: arr(s.staffNotes).map(n => ({ id: str(n.id) || cid('sn'), at: iso(n.at, new Date().toISOString()), author: str(n.author), text: str(n.text) })).filter(n => n.text.trim()),
     analytics: { events: arr(s.analytics?.events).map(normalizeEvent).slice(-MAX_EVENTS) },
     onboarding: { dismissed: bool(s.onboarding?.dismissed), steps: Object.fromEntries(ONBOARDING_STEPS.map(k => [k, bool(s.onboarding?.steps?.[k])])) },
-  };
+  });
 }
 
 // ---------- product meta helpers ----------

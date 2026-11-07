@@ -38,7 +38,7 @@ createRoot(document.getElementById('root')).render(<App />);
 `);
 await build({ entryPoints: [join(work, 'harness.jsx')], bundle: true, minify: true, outfile: join(work, 'harness.js'), loader: { '.jsx': 'jsx' }, nodePaths: [join(repo, 'node_modules')], logLevel: 'error' });
 await writeFile(join(work, 'harness.html'), `<!doctype html><html><head><meta charset="utf-8"><title>Commerce harness</title>
-<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/css/modern.css"><link rel="stylesheet" href="/css/store.css"><link rel="stylesheet" href="/css/admin.css"><link rel="stylesheet" href="/css/commerce-intro.css"><link rel="stylesheet" href="/css/globe.css"><link rel="stylesheet" href="/css/stores.css"></head>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/css/modern.css"><link rel="stylesheet" href="/css/store.css"><link rel="stylesheet" href="/css/admin.css"><link rel="stylesheet" href="/css/settings.css"><link rel="stylesheet" href="/css/commerce-intro.css"><link rel="stylesheet" href="/css/globe.css"><link rel="stylesheet" href="/css/stores.css"><link rel="stylesheet" href="/css/services.css"></head>
 <body><div id="root"></div><script src="/harness.js"></script></body></html>`);
 
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
@@ -316,6 +316,96 @@ try {
     // the setup guide ticks itself off: a saved product with a sample photo, and the store builder was opened
     assert.equal(await page.getByRole('progressbar', { name: 'Setup progress' }).getAttribute('aria-valuenow'), '2');
     await shot('home');
+  });
+
+  await step('sample data: load → dashboard, Services bookings and the Analytics globe fill up; clear → back to the own data', async () => {
+    const before = await commerce();
+    const ownOrders = before.orders.length;
+    await nav('Services');
+    await main.getByRole('heading', { name: 'Services', level: 1 }).waitFor();
+    await main.getByRole('button', { name: 'Load sample data' }).click();
+    await page.waitForFunction(() => window.__commerce.sampleData && window.__commerce.bookings.length > 20);
+    await main.getByRole('group', { name: 'Upcoming bookings', exact: true }).waitFor();
+    assert.ok(await main.locator('.svUpcoming li').count() > 0, 'upcoming bookings listed');
+    const c = await commerce();
+    assert.ok(c.orders.length >= ownOrders + 170 && c.customers.length >= 60);
+    await page.getByRole('navigation', { name: 'Commerce' }).getByRole('button', { name: 'Bookings', exact: true }).click();
+    await main.getByRole('heading', { name: 'Bookings', level: 1 }).waitFor();
+    await main.getByRole('button', { name: 'List', exact: true }).click();
+    assert.ok(await main.getByRole('table', { name: 'Bookings' }).locator('tbody tr').count() > 0, 'bookings in the list view');
+    await nav('Home');
+    const ordersKpi = await main.getByRole('group', { name: 'Orders', exact: true }).locator('.caKpiValue').textContent();
+    assert.ok(+ordersKpi.replace(/\D/g, '') > 10, 'dashboard orders: ' + ordersKpi);
+    assert.notEqual((await main.getByRole('group', { name: 'Total sales', exact: true }).locator('.caKpiValue').textContent()).trim(), '$0.00');
+    await shot('sample-home');
+    await nav('Analytics');
+    await page.locator('.caGlobeStats').waitFor();
+    const countries = +(await page.locator('.caGlobeStats span').nth(1).locator('strong').textContent());
+    assert.ok(countries >= 10, 'globe locations: ' + countries);
+    await nav('Services');
+    await main.getByRole('button', { name: 'Clear sample data' }).click();
+    await page.getByRole('dialog', { name: 'Clear sample data?' }).getByRole('button', { name: 'Clear sample data' }).click();
+    await page.waitForFunction(() => !window.__commerce.sampleData);
+    const after = await commerce();
+    assert.equal(after.orders.length, ownOrders, 'only the sample orders were removed');
+    assert.equal(after.bookings.length + after.serviceProjects.length, 0);
+    assert.ok(!after.customers.some(x => x.sample) && !after.analytics.events.some(e => e.sample));
+    assert.ok(!(await store()).products.some(p => p.sample));
+    await main.getByRole('heading', { name: 'Services', level: 1 }).waitFor();
+    await main.getByRole('button', { name: 'Load sample data' }).waitFor();
+    await nav('Home');
+  });
+
+  await step('settings: search jumps to a setting; secret keys are refused; Stripe, Supabase and GA4 save', async () => {
+    const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
+    const anon = b64({ alg: 'HS256', typ: 'JWT' }) + '.' + b64({ iss: 'supabase', ref: 'abcdefghijklmnopqrst', role: 'anon' }) + '.' + 'S'.repeat(43);
+    const SB = 'https://abcdefghijklmnopqrst.supabase.co', cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'GET, POST, OPTIONS' };
+    const seen = [];
+    await ctx.route(SB + '/**', r => { const q = r.request(); if (q.method() === 'OPTIONS') return r.fulfill({ status: 204, headers: cors }); seen.push([q.method(), q.url(), q.headers().apikey, q.postData()]);
+      return r.fulfill({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: q.url().endsWith('/stripe-connect-onboard') ? JSON.stringify({ url: 'https://connect.stripe.com/setup/e/acct_1TestAcct12345/x', accountId: 'acct_1TestAcct12345' }) : '{}' }); });
+    await ctx.route(/connect\.stripe\.com/, r => r.fulfill({ status: 200, contentType: 'text/html', body: '<title>Stripe onboarding</title>' }));
+    await page.getByRole('navigation', { name: 'Commerce' }).getByRole('button', { name: 'Settings' }).click();
+    const pill = main.getByRole('region', { name: 'Unsaved changes' }), sections = main.getByRole('navigation', { name: 'Settings sections' });
+    await main.getByRole('searchbox', { name: 'Search settings' }).fill('statement');
+    await main.getByRole('group', { name: 'Matching settings' }).getByRole('button', { name: /Statement descriptor/ }).click();
+    await main.getByRole('heading', { name: 'Payments', level: 1 }).waitFor();
+    await page.waitForFunction(() => document.activeElement && document.activeElement.closest('#cs-descriptor'));
+    await main.getByRole('textbox', { name: 'Statement descriptor', exact: true }).fill('EVERYDAY GOODS');
+    await main.getByLabel('Test publishable key').fill('sk_test_51AbCdEfGhIjKlMnOp');
+    await main.getByText(/Never paste it here: set STRIPE_SECRET_KEY/).waitFor();
+    assert.equal(await pill.getByRole('button', { name: 'Save' }).isDisabled(), true, 'a secret key blocks saving');
+    await main.getByLabel('Test publishable key').fill('pk_test_51AbCdEfGhIjKlMnOp');
+    await main.getByRole('switch', { name: 'Klarna', exact: true }).check();
+    await pill.getByRole('button', { name: 'Save' }).click();
+    await page.waitForFunction(() => window.__commerce.settings.payments.stripe.publishableKeyTest === 'pk_test_51AbCdEfGhIjKlMnOp');
+    let st = (await commerce()).settings.payments.stripe;
+    assert.ok(st.paymentMethods.includes('klarna')); assert.equal(st.statementDescriptor, 'EVERYDAY GOODS');
+    // Supabase + GA4 in Apps and integrations, with a real "Test connection" request
+    await sections.getByRole('button', { name: 'Apps and integrations' }).click();
+    await main.getByRole('button', { name: /^Supabase/ }).click();
+    await main.getByLabel('Supabase: Project URL').fill(SB);
+    await main.getByLabel('Supabase: Anon public key').fill(anon);
+    await main.getByRole('button', { name: /^Google Analytics 4/ }).click();
+    await main.getByLabel('Google Analytics 4: Measurement ID').fill('G-ABC123XYZ9');
+    await main.getByRole('button', { name: 'Test connection' }).click();
+    await main.getByText(/Connected — the project answered 200/).waitFor();
+    assert.deepEqual(seen[0].slice(0, 3), ['GET', SB + '/rest/v1/', anon]);
+    await pill.getByRole('button', { name: 'Save' }).click();
+    await page.waitForFunction(() => window.__commerce.settings.integrations.ga4.measurementId === 'G-ABC123XYZ9' && window.__commerce.settings.integrations.backend.provider === 'supabase');
+    // Connect with Stripe calls the backend's onboarding function and opens the returned link
+    await sections.getByRole('button', { name: 'Payments' }).click();
+    const [popup] = await Promise.all([ctx.waitForEvent('page'), main.getByRole('button', { name: 'Connect with Stripe' }).click()]);
+    await popup.close();
+    const call = seen.find(x => x[1] === SB + '/functions/v1/stripe-connect-onboard');
+    assert.ok(call, 'onboarding function called'); assert.equal(JSON.parse(call[3]).connectType, 'standard');
+    await main.getByText('Onboarding pending').first().waitFor();
+    await main.getByText(SB + '/functions/v1/stripe-webhook').waitFor();
+    await pill.getByRole('button', { name: 'Save' }).click();
+    await page.waitForFunction(() => window.__commerce.settings.payments.stripe.accountId === 'acct_1TestAcct12345');
+    st = (await commerce()).settings.payments.stripe;
+    assert.equal(st.onboardingStatus, 'pending'); assert.equal(st.enabled, true);
+    assert.doesNotMatch(JSON.stringify(await commerce()), /sk_test_|sk_live_|whsec_/, 'no secret was stored');
+    await ctx.unroute(SB + '/**'); await ctx.unroute(/connect\.stripe\.com/);
   });
 
   await step('no page errors; shortcuts do not leak (keys reach the window only when unhandled)', async () => {

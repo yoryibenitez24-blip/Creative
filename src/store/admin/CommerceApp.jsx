@@ -21,6 +21,8 @@ import Analytics from './Analytics.jsx';
 import Marketing from './Marketing.jsx';
 import { Themes, PagesPage, NavigationPage, Preferences } from './OnlineStore.jsx';
 import Settings from './Settings.jsx';
+import { ServicesOverview, BookingsPage, BookingDetail, ProjectsBoard, ProjectDetail } from './Services.jsx';
+import { CalendarCheck } from 'lucide-react';
 
 /**
  * Commerce admin.
@@ -51,6 +53,7 @@ const NAV = [
   ['orders', 'Orders', Inbox],
   ['products', 'Products', Tag, [['products', 'All products'], ['inventory', 'Inventory'], ['collections', 'Collections']]],
   ['customers', 'Customers', Users],
+  ['services', 'Services', CalendarCheck, [['services', 'Overview'], ['bookings', 'Bookings'], ['projects', 'Projects']]],
   ['discounts', 'Discounts', Percent],
   ['analytics', 'Analytics', BarChart3],
   ['marketing', 'Marketing', Megaphone],
@@ -61,7 +64,7 @@ const isMac = () => { try { return /Mac|iPhone|iPad/.test(navigator.platform || 
 const markTheme = c => ({ ...c, onboarding: { ...c.onboarding, steps: { ...c.onboarding.steps, theme: true } } });
 const THEME_KEY = 'zertake.commerceTheme';
 const loadTheme = () => { try { return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'; } catch { return 'light'; } };
-const SECTION_OF = { order: 'orders', 'order-new': 'orders', product: 'products', inventory: 'products', collections: 'products', collection: 'products', customer: 'customers', discount: 'discounts', pages: 'themes', navigation: 'themes', preferences: 'themes' };
+const SECTION_OF = { order: 'orders', 'order-new': 'orders', product: 'products', inventory: 'products', collections: 'products', collection: 'products', customer: 'customers', discount: 'discounts', pages: 'themes', navigation: 'themes', preferences: 'themes', bookings: 'services', booking: 'services', projects: 'services', project: 'services' };
 
 export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio, assetStore, commerce, onCommerceChange, intro: playIntro, sectionBar, route: routeProp, onRoute, storeSwitcher, plan, onUpgrade }) {
   const [, bump] = useReducer(x => x + 1, 0);
@@ -174,7 +177,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
   if (!cur) return <div className="caRoot caPicker stRoot">{sectionBar && <div className="caPickerBar">{sectionBar}</div>}<Gallery onPick={id => commit(createStore(id), null, 'Create store')} onCancel={onExit} cancelLabel="Exit commerce" />{introEl}</div>;
   if (customizing) return <StoreBuilder store={cur} commerce={com} onChange={(s, label) => commit(s, K.current && !K.current.onboarding.steps.theme ? markTheme(K.current) : null, label)} onExit={() => setCustomizing(false)} onOpenPhotoStudio={onOpenPhotoStudio} assetStore={assetStore} />;
 
-  const ctx = { store: cur, commerce: com, commit, editStore, editCommerce, run, fmt, imageUrl, upload, resolver, notify, confirm, go, route, assetStore, onOpenPhotoStudio, customize: () => { if (!K.current.onboarding.steps.theme) commit(null, markTheme(K.current), 'Theme customized'); setCustomizing(true); }, viewStore };
+  const ctx = { store: cur, commerce: com, commit, editStore, editCommerce, run, fmt, imageUrl, upload, resolver, notify, confirm, go, route, assetStore, onOpenPhotoStudio, customize: () => { if (!K.current.onboarding.steps.theme) commit(null, markTheme(K.current), 'Theme customized'); setCustomizing(true); }, viewStore, plan, onUpgrade };
   const section = SECTION_OF[route.page] || route.page;
   const toFulfill = com.orders.filter(o => !o.draft && o.status === 'open' && o.fulfillmentStatus === 'unfulfilled').length;
   const page = (() => {
@@ -199,6 +202,11 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
       case 'navigation': return <NavigationPage />;
       case 'preferences': return <Preferences />;
       case 'settings': return <Settings tab={route.tab || 'general'} />;
+      case 'services': return <ServicesOverview />;
+      case 'bookings': return <BookingsPage />;
+      case 'booking': return <BookingDetail id={route.id} />;
+      case 'projects': return <ProjectsBoard />;
+      case 'project': return <ProjectDetail id={route.id} />;
       default: return <Home />;
     }
   })();
@@ -206,11 +214,11 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
   const sectionEntry = NAV.find(n => n[0] === section);
   const sectionLabel = section === 'settings' ? 'Settings' : sectionEntry ? sectionEntry[1] : 'Home';
   const subPages = sectionEntry && sectionEntry[3];
-  const subOn = k => route.page === k || (k === 'products' && route.page === 'product') || (k === 'collections' && route.page === 'collection');
+  const subOn = k => route.page === k || (k === 'products' && route.page === 'product') || (k === 'collections' && route.page === 'collection') || (k === 'bookings' && route.page === 'booking') || (k === 'projects' && route.page === 'project');
   const initial = (cur.name || 'S').trim().charAt(0).toUpperCase();
 
   return <AdminCtx.Provider value={ctx}>
-    <div className={'caRoot caShell' + (entering ? ' caEnter' : '')} data-theme={theme}>
+    <div className={'caRoot caShell' + (entering ? ' caEnter' : '') + (route.page === 'settings' ? ' caSettingsMode' : '')} data-theme={theme}>
       <header className="caTop">
         <button type="button" className="caIconBtn caRound caNavToggle" aria-label="Toggle navigation" aria-expanded={navOpen} onClick={() => setNavOpen(v => !v)}><Menu size={18} /></button>
         <div className="caBrand"><span className="caBrandEyebrow">Zertake Commerce · {sectionLabel}</span>{storeSwitcher || <strong>{cur.name}</strong>}</div>

@@ -7,6 +7,8 @@ import { normalizeProduct, generateVariants, newProduct, productsToCsv, importPr
 import { productMeta, variantMeta, WEIGHT_UNITS, cid, syncPriceCollections } from './model.js';
 import { adjustStock, productStock, stockRows } from './inventory.js';
 import { ALIGN_PRESETS, productFrames, productFrame, moveProductImage, removeProductImage, normFrame } from '../frame.js';
+import { KindPicker, applyKind, ServiceCards, DigitalCard } from './ServiceEditor.jsx';
+import { productKind } from '../serviceProduct.js';
 
 /** Compact 3×3 image alignment grid (sets the image's focal point; finer control lives in the store builder). */
 function AlignGrid({ label, frame, onChange }) {
@@ -61,7 +63,7 @@ export function ProductsList() {
         <tbody>{list.map(p => { const m = productMeta(commerce, p.id), n = productStock(p); return <tr key={p.id} className="click" onClick={() => go({ page: 'product', id: p.id })}>
           <td className="sel" onClick={e => e.stopPropagation()}><input type="checkbox" aria-label={`Select ${p.title}`} checked={sel.includes(p.id)} onChange={e => setSel(e.target.checked ? [...sel, p.id] : sel.filter(x => x !== p.id))} /></td>
           <td className="img"><Thumb src={p.images[0] || p.art} fallback={p.art} size={40} /></td>
-          <td><button type="button" className="caLink" onClick={e => { e.stopPropagation(); go({ page: 'product', id: p.id }); }}>{p.title}</button></td>
+          <td><button type="button" className="caLink" onClick={e => { e.stopPropagation(); go({ page: 'product', id: p.id }); }}>{p.title}</button>{p.kind === 'service' ? <Badge tone="info">Service</Badge> : p.kind === 'digital' ? <Badge tone="info">Digital</Badge> : null}{p.sample && <Badge>Sample</Badge>}</td>
           <td><Badge tone={p.status === 'active' ? 'ok' : 'neutral'}>{p.status === 'active' ? 'Active' : 'Draft'}</Badge></td>
           <td className={n === 0 ? 'caBad' : ''}>{stockText(p)}</td><td>{m.productType || p.category || '—'}</td><td>{m.vendor || '—'}</td></tr>; })}</tbody></table>
         : <Empty art="products" title={store.products.length ? 'No products match' : 'Add your first product'} action={<Btn kind="primary" icon={Plus} onClick={() => go({ page: 'product', id: 'new' })}>Add product</Btn>}>Products you add appear on your storefront when they are active.</Empty>}
@@ -87,7 +89,7 @@ export function ProductDetail({ id }) {
   const { p, m } = st;
   const set = fn => { setSt(s => { const n = structuredClone(s); fn(n); return n; }); setDirty(true); };
   const unit = commerce.settings.general.weightUnit, toUnit = g => g == null ? null : Math.round(g / WEIGHT_UNITS[unit] * 1000) / 1000, fromUnit = v => v == null ? null : Math.round(v * WEIGHT_UNITS[unit]);
-  const single = p.options.length === 0, v0 = p.variants[0];
+  const single = p.options.length === 0, v0 = p.variants[0], kind = productKind(p);
   const setOptions = opts => set(s => { s.p.options = opts; s.p.variants = generateVariants({ ...s.p, slug: s.p.slug || s.p.title, options: opts.filter(o => o.name && o.values.length) }); });
   const vm = vid => m.variants[vid] || { cost: null, weight: null, barcode: '', continueSelling: false };
   const setVm = (vid, k, val) => set(s => { s.m.variants[vid] = { ...vm(vid), ...(s.m.variants[vid] || {}), [k]: val }; });
@@ -135,7 +137,8 @@ export function ProductDetail({ id }) {
       <div className="caColMain">
         <Card>
           <div className="caForm">
-            <Text label="Title" value={p.title} onChange={v => set(s => { s.p.title = v; })} placeholder="Short sleeve t-shirt" />
+            <KindPicker value={kind} onChange={k => set(s => { applyKind(s.p, k); })} />
+            <Text label="Title" value={p.title} onChange={v => set(s => { s.p.title = v; })} placeholder={kind === 'service' ? '1:1 Consultation' : 'Short sleeve t-shirt'} />
             <Area label="Description" value={p.description} onChange={v => set(s => { s.p.description = v; })} rows={7} hint="Leave a blank line between paragraphs. Shown on the product page." />
           </div>
         </Card>
@@ -150,7 +153,7 @@ export function ProductDetail({ id }) {
         </Card>
         <Card title="Pricing">
           <div className="caForm three">
-            <Num label="Price" value={p.price} min={0} onChange={v => set(s => { s.p.price = v; })} />
+            <Num label={kind === 'service' ? { hourly: 'Hourly rate', package: 'Package price', retainer: 'Monthly price' }[p.service?.pricing?.model] || 'Price' : 'Price'} value={p.price} min={0} onChange={v => set(s => { s.p.price = v; })} />
             <Num label="Compare-at price" value={p.compareAt} min={0} allowEmpty onChange={v => set(s => { s.p.compareAt = v; })} hint="Original price, shown crossed out." />
             <Num label="Cost per item" value={m.cost} min={0} allowEmpty onChange={v => set(s => { s.m.cost = v; })} hint="Customers won't see this." />
           </div>
@@ -159,7 +162,9 @@ export function ProductDetail({ id }) {
             <div><span>Margin</span><strong>{profit == null || !p.price ? '—' : pct(profit / p.price)}</strong></div>
           </div>
         </Card>
-        {single && v0 && <Card title="Inventory">
+        {kind === 'service' && <ServiceCards p={p} set={set} />}
+        {kind === 'digital' && <DigitalCard p={p} set={set} />}
+        {kind === 'physical' && single && v0 && <Card title="Inventory">
           <Check label="Track quantity" checked={v0.stock != null} onChange={on => set(s => { s.p.variants[0].stock = on ? 0 : null; })} />
           <div className="caForm three">
             {v0.stock != null && <Num label="Quantity" value={v0.stock} min={0} step={1} onChange={v => set(s => { s.p.variants[0].stock = Math.round(v); })} />}
@@ -168,10 +173,10 @@ export function ProductDetail({ id }) {
           </div>
           <Check label="Continue selling when out of stock" checked={vm(v0.id).continueSelling} onChange={v => setVm(v0.id, 'continueSelling', v)} hint="Lets you create orders beyond the available quantity in the admin." />
         </Card>}
-        <Card title="Shipping">
+        {kind === 'physical' && <Card title="Shipping">
           <div className="caForm three"><Num label={`Weight (${unit})`} value={toUnit(m.weight)} min={0} onChange={v => set(s => { s.m.weight = fromUnit(v) || 0; })} hint="Used for weight-based shipping rates." /></div>
-        </Card>
-        <Card title="Variants">
+        </Card>}
+        {kind !== 'service' && <Card title="Variants">
           <OptionsEditor options={p.options} onChange={setOptions} />
           {!single && <div className="caTableWrap"><table className="caTable compact" aria-label="Variants">
             <thead><tr><th>Variant</th><th>Price</th><th>Cost</th><th>SKU</th><th>Barcode</th><th>Track</th><th>Available</th><th>Oversell</th><th>Weight ({unit})</th></tr></thead>
@@ -187,7 +192,7 @@ export function ProductDetail({ id }) {
               <td><CellNum label={`Weight of ${lab}`} value={toUnit(x.weight)} allowEmpty placeholder={String(toUnit(m.weight) || '')} onChange={val => setVm(v.id, 'weight', fromUnit(val))} /></td>
             </tr>; })}</tbody></table></div>}
           {!single && <p className="caHint">Blank price, cost or weight uses the product value.</p>}
-        </Card>
+        </Card>}
         <Card title="Search engine listing">
           <div className="caSeo" aria-label="Search result preview"><span className="caSeoUrl">{(commerce.settings.domains.primary || 'your-store.example')} › products › {p.slug || slugify(p.title)}</span><strong>{seoTitle || 'Product title'}</strong><p>{seoDesc || 'Add a description to see how this product might appear in a search engine listing.'}</p></div>
           <div className="caForm">

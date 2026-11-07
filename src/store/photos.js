@@ -228,6 +228,51 @@ export const PHOTOS = {
       ['1540932239986-30128078f3c5', 'Cluster of copper pendant lamps'],
     ],
   },
+  // premium motion templates (each new id downloaded and checked by eye: no logos, brand names on dials or readable text)
+  luxe: {
+    hero: [['1605100804763-247f67b3557e', 'Diamond halo ring on a black velvet block'], ['1617038220319-276d3cfab638', 'Gold twist hoop earrings on a pebble in hard light'], ['1611652022419-a9419f74343d', 'Woman in a white shirt wearing fine gold necklaces']],
+    product: [
+      ['1605100804763-247f67b3557e', 'Diamond halo ring on black'],
+      ['1617038220319-276d3cfab638', 'Gold twist hoop earrings'],
+      ['1535632066927-ab7c9ab60908', 'Sapphire and crystal drop earrings on a monstera leaf'],
+      ['1588444837495-c6cfeb53f32d', 'Pavé heart pendant on a fine chain'],
+      ['1524592094714-0f0654e20314', 'Minimal watch with a white dial and taupe strap held between fingers'],
+      ['1599643478518-a784e5dc4c8f', 'Gold pendant necklace'],
+      ['1602173574767-37ac01994b2a', 'Gold chain bracelet'],
+      ['1515562141207-7a88fb7ce338', 'Pearl necklace in a box'],
+    ],
+    people: [['1611652022419-a9419f74343d', 'Woman wearing layered gold necklaces']],
+  },
+  gadgets: {
+    hero: [['1518770660439-4636190af475', 'Close-up of a dark circuit board'], ['1498049794561-7780e7231661', 'Laptop, headphones and phone on a white desk']],
+    product: [
+      ['1505740420928-5e560c06d30e', 'Black headphones on yellow'],
+      ['1606220588913-b3aacb4d2f46', 'Wireless earbuds and charging case on a red and violet backdrop'],
+      ['1523275335684-37898b6baf30', 'White smartwatch'],
+      ['1546435770-a3e426bf472b', 'Over-ear headphones on white'],
+      ['1496181133206-80ce9b88a853', 'Laptop'],
+      ['1518770660439-4636190af475', 'Circuit board detail'],
+    ],
+  },
+  editorial: {
+    hero: [['1496747611176-843222e1e57c', 'Woman in a floral wrap dress by the sea'], ['1483985988355-763728e1935b', 'Woman in a burgundy coat holding shopping bags'], ['1469334031218-e382a71b716b', 'Woman with round sunglasses against a yellow wall']],
+    product: [
+      ['1434389677669-e08b4cac3105', 'Cream knitted poncho on a hanger'],
+      ['1611312449408-fcece27cdbb7', 'Dark denim jacket'],
+      ['1523381210434-271e8be1f52b', 'Sage green shirts on wooden hangers'],
+      ['1608234807905-4466023792f5', 'Woman in a white bow blouse'],
+      ['1620799140408-edc6dcb6d633', 'White sweatshirt flat lay with jeans and sneakers'],
+      ['1521572163474-6864f9cf17ab', 'Plain white T-shirt worn by a model'],
+    ],
+    people: [
+      ['1496747611176-843222e1e57c', 'Woman in a floral wrap dress by the sea'],
+      ['1552374196-1ab2a1c593e8', 'Seated model in a camel blazer'],
+      ['1483985988355-763728e1935b', 'Woman in a burgundy coat with shopping bags'],
+      ['1534528741775-53994a69daeb', 'Portrait of a woman in blue light'],
+      ['1469334031218-e382a71b716b', 'Woman with round sunglasses against a yellow wall'],
+      ['1598554747436-c9293d6a588f', 'Woman in a white tee and wide jeans'],
+    ],
+  },
   general: {
     hero: [['1441986300917-64674bd600d8', 'Shop interior with shelves'], ['1472851294608-062f824d29cc', 'Open shop sign']],
     product: [['1607082348824-0a96f2a4b9da', 'Red and black shopping bags'], ['1498049794561-7780e7231661', 'Desk gadgets'], ['1602874801007-bd458bb1b8b6', 'Candle'], ['1505740420928-5e560c06d30e', 'Headphones']],

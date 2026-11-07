@@ -155,6 +155,9 @@ export function ThemePanel({ store, edit, env }) {
     <Segmented label="Shadows" value={t.shadow} options={[['none', 'None'], ['soft', 'Soft'], ['strong', 'Strong']]} onChange={v => th(x => { x.shadow = v; }, 'Shadows')} />
     <Segmented label="Spacing" value={t.density} options={[['compact', 'Compact'], ['comfortable', 'Comfortable'], ['airy', 'Airy']]} onChange={v => th(x => { x.density = v; }, 'Spacing')} />
     <Segmented label="Header style" value={t.headerStyle} options={[['split', 'Split'], ['left', 'Left'], ['centered', 'Centered'], ['minimal', 'Minimal'], ['pill', 'Pill'], ['search', 'Search']]} onChange={v => th(x => { x.headerStyle = v; }, 'Header style')} />
+    <p className="stGroupTitle">Motion</p>
+    <Segmented label="Motion" value={t.motion || 'subtle'} options={[['off', 'Off'], ['subtle', 'Subtle'], ['expressive', 'Expressive']]} onChange={v => th(x => { x.motion = v; }, 'Motion')} />
+    <p className="stHint">Scroll reveals, hover and page effects in Interact mode, previews and the exported store. Edit mode always shows the final state; visitors who ask for reduced motion see no animation. Fine-tune each section under Animation.</p>
     <p className="stGroupTitle">Logo</p>
     <LogoFields store={store} edit={edit} env={env} />
   </div>;

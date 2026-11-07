@@ -8,7 +8,8 @@
 //   /commerce/<handle>                  a store's admin home
 //   /commerce/<handle>/<page>[/<id>]    orders, orders/<id>, orders/new[/<draftId>], products[/<id>], inventory,
 //                                       collections[/<id>], customers[/<id>], discounts[/<id>], analytics, marketing,
-//                                       themes, pages, navigation, preferences, settings[/<tab>], editor (store builder)
+//                                       themes, pages, navigation, preferences, settings[/<tab>], editor (store builder),
+//                                       services, services/bookings[/<id>], services/projects[/<id>]
 //
 // Old hash links keep working: /#home /#photo /#design /#web /#ecom (also #photography, #commerce).
 //
@@ -26,6 +27,8 @@ export const RESERVED_HANDLES = ['new', 'stores'];
 const LIST_PAGES = ['orders', 'products', 'inventory', 'collections', 'customers', 'discounts', 'analytics', 'marketing', 'themes', 'pages', 'navigation', 'preferences', 'settings', 'editor'];
 const DETAIL_OF = { orders: 'order', products: 'product', collections: 'collection', customers: 'customer', discounts: 'discount' };
 const LIST_OF = Object.fromEntries(Object.entries(DETAIL_OF).map(([k, v]) => [v, k]));
+// services/<segment>[/<id>] → [list page, detail page]
+const SERVICE_PAGES = { bookings: ['bookings', 'booking'], projects: ['projects', 'project'] };
 
 const seg = s => encodeURIComponent(s);
 const unseg = s => { try { return decodeURIComponent(s); } catch { return s; } };
@@ -68,6 +71,7 @@ function parseCommerce(p) {
   if (!a) return r;
   if (a === 'orders' && b === 'new') return c ? { ...r, page: 'order-new', id: c } : { ...r, page: 'order-new' };
   if (a === 'settings') return { ...r, page: 'settings', tab: b || 'general' };
+  if (a === 'services') return SERVICE_PAGES[b] ? (c ? { ...r, page: SERVICE_PAGES[b][1], id: c } : { ...r, page: SERVICE_PAGES[b][0] }) : { ...r, page: 'services' };
   if (DETAIL_OF[a] && b) return { ...r, page: DETAIL_OF[a], id: b };
   if (LIST_PAGES.includes(a)) return { ...r, page: a };
   return r;
@@ -89,6 +93,8 @@ export function commercePagePath({ page = 'home', id, tab } = {}) {
   if (page === 'home') return '';
   if (page === 'order-new') return '/orders/new' + (id ? '/' + seg(id) : '');
   if (page === 'settings') return '/settings' + (tab && tab !== 'general' ? '/' + seg(tab) : '');
+  if (page === 'services') return '/services';
+  for (const [k, [list, detail]] of Object.entries(SERVICE_PAGES)) if (page === list || page === detail) return '/services/' + k + (page === detail && id ? '/' + seg(id) : '');
   if (LIST_OF[page]) return '/' + LIST_OF[page] + (id ? '/' + seg(id) : '');
   return LIST_PAGES.includes(page) ? '/' + page : '';
 }
@@ -105,7 +111,7 @@ const PAGE_LABELS = {
   home: 'Home', orders: 'Orders', order: 'Order', 'order-new': 'New order', products: 'Products', product: 'Product', inventory: 'Inventory',
   collections: 'Collections', collection: 'Collection', customers: 'Customers', customer: 'Customer', discounts: 'Discounts', discount: 'Discount',
   analytics: 'Analytics', marketing: 'Marketing', themes: 'Online Store', pages: 'Pages', navigation: 'Navigation', preferences: 'Preferences',
-  settings: 'Settings', editor: 'Store editor',
+  settings: 'Settings', editor: 'Store editor', services: 'Services', bookings: 'Bookings', booking: 'Booking', projects: 'Projects', project: 'Project',
 };
 const SECTION_TITLES = { photo: 'Photography', design: 'Design', web: 'Web & UI', ecom: 'Commerce' };
 

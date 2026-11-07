@@ -691,6 +691,121 @@ export const SECTIONS = {
   },
 };
 
-export const SECTION_GROUPS = ['Intro', 'Products', 'Content', 'Social proof', 'Media', 'Courses & services'];
+// ---------- motion sections (premium templates): count-ups, sticky stack, pinned lookbook, flip cards, motion hero ----------
+// They read fine without JavaScript (final numbers, stacked sticky cards, a swipeable row, hover/focus flips); src/store/motion.js
+// adds the choreography on top in Interact mode, previews and the exported site.
+const BG = { key: 'background', label: 'Background colour', type: 'color' }, FG = { key: 'textColor', label: 'Text colour', type: 'color' };
+const secVars = (s, a = '--sec-bg', b = '--sec-fg') => [s.background ? `${a}:${s.background}` : '', s.textColor ? `${b}:${s.textColor}` : ''].filter(Boolean).join(';');
+/** '12,400' → { n: 12400, dec: 0, group: true } (count-up target; non-numbers are shown as they are). */
+export const countValue = v => { const t = String(v ?? '').trim(), m = /^-?[\d,]*\.?\d+$/.test(t) ? t : null; return m ? { n: +m.replace(/,/g, ''), dec: (m.split('.')[1] || '').length, group: m.includes(',') } : null; };
+
+Object.assign(SECTIONS, {
+  'motion-hero': {
+    label: 'Motion hero', group: 'Motion', pages: CONTENT,
+    defaults: { layout: 'split', eyebrow: 'New collection', heading: 'Made to be *remembered*', words: 'Rings|Earrings|Watches', wordsLead: 'Now showing:', textFx: 'typewriter', text: 'Hand-finished pieces, revealed one at a time.', buttonLabel: 'Shop now', buttonLink: 'collection:all', button2Label: '', button2Link: 'page:about', image: null, image2: null, backdrop: 'spotlight', endsAt: '', height: 'large', background: '', textColor: '' },
+    fields: [{ key: 'layout', label: 'Layout', type: 'select', options: [['split', 'Copy left, layered photos right'], ['center', 'Centred copy over a photo']] }, EYEBROW, HEAD,
+      txt('wordsLead', 'Rotating line: lead text'), txt('words', 'Rotating words (separated by |)'), { key: 'textFx', label: 'Rotating words effect', type: 'select', options: [['typewriter', 'Typewriter'], ['scramble', 'Text scramble'], ['none', 'Static']] },
+      area('text', 'Text'), txt('buttonLabel', 'Button label'), linkF('buttonLink', 'Button link'), txt('button2Label', 'Second button label'), linkF('button2Link', 'Second button link'),
+      imgF('image', 'Main photo'), imgF('image2', 'Floating photo (deeper parallax)'), { key: 'backdrop', label: 'Backdrop', type: 'select', options: [['spotlight', 'Cursor spotlight'], ['aurora', 'Aurora gradient'], ['beams', 'Light beams'], ['none', 'Plain']] },
+      { key: 'endsAt', label: 'Countdown to (blank = none)', type: 'datetime' }, { key: 'height', label: 'Height', type: 'select', options: [['medium', 'Medium'], ['large', 'Large'], ['full', 'Full screen']] }, BG, FG],
+    render: (s, ctx, sec) => {
+      const words = String(s.words || '').split('|').map(w => w.trim()).filter(Boolean);
+      const unit = (k, l) => `<div><span data-cd="${k}">00</span><small>${l}</small></div>`;
+      const rot = words.length ? `<p class="mh-rot">${s.wordsLead ? `<span${ctx.ed('wordsLead')}>${ctx.e(s.wordsLead)}</span> ` : ''}<b class="mh-words"${s.textFx !== 'none' && words.length > 1 ? ` data-words="${ctx.e(words.join('|'))}" data-wfx="${s.textFx === 'scramble' ? 'scramble' : 'typewriter'}"` : ''}>${ctx.e(words[0])}</b><span class="sr">${ctx.e(words.join(', '))}</span></p>` : '';
+      const cd = s.endsAt ? `<div class="cd mh-cd" data-countdown="${ctx.e(s.endsAt)}" data-scramble role="timer" aria-label="Time remaining">${unit('d', 'Days')}${unit('h', 'Hours')}${unit('m', 'Min')}${unit('s', 'Sec')}</div>` : '';
+      const beams = s.backdrop === 'beams' ? `<div class="mh-beams" aria-hidden="true">${[0, 1, 2, 3, 4].map(i => `<i style="--b:${i}"></i>`).join('')}</div>` : '';
+      const media = s.image || s.image2 ? `<div class="mh-media">${s.image ? `<figure class="mh-a" data-depth="0.5">${ctx.pic(s.image, { size: s.layout === 'center' ? 'hero' : 'wide', eager: true, ...ctx.framed(s, 'image') })}</figure>` : ''}${s.image2 && s.layout !== 'center' ? `<figure class="mh-b" data-depth="1.3">${ctx.pic(s.image2, { size: 'card', ...ctx.framed(s, 'image2') })}</figure>` : ''}</div>` : '';
+      const v = secVars(s, '--mh-bg', '--mh-fg');
+      return `<section class="mhero mh-${s.layout} mh-${s.height} mh-bd-${s.backdrop}" id="${sec.id}" data-sid="${sec.id}" data-type="motion-hero"${v ? ` style="${v}"` : ''}>${beams}
+        <div class="wrap mh-grid"><div class="mh-copy" data-reveal>${s.eyebrow ? `<p class="eyebrow mh-eye" data-scramble${ctx.ed('eyebrow')}>${ctx.e(s.eyebrow)}</p>` : ''}<h1 class="mh-title"${ctx.edh('heading', s.heading)}>${ctx.h(s.heading)}</h1>${rot}
+        ${s.text ? `<div class="mh-text"${ctx.ed('text')}>${ctx.t(s.text)}</div>` : ''}${cd}${btns(ctx, s.buttonLabel, s.buttonLink, s.button2Label, s.button2Link)}</div>${media}</div></section>`;
+    },
+  },
+
+  stats: {
+    label: 'Stats with count-up', group: 'Motion', pages: CONTENT, blocks: ['items'],
+    defaults: { eyebrow: 'By the numbers', heading: 'Made with *obsessive* care', text: '', style: 'cards', background: '', textColor: '', items: [{ value: '120', prefix: '', suffix: '+', label: 'Hours of hand-finishing' }, { value: '18', prefix: '', suffix: 'k', label: 'Pieces delivered' }, { value: '4.9', prefix: '', suffix: '/5', label: 'Average rating' }, { value: '2', prefix: '', suffix: ' yrs', label: 'Warranty on everything' }] },
+    fields: [EYEBROW, HEAD, area('text', 'Text'), { key: 'style', label: 'Style', type: 'select', options: [['cards', 'Cards'], ['plain', 'Big numbers, no cards']] }, BG, FG,
+      { key: 'items', label: 'Numbers', type: 'list', itemLabel: 'Number', item: [txt('value', 'Number (counts up)'), txt('prefix', 'Before the number'), txt('suffix', 'After the number'), txt('label', 'Label')] }],
+    render: (s, ctx, sec) => {
+      const items = s.items || [], chars = Math.max(2, ...items.map(it => String(it.value || '').length + (String(it.prefix || '') + String(it.suffix || '')).length * 0.55));
+      return wrap(sec, `zstats-sec zs-${s.style}`, `${hasHead(s) ? head(s, ctx, 'center') : ''}<ul class="zstats n${Math.min(4, items.length)}" style="--zsl:${Math.round(chars * 10) / 10}">${items.map((it, i) => {
+        const c = countValue(it.value);
+        return `<li class="zstat"${ctx.blk('items.' + i)}><b class="zstat-n">${it.prefix ? `<span class="zstat-u">${ctx.e(it.prefix)}</span>` : ''}<span${c ? ` data-count="${c.n}" data-dec="${c.dec}"${c.group ? ' data-group' : ''}` : ''}${ctx.ed(`items.${i}.value`)}>${ctx.e(it.value)}</span>${it.suffix ? `<span class="zstat-u">${ctx.e(it.suffix)}</span>` : ''}</b><span class="zstat-l"${ctx.ed(`items.${i}.label`)}>${ctx.e(it.label || '')}</span></li>`;
+      }).join('')}</ul>`, secVars(s));
+    },
+  },
+
+  'stack-cards': {
+    label: 'Sticky stack cards', group: 'Motion', pages: CONTENT, blocks: ['items'],
+    defaults: { eyebrow: 'The collections', heading: 'Three ways to *shine*', text: '', background: '', textColor: '', items: [{ image: null, eyebrow: '01', title: 'Everyday gold', text: 'Pieces you never take off.', buttonLabel: 'Shop now', link: 'collection:all' }, { image: null, eyebrow: '02', title: 'Evening', text: 'Made to catch the light.', buttonLabel: 'Shop now', link: 'collection:all' }, { image: null, eyebrow: '03', title: 'Heirloom', text: 'Built to be handed down.', buttonLabel: 'Shop now', link: 'collection:all' }] },
+    fields: [EYEBROW, HEAD, area('text', 'Text'), BG, FG, { key: 'items', label: 'Cards', type: 'list', itemLabel: 'Card', item: [imgF(), txt('eyebrow', 'Small label'), txt('title', 'Title'), area('text', 'Text'), txt('buttonLabel', 'Button label'), linkF('link', 'Link')] }],
+    render: (s, ctx, sec) => wrap(sec, 'zstack-sec', `${hasHead(s) ? head(s, ctx) : ''}<div class="zstack" data-stack>${(s.items || []).map((it, i) => `<article class="zst-card${i % 2 ? ' alt' : ''}" style="--i:${i}"${ctx.blk('items.' + i)}>
+      <div class="zst-copy">${it.eyebrow ? `<p class="meta"${ctx.ed(`items.${i}.eyebrow`)}>${ctx.e(it.eyebrow)}</p>` : ''}<h3${ctx.ed(`items.${i}.title`)}>${ctx.e(it.title || '')}</h3>${it.text ? `<p${ctx.ed(`items.${i}.text`)}>${ctx.e(it.text)}</p>` : ''}${it.buttonLabel ? `<a class="btn" href="${ctx.link(it.link || 'collection:all')}"${ctx.ed(`items.${i}.buttonLabel`)}>${ctx.e(it.buttonLabel)}</a>` : ''}</div>
+      <div class="zst-media">${it.image ? ctx.pic(it.image, { size: 'wide', ...ctx.framed(it, 'image', 'items.' + i) }) : ''}</div></article>`).join('')}</div>`, secVars(s)),
+  },
+
+  lookbook: {
+    label: 'Pinned horizontal lookbook', group: 'Motion', pages: CONTENT, blocks: ['items'],
+    defaults: { eyebrow: 'Lookbook', heading: 'The *season*, frame by frame', text: 'Scroll to move through the story.', background: '', textColor: '', items: [{ image: null, title: 'Look 01', caption: 'Wool coat, silk shirt', link: '' }, { image: null, title: 'Look 02', caption: 'Wide trousers', link: '' }, { image: null, title: 'Look 03', caption: 'Knit set', link: '' }, { image: null, title: 'Look 04', caption: 'Evening', link: '' }] },
+    fields: [EYEBROW, HEAD, area('text', 'Text'), BG, FG, { key: 'items', label: 'Looks', type: 'list', itemLabel: 'Look', item: [imgF(), txt('title', 'Title'), txt('caption', 'Caption'), linkF('link', 'Link')] }],
+    render: (s, ctx, sec) => {
+      const items = (s.items || []).map((it, i) => [it, i]).filter(([it]) => it.image || ctx.editor), v = secVars(s);
+      return `<section class="sec zlb" id="${sec.id}" data-sid="${sec.id}" data-type="lookbook" data-lookbook${v ? ` style="${v}"` : ''}><div class="zlb-pin"><div class="wrap zlb-head" data-reveal>${head(s, ctx, 'flat')}<p class="meta zlb-count" aria-hidden="true">${String(items.length).padStart(2, '0')} looks →</p></div>
+        <ul class="zlb-track" data-lb-track tabindex="0" aria-label="${ctx.e(String(s.heading || 'Lookbook').replace(/\*/g, ''))}">${items.map(([it, i]) => {
+          const inner = `<span class="zlb-img">${it.image ? ctx.pic(it.image, { size: 'large', alt: it.caption || it.title || '', ...ctx.framed(it, 'image', 'items.' + i) }) : ''}</span><span class="zlb-cap"><span class="zlb-no">${String(i + 1).padStart(2, '0')}</span><b${ctx.ed(`items.${i}.title`)}>${ctx.e(it.title || '')}</b>${it.caption ? `<small${ctx.ed(`items.${i}.caption`)}>${ctx.e(it.caption)}</small>` : ''}</span>`;
+          return `<li class="zlb-item"${ctx.blk('items.' + i)}>${it.link ? `<a href="${ctx.link(it.link)}">${inner}</a>` : inner}</li>`;
+        }).join('')}</ul><div class="wrap"><span class="zlb-bar" aria-hidden="true"><i></i></span></div></div></section>`;
+    },
+  },
+
+  'flip-cards': {
+    label: '3D flip detail cards', group: 'Motion', pages: CONTENT, blocks: ['items'],
+    defaults: { eyebrow: 'Craft', heading: 'Turn it *over*', text: '', background: '', textColor: '', items: [{ image: null, title: 'Hand-set stones', subtitle: 'Front', details: 'Set under a microscope\nConflict-free sourcing\nCertificate included', link: '' }, { image: null, title: 'Solid gold', subtitle: 'Front', details: '18k recycled gold\nHallmarked\nLifetime polishing', link: '' }, { image: null, title: 'Made to last', subtitle: 'Front', details: 'Free resizing\n2-year warranty\nRepairs for life', link: '' }] },
+    fields: [EYEBROW, HEAD, area('text', 'Text'), BG, FG, { key: 'items', label: 'Cards', type: 'list', itemLabel: 'Card', item: [imgF(), txt('title', 'Title'), txt('subtitle', 'Front label'), area('details', 'Back of the card (one point per line)'), linkF('link', 'Link')] }],
+    render: (s, ctx, sec) => wrap(sec, 'zflip-sec', `${hasHead(s) ? head(s, ctx, 'center') : ''}<ul class="zflips n${Math.min(4, (s.items || []).length)}">${(s.items || []).map((it, i) => `<li class="zflip"${ctx.blk('items.' + i)}><div class="zflip-in">
+      <div class="zflip-face zflip-front">${it.image ? ctx.pic(it.image, { size: 'card', ...ctx.framed(it, 'image', 'items.' + i) }) : ''}<span class="zflip-label">${it.subtitle ? `<small${ctx.ed(`items.${i}.subtitle`)}>${ctx.e(it.subtitle)}</small>` : ''}<b${ctx.ed(`items.${i}.title`)}>${ctx.e(it.title || '')}</b></span></div>
+      <div class="zflip-face zflip-back"><b>${ctx.e(it.title || '')}</b><ul${ctx.ed(`items.${i}.details`)}>${String(it.details || '').split('\n').map(x => x.trim()).filter(Boolean).map(x => `<li>${ctx.icon('check')}<span>${ctx.e(x)}</span></li>`).join('')}</ul>${it.link ? `<a class="more" href="${ctx.link(it.link)}">Discover ${ctx.icon('arrow')}</a>` : ''}</div></div>
+      <button type="button" class="zflip-btn" data-flip aria-pressed="false" aria-label="Show details of ${ctx.e(it.title || 'this card')}">${ctx.icon('refresh')}</button></li>`).join('')}</ul>`, secVars(s)),
+  },
+});
+
+// ---------- per-section animation settings (every content section) ----------
+export const ANIM_PRESETS = [['auto', 'Theme default'], ['none', 'None'], ['fade-up', 'Fade up'], ['blur-in', 'Blur in'], ['scale-in', 'Scale in'], ['slide', 'Slide'], ['split-text', 'Split text'], ['stagger', 'Stagger children']];
+export const ANIM_EASES = [['spring', 'Spring'], ['smooth', 'Smooth'], ['snappy', 'Snappy']];
+export const SECTION_FX = [['none', 'None'], ['tilt', 'Tilt cards with glare'], ['magnetic', 'Magnetic buttons'], ['spotlight', 'Cursor spotlight'], ['parallax', 'Parallax photos'], ['zoom', 'Photo zoom reveal'], ['beam', 'Animated beam borders'], ['aurora', 'Aurora gradient background']];
+export const MOTION_DEFAULTS = { anim: 'auto', animDelay: 0, animDuration: 0, animEase: 'spring', fx: 'none' };
+const MOTION_FIELDS = [
+  { key: 'anim', label: 'Animation', type: 'select', options: ANIM_PRESETS },
+  { key: 'animDelay', label: 'Animation delay (ms)', type: 'number', min: 0, max: 2000, step: 50, show: s => s.anim !== 'none' },
+  { key: 'animDuration', label: 'Animation duration (ms, 0 = automatic)', type: 'number', min: 0, max: 3000, step: 50, show: s => s.anim !== 'none' },
+  { key: 'animEase', label: 'Animation easing', type: 'select', options: ANIM_EASES, show: s => s.anim !== 'none' },
+  { key: 'fx', label: 'Effect', type: 'select', options: SECTION_FX },
+];
+const pickOf = (v, list, d) => list.some(([k]) => k === v) ? v : d;
+const clampMs = (v, hi) => { const n = Math.round(+v); return Number.isFinite(n) ? Math.min(hi, Math.max(0, n)) : 0; };
+/** Clean animation settings of a section (unknown values → defaults, numbers clamped). */
+export function normalizeMotion(settings = {}) {
+  const s = settings || {};
+  return { anim: pickOf(s.anim, ANIM_PRESETS, 'auto'), animDelay: clampMs(s.animDelay, 2000), animDuration: clampMs(s.animDuration, 3000), animEase: pickOf(s.animEase, ANIM_EASES, 'spring'), fx: pickOf(s.fx, SECTION_FX, 'none') };
+}
+/** What 'Theme default' means per section type at the store's motion level ('expressive' choreographs, 'subtle' fades up). */
+const AUTO_EXPRESSIVE = {
+  hero: 'split-text', 'editorial-hero': 'split-text', 'motion-hero': 'split-text', 'page-title': 'split-text', banner: 'split-text', 'drop-countdown': 'split-text', 'rich-text': 'split-text',
+  'featured-products': 'stagger', 'product-carousel': 'stagger', 'collection-list': 'stagger', bento: 'stagger', features: 'stagger', testimonials: 'stagger', steps: 'stagger', polaroids: 'stagger', rail: 'stagger', stats: 'stagger', 'flip-cards': 'stagger',
+  gallery: 'stagger', instagram: 'stagger', ugc: 'stagger', pricing: 'stagger', logos: 'stagger', faq: 'stagger', 'related-products': 'stagger', 'stack-cards': 'fade-up', lookbook: 'split-text',
+  'image-text': 'slide', 'split-feature': 'slide', 'spec-list': 'slide', marquee: 'none', 'product-main': 'fade-up', 'collection-main': 'fade-up', 'cart-main': 'fade-up', 'checkout-main': 'fade-up',
+};
+/** Resolved animation of a section for a store motion level → { anim, delay, duration, ease, fx } (anim 'none' = static). */
+export function sectionMotion(sec, level = 'subtle') {
+  const m = normalizeMotion(sec && sec.settings);
+  if (level === 'off') return { anim: 'none', delay: 0, duration: 0, ease: m.animEase, fx: 'none' };
+  let anim = m.anim;
+  if (anim === 'auto') anim = level === 'expressive' ? AUTO_EXPRESSIVE[sec.type] || 'blur-in' : sec.type === 'marquee' ? 'none' : 'fade-up';
+  return { anim, delay: m.animDelay, duration: m.animDuration, ease: m.animEase, fx: m.fx };
+}
+for (const def of Object.values(SECTIONS)) if (!def.global) { def.defaults = { ...def.defaults, ...MOTION_DEFAULTS }; def.fields = [...def.fields, ...MOTION_FIELDS]; }
+
+export const SECTION_GROUPS = ['Intro', 'Products', 'Content', 'Social proof', 'Media', 'Motion', 'Courses & services'];
 /** Section types that can be added to a page (excluding the shared layout sections). */
 export const addableSections = page => Object.entries(SECTIONS).filter(([, d]) => !d.global && d.pages.includes(page)).map(([type, d]) => ({ type, label: d.label, group: d.group }));

@@ -13,7 +13,8 @@
 //     buttons: 'solid'|'outline'|'pill'|'sharp', density: 'compact'|'comfortable'|'airy',
 //     headerStyle: 'split'|'left'|'centered'|'minimal'|'pill' (floating rounded bar)|'search' (search-first), cardStyle: 'plain'|'card'|'bordered'|'tagged' (tinted card, tag pills, heart, colour dots),
 //     imageRatio: 'square'|'portrait'|'landscape', shadow: 'none'|'soft'|'strong',
-//     headingScale: 'regular'|'large'|'huge', tracking: 'tight'|'normal'|'wide'
+//     headingScale: 'regular'|'large'|'huge', tracking: 'tight'|'normal'|'wide',
+//     motion: 'off'|'subtle'|'expressive' (store-wide animation level, src/store/motion.js)
 //   },
 //   currency: { code: 'USD', locale: 'en-US' },
 //   announcement: { enabled, text, link: LinkTarget, style: 'static'|'marquee' },   // marquee: messages separated by '|'
@@ -48,6 +49,7 @@
 
 import { SECTIONS, PRODUCT_BLOCKS, productBlocks } from './sections.js';
 import { normalizeFrameFields, productFrames } from './frame.js';
+import { normalizeProductKind } from './serviceProduct.js';
 
 export const STORE_VERSION = 1;
 export const PAGE_KEYS = ['home', 'collection', 'product', 'about', 'contact', 'cart', 'checkout'];
@@ -103,7 +105,7 @@ const str = (v, d = '') => v == null ? d : String(v);
 export const DEFAULT_THEME = {
   colors: { background: '#ffffff', surface: '#f5f5f4', text: '#171717', muted: '#6b6b6b', primary: '#171717', primaryText: '#ffffff', accent: '#e85d2a', border: '#e5e5e5' },
   fonts: { heading: 'system', body: 'system', accent: 'display' }, headingWeight: 700, headingCase: 'none', radius: 8,
-  buttons: 'pill', density: 'comfortable', headerStyle: 'split', cardStyle: 'plain', imageRatio: 'portrait', shadow: 'soft', headingScale: 'large', tracking: 'tight',
+  buttons: 'pill', density: 'comfortable', headerStyle: 'split', cardStyle: 'plain', imageRatio: 'portrait', shadow: 'soft', headingScale: 'large', tracking: 'tight', motion: 'subtle',
 };
 
 export function newSection(type, settings = {}) {
@@ -151,6 +153,7 @@ export function normalizeProduct(p) {
     sku: str(v.sku), stock: v.stock == null || v.stock === '' ? null : Math.round(num(v.stock, 0, 0)),
   }));
   out.variants = generateVariants({ ...out, variants: given });
+  Object.assign(out, normalizeProductKind(p)); // service / digital fields (src/store/serviceProduct.js); none for physical products
   return out;
 }
 
@@ -206,6 +209,7 @@ export function normalizeStore(input) {
       headerStyle: pick(th.headerStyle, ['split', 'left', 'centered', 'minimal', 'pill', 'search'], 'split'), cardStyle: pick(th.cardStyle, ['plain', 'card', 'bordered', 'tagged'], 'plain'),
       imageRatio: pick(th.imageRatio, ['square', 'portrait', 'landscape'], 'portrait'),
       shadow: pick(th.shadow, ['none', 'soft', 'strong'], 'soft'), headingScale: pick(th.headingScale, ['regular', 'large', 'huge'], 'large'), tracking: pick(th.tracking, ['tight', 'normal', 'wide'], 'tight'),
+      motion: pick(th.motion, ['off', 'subtle', 'expressive'], 'subtle'),
     },
     currency: { code: /^[A-Z]{3}$/.test(s.currency?.code || '') ? s.currency.code : 'USD', locale: str(s.currency?.locale, 'en-US') || 'en-US' },
     announcement: { enabled: s.announcement ? !!s.announcement.enabled : false, text: str(s.announcement?.text), link: s.announcement?.link ? normalizeLink(s.announcement.link) : '', style: pick(s.announcement?.style, ['static', 'marquee'], 'static') },

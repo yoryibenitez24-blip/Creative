@@ -7,8 +7,8 @@
 //   navigate(route, { replace })       change the commerce URL
 //   update(fn)                         fn(workspace) → next workspace (stores / activeStoreId / plan)
 //   sectionBar, intro, assetStore, onExit, onOpenPhotoStudio   passed to CommerceApp
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronsUpDown, Plus, LayoutGrid, Store as StoreIcon, Pencil, Trash2, Sparkles, Lock, Sun, Moon, LogOut } from 'lucide-react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight, Check, ChevronsUpDown, Plus, LayoutGrid, Store as StoreIcon, Pencil, Trash2, Sparkles, Lock, Sun, Moon, LogOut, Eraser } from 'lucide-react';
 import CommerceApp from './CommerceApp.jsx';
 import Intro from './Intro.jsx';
 import Gallery from '../Gallery.jsx';
@@ -17,6 +17,11 @@ import { PLANS, planFor, canCreateStore, storeLimit, planForCount } from './plan
 import { storeEntry, findStore, renameStore, removeStore, updateStoreEntry } from './stores.js';
 import { adminRoute, slugify } from '../../routes.js';
 import { Modal, useConfirm } from './ui.jsx';
+import { generateSampleData, clearSampleData, hasSampleData } from './sampleData.js';
+import { CLEAR_MESSAGE } from './SampleData.jsx';
+import { localZone } from './ServiceEditor.jsx';
+import { createCommerce, normalizeCommerce } from './model.js';
+import { normalizeStore } from '../model.js';
 
 const THEME_KEY = 'zertake.commerceTheme';
 const readTheme = () => { try { return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'; } catch { return 'light'; } };
@@ -33,6 +38,12 @@ export const CURRENCIES = [
 const templateOf = s => STORE_TEMPLATES.find(t => t.id === (s && s.templateId)) || null;
 const countOrders = c => (c && Array.isArray(c.orders) ? c.orders.filter(o => !o.draft).length : 0);
 const initialOf = name => (String(name || 'S').trim().charAt(0) || 'S').toUpperCase();
+/** Store entry documents with sample data loaded (on) or cleared (off) — ./sampleData.js. */
+function withSample(store, commerce, on) {
+  const st = normalizeStore(store), c = commerce && commerce.kind === 'commerce' ? normalizeCommerce(commerce) : createCommerce(st);
+  const r = on ? generateSampleData(st, c, { timezone: localZone() }) : clearSampleData(st, c);
+  return { store: r.store, commerce: r.commerce };
+}
 
 /** Small storefront mock in a template's colours (used as the store card thumbnail). */
 function StoreMock({ store, size = 'lg' }) {
@@ -75,8 +86,9 @@ function LimitNote({ plan, count, onUpgrade, compact }) {
 }
 
 // ---------------------------------------------------------------- store switcher (header dropdown)
-export function StoreSwitcher({ stores, activeId, plan, onOpen, onNew, onAll }) {
+export function StoreSwitcher({ stores, activeId, plan, onOpen, onNew, onAll, onSample }) {
   const [open, setOpen] = useState(false);
+  const [confirmEl, confirm] = useConfirm();
   const box = useRef(null);
   const active = stores.find(s => s.id === activeId) || stores[0];
   const can = canCreateStore(plan, stores.length);
@@ -104,8 +116,12 @@ export function StoreSwitcher({ stores, activeId, plan, onOpen, onNew, onAll }) 
         <button type="button" className="zsMenuItem" disabled={!can} onClick={pick(onNew)} aria-describedby={can ? undefined : 'zsLimitMsg'}><span className="zsMenuIcon"><Plus size={15} aria-hidden="true" /></span><span className="zsMenuText"><strong>New store</strong></span>{!can && <Lock size={13} aria-hidden="true" />}</button>
         {!can && <p className="zsMenuLimit" id="zsLimitMsg">{planFor(plan).name} plan: {stores.length} of {storeLimit(plan)} {storeLimit(plan) === 1 ? 'store' : 'stores'} used. <button type="button" className="zsLinkBtn" onClick={pick(() => onAll(true))}>Upgrade plan</button></p>}
         <button type="button" className="zsMenuItem" onClick={pick(() => onAll(false))}><span className="zsMenuIcon"><LayoutGrid size={15} aria-hidden="true" /></span><span className="zsMenuText"><strong>All stores</strong></span></button>
+        {onSample && (hasSampleData(active.store, active.commerce)
+          ? <button type="button" className="zsMenuItem" onClick={pick(async () => { if (await confirm({ title: 'Clear sample data?', message: CLEAR_MESSAGE, confirmLabel: 'Clear sample data', danger: true })) onSample(active, false); })}><span className="zsMenuIcon"><Eraser size={15} aria-hidden="true" /></span><span className="zsMenuText"><strong>Clear sample data</strong><small>From {active.store.name}</small></span></button>
+          : <button type="button" className="zsMenuItem" onClick={pick(() => onSample(active, true))}><span className="zsMenuIcon"><Sparkles size={15} aria-hidden="true" /></span><span className="zsMenuText"><strong>Load sample data</strong><small>Orders, customers, bookings, visitors</small></span></button>)}
       </div>
     </div>}
+    {confirmEl}
   </div>;
 }
 
@@ -132,6 +148,8 @@ export function SetupWizard({ stores, plan, onPlan, onCreate, onCancel, sectionB
   const [currency, setCurrency] = useState('USD');
   const [touched, setTouched] = useState(false);
   const [showPlans, setShowPlans] = useState(false);
+  const [sample, setSample] = useState(true);
+  const sampleId = useId();
   const can = canCreateStore(plan, stores.length);
   const handle = useMemo(() => { const taken = new Set(stores.map(s => s.handle)); let h = slugify(name || 'your-store'), n = 2; const b = h; while (taken.has(h)) h = b + '-' + n++; return h; }, [name, stores]);
   const nameOk = name.trim().length > 0;
@@ -140,7 +158,7 @@ export function SetupWizard({ stores, plan, onPlan, onCreate, onCancel, sectionB
     const s = createStore(id), cur = CURRENCIES.find(c => c[0] === currency);
     s.name = name.trim(); s.logo = { ...(s.logo || {}), text: name.trim() };
     if (cur) s.currency = { code: cur[0], locale: cur[1] };
-    onCreate(s);
+    onCreate(s, { sample });
   };
 
   if (!can) return <div className="caRoot zsRoot zsWizard" data-theme={theme}>
@@ -194,6 +212,8 @@ export function SetupWizard({ stores, plan, onPlan, onCreate, onCancel, sectionB
               {CURRENCIES.map(([code, , label]) => <option key={code} value={code}>{code} — {label}</option>)}
             </select>
           </label>
+          <div className="caCheck zsSample"><input id={sampleId} type="checkbox" checked={sample} onChange={e => setSample(e.target.checked)} aria-describedby={sampleId + '-hint'} />
+            <span><label htmlFor={sampleId}>Fill with sample data so you can explore</label><small className="caHint" id={sampleId + '-hint'}>Orders, customers, bookings and visitors, all marked as samples. Clear them any time.</small></span></div>
           <div className="zsActions">
             {onCancel && <button type="button" className="caBtn zsGhost" onClick={onCancel}>Cancel</button>}
             <span className="zsPlanNote">{planFor(plan).name} plan · {stores.length + 1} of {storeLimit(plan)}</span>
@@ -206,7 +226,7 @@ export function SetupWizard({ stores, plan, onPlan, onCreate, onCancel, sectionB
 }
 
 // ---------------------------------------------------------------- all stores
-export function AllStores({ stores, activeStoreId, plan, onPlan, onOpen, onNew, onRename, onDelete, onBack, sectionBar, onExit, focusPlan }) {
+export function AllStores({ stores, activeStoreId, plan, onPlan, onOpen, onNew, onRename, onDelete, onBack, sectionBar, onExit, focusPlan, onSample }) {
   const [theme, toggleTheme] = useTheme();
   const [confirmEl, confirm] = useConfirm();
   const [renaming, setRenaming] = useState(null);
@@ -238,6 +258,9 @@ export function AllStores({ stores, activeStoreId, plan, onPlan, onOpen, onNew, 
             <div className="zsStoreActions">
               <button type="button" className="caBtn caPrimary" onClick={() => onOpen(e)} aria-label={'Open ' + e.store.name + ' admin'}>Open<ArrowRight size={14} aria-hidden="true" /></button>
               <button type="button" className="caBtn" onClick={() => setRenaming({ id: e.id, name: e.store.name })} aria-label={'Rename ' + e.store.name}><Pencil size={13} aria-hidden="true" />Rename</button>
+              {onSample && (hasSampleData(e.store, e.commerce)
+                ? <button type="button" className="caBtn zsIcon" aria-label={'Clear sample data from ' + e.store.name} title="Clear sample data" onClick={async () => { if (await confirm({ title: 'Clear sample data?', message: CLEAR_MESSAGE, confirmLabel: 'Clear sample data', danger: true })) onSample(e, false); }}><Eraser size={14} aria-hidden="true" /></button>
+                : <button type="button" className="caBtn zsIcon" aria-label={'Load sample data into ' + e.store.name} title="Load sample data" onClick={() => onSample(e, true)}><Sparkles size={14} aria-hidden="true" /></button>)}
               <button type="button" className="caBtn caDanger zsIcon" onClick={() => del(e)} aria-label={'Delete ' + e.store.name} title="Delete store"><Trash2 size={14} aria-hidden="true" /></button>
             </div>
           </div>
@@ -296,25 +319,27 @@ export default function CommerceShell({ stores = [], activeStoreId, plan, route,
   const onPlan = useCallback(id => update(ws => ({ ...ws, plan: id })), [update]);
   const onNew = useCallback(() => navigate({ view: 'new' }), [navigate]);
   const onAll = useCallback(upgrade => { setFocusPlan(!!upgrade); navigate({ view: 'stores' }); }, [navigate]);
+  const onSample = useCallback((e, on) => update(ws => updateStoreEntry(ws, e.id, x => withSample(x.store, x.commerce, on))), [update]);
 
   // the entrance animation also plays when the first screen is the setup wizard (no store yet)
   const wizardIntro = introNext.current && <Intro onDone={() => { introNext.current = false; setIntroShown(n => n + 1); }} />;
   if (view === 'new') return <>{wizardIntro}<SetupWizard stores={stores} plan={plan} onPlan={onPlan} sectionBar={sectionBar} onExit={onExit}
     onCancel={stores.length ? () => (active ? toStore(active) : navigate({ view: 'stores' })) : null}
-    onCreate={store => {
-      const e = storeEntry(store, { stores });
+    onCreate={(store, opts) => {
+      let e = storeEntry(store, { stores });
+      if (opts && opts.sample) e = { ...e, ...withSample(e.store, null, true) };
       introNext.current = true;
       update(ws => ({ ...ws, stores: [...(ws.stores || []), e], activeStoreId: e.id }));
       toStore(e, undefined, { replace: true });
     }} /></>;
   if (view === 'stores') return <AllStores stores={stores} activeStoreId={active && active.id} plan={plan} onPlan={onPlan} sectionBar={sectionBar} onExit={onExit} focusPlan={focusPlan}
-    onOpen={e => toStore(e)} onNew={onNew} onBack={() => active && toStore(active)}
+    onOpen={e => toStore(e)} onNew={onNew} onBack={() => active && toStore(active)} onSample={onSample}
     onRename={(id, name) => update(ws => renameStore(ws, id, name))}
     onDelete={e => update(ws => removeStore(ws, e.id))} />;
   if (view === 'store' && !entry) return stores.length ? <NotFound handle={route.handle} sectionBar={sectionBar} onExit={onExit} onAll={() => navigate({ view: 'stores' })} /> : null;
   if (!entry) return null;
 
-  const switcher = <StoreSwitcher stores={stores} activeId={entry.id} plan={plan} onOpen={e => toStore(e)} onNew={onNew} onAll={onAll} />;
+  const switcher = <StoreSwitcher stores={stores} activeId={entry.id} plan={plan} onOpen={e => toStore(e)} onNew={onNew} onAll={onAll} onSample={onSample} />;
   const id = entry.id;
   return <CommerceApp key={id} store={entry.store} commerce={entry.commerce} assetStore={assetStore} sectionBar={sectionBar} intro={introNext.current}
     storeSwitcher={switcher} onExit={onExit} onOpenPhotoStudio={onOpenPhotoStudio} plan={plan} onUpgrade={() => onAll(true)}
