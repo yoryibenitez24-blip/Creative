@@ -7,10 +7,11 @@
 //   logo: { text, image: ImageRef|null, height },
 //   theme: {
 //     colors: { background, surface, text, muted, primary, primaryText, accent, border },   // '#rrggbb'
-//     fonts: { heading, body },          // keys of FONT_STACKS (system / web-safe stacks only)
+//     fonts: { heading, body, accent },  // keys of FONT_STACKS (system stacks, or web fonts loaded from Google Fonts);
+//                                        // accent = the serif italic used for *starred* words in headings
 //     headingWeight: 400..900, headingCase: 'none'|'uppercase', radius: 0..32 (px),
 //     buttons: 'solid'|'outline'|'pill'|'sharp', density: 'compact'|'comfortable'|'airy',
-//     headerStyle: 'split'|'left'|'centered'|'minimal'|'pill' (floating rounded bar)|'search' (search-first), cardStyle: 'plain'|'card'|'bordered',
+//     headerStyle: 'split'|'left'|'centered'|'minimal'|'pill' (floating rounded bar)|'search' (search-first), cardStyle: 'plain'|'card'|'bordered'|'tagged' (tinted card, tag pills, heart, colour dots),
 //     imageRatio: 'square'|'portrait'|'landscape', shadow: 'none'|'soft'|'strong',
 //     headingScale: 'regular'|'large'|'huge', tracking: 'tight'|'normal'|'wide'
 //   },
@@ -73,7 +74,22 @@ export const FONT_STACKS = {
   rounded: ['Rounded', 'ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", "Trebuchet MS", sans-serif'],
   condensed: ['Condensed grotesk', '"Bebas Neue", Oswald, "Barlow Condensed", "Roboto Condensed", "Arial Narrow", "Helvetica Neue Condensed", Impact, "Inter Display", sans-serif'],
   impact: ['Impact display', 'Impact, Haettenschweiler, "Arial Narrow Bold", "Arial Black", sans-serif'],
+  // Web fonts (third entry = Google Fonts family spec; storeCss() @imports the ones a theme uses)
+  anton: ['Anton (web font)', '"Anton", Impact, "Arial Narrow Bold", sans-serif', 'Anton'],
+  spacegrotesk: ['Space Grotesk (web font)', '"Space Grotesk", "Inter", "Helvetica Neue", Arial, sans-serif', 'Space+Grotesk:wght@400;500;600;700'],
+  bricolage: ['Bricolage Grotesque (web font)', '"Bricolage Grotesque", "Inter", "Helvetica Neue", Arial, sans-serif', 'Bricolage+Grotesque:opsz,wght@12..96,400..800'],
+  syne: ['Syne (web font)', '"Syne", "Inter", "Helvetica Neue", Arial, sans-serif', 'Syne:wght@500;600;700;800'],
+  unbounded: ['Unbounded (web font)', '"Unbounded", "Arial Black", sans-serif', 'Unbounded:wght@400;500;700;800'],
+  fredoka: ['Fredoka (web font)', '"Fredoka", ui-rounded, "Arial Rounded MT Bold", sans-serif', 'Fredoka:wght@400;500;600;700'],
+  archivo: ['Archivo Black (web font)', '"Archivo Black", "Arial Black", sans-serif', 'Archivo+Black'],
+  manrope: ['Manrope (web font)', '"Manrope", "Inter", "Helvetica Neue", Arial, sans-serif', 'Manrope:wght@400;500;600;700;800'],
+  spacemono: ['Space Mono (web font)', '"Space Mono", ui-monospace, Menlo, Consolas, monospace', 'Space+Mono:ital,wght@0,400;0,700;1,400'],
+  instrument: ['Instrument Serif (web font)', '"Instrument Serif", Didot, "Bodoni 72", Georgia, serif', 'Instrument+Serif:ital@0;1'],
+  fraunces: ['Fraunces (web font)', '"Fraunces", "Iowan Old Style", Georgia, serif', 'Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900'],
+  dmserif: ['DM Serif Display (web font)', '"DM Serif Display", Didot, Georgia, serif', 'DM+Serif+Display:ital@0;1'],
 };
+/** Google Fonts stylesheet URL for the web fonts among `keys` ('' when none). */
+export const webFontUrl = keys => { const fam = [...new Set(keys)].map(k => FONT_STACKS[k] && FONT_STACKS[k][2]).filter(Boolean); return fam.length ? 'https://fonts.googleapis.com/css2?' + fam.map(f => 'family=' + f).join('&') + '&display=swap' : ''; };
 
 let counter = 0;
 export const uid = (p = 'x') => p + '_' + Date.now().toString(36).slice(-5) + (counter++).toString(36) + Math.random().toString(36).slice(2, 6);
@@ -86,7 +102,7 @@ const str = (v, d = '') => v == null ? d : String(v);
 
 export const DEFAULT_THEME = {
   colors: { background: '#ffffff', surface: '#f5f5f4', text: '#171717', muted: '#6b6b6b', primary: '#171717', primaryText: '#ffffff', accent: '#e85d2a', border: '#e5e5e5' },
-  fonts: { heading: 'system', body: 'system' }, headingWeight: 700, headingCase: 'none', radius: 8,
+  fonts: { heading: 'system', body: 'system', accent: 'display' }, headingWeight: 700, headingCase: 'none', radius: 8,
   buttons: 'pill', density: 'comfortable', headerStyle: 'split', cardStyle: 'plain', imageRatio: 'portrait', shadow: 'soft', headingScale: 'large', tracking: 'tight',
 };
 
@@ -184,10 +200,10 @@ export function normalizeStore(input) {
     logo: { text: str(s.logo?.text ?? s.name ?? 'My store'), image: typeof s.logo?.image === 'string' && s.logo.image ? s.logo.image : null, height: num(s.logo?.height, 32, 16, 120) },
     theme: {
       colors: Object.fromEntries(Object.keys(dc).map(k => [k, hex(c[k], dc[k])])),
-      fonts: { heading: FONT_STACKS[th.fonts?.heading] ? th.fonts.heading : 'system', body: FONT_STACKS[th.fonts?.body] ? th.fonts.body : 'system' },
+      fonts: { heading: FONT_STACKS[th.fonts?.heading] ? th.fonts.heading : 'system', body: FONT_STACKS[th.fonts?.body] ? th.fonts.body : 'system', accent: FONT_STACKS[th.fonts?.accent] ? th.fonts.accent : 'display' },
       headingWeight: Math.round(num(th.headingWeight, 700, 300, 900) / 100) * 100, headingCase: pick(th.headingCase, ['none', 'uppercase'], 'none'), radius: num(th.radius, 8, 0, 32),
       buttons: pick(th.buttons, ['solid', 'outline', 'pill', 'sharp'], 'solid'), density: pick(th.density, ['compact', 'comfortable', 'airy'], 'comfortable'),
-      headerStyle: pick(th.headerStyle, ['split', 'left', 'centered', 'minimal', 'pill', 'search'], 'split'), cardStyle: pick(th.cardStyle, ['plain', 'card', 'bordered'], 'plain'),
+      headerStyle: pick(th.headerStyle, ['split', 'left', 'centered', 'minimal', 'pill', 'search'], 'split'), cardStyle: pick(th.cardStyle, ['plain', 'card', 'bordered', 'tagged'], 'plain'),
       imageRatio: pick(th.imageRatio, ['square', 'portrait', 'landscape'], 'portrait'),
       shadow: pick(th.shadow, ['none', 'soft', 'strong'], 'soft'), headingScale: pick(th.headingScale, ['regular', 'large', 'huge'], 'large'), tracking: pick(th.tracking, ['tight', 'normal', 'wide'], 'tight'),
     },

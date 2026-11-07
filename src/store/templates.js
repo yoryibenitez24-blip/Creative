@@ -1,4 +1,4 @@
-// Store templates: 27 original, complete multi-page stores across niches. Product names and prices are generic
+// Store templates: 46 original, complete multi-page stores across niches. Product names and prices are generic
 // samples. Images are curated Unsplash photos from src/store/photos.js ('unsplash:<id>' refs, hot-linked);
 // every product and the store also carry procedural art (src/store/art.js) used as the offline fallback.
 //
@@ -537,6 +537,195 @@ def({
   checkout: 'whatsapp', freeShipping: 25, badge: 'Delivery in 15 min', payments: 'Card, Cash',
 });
 
+// ---------- creative templates: built from the creative sections (editorial hero, rail, polaroids, steps, spec list, drops, stickers) ----------
+const STEPS_SHOP = [{ icon: 'search', title: 'Pick your piece', text: 'Browse the drop and find your favourite.' }, { icon: 'ruler', title: 'Choose your fit', text: 'Our size guide takes a minute.' }, { icon: 'bag', title: 'Tap to order', text: 'Checkout in under a minute.' }, { icon: 'box', title: 'Unbox', text: 'Plastic-free, ready to gift.' }, { icon: 'heart', title: 'Wear on repeat', text: 'Built for years, not seasons.' }];
+
+def({
+  id: 'rail', name: 'Rail Studio', niche: 'Minimal studio wear', category: 'Fashion', photos: 'fashion', reviews: true, pdp: 'editorial', creative: true,
+  description: 'Warm off-white studio label: grotesk headline with a blue dot, small uppercase meta labels and a clothes rail you slide.',
+  theme: { colors: { background: '#f2eee6', surface: '#e7e1d6', text: '#151515', muted: '#6c675f', primary: '#151515', primaryText: '#f2eee6', accent: '#2a55ff', border: '#dcd5c8' }, fonts: { heading: 'spacegrotesk', body: 'inter', accent: 'instrument' }, headingWeight: 600, headingCase: 'none', radius: 14, buttons: 'pill', density: 'comfortable', headerStyle: 'left', cardStyle: 'plain', imageRatio: 'portrait', headingScale: 'large', tracking: 'tight', shadow: 'soft' },
+  art: ['#e7e1d6', '#2a55ff'], swatches: ['#151515', '#f2eee6', '#2a55ff', '#9a8f80'], heroArt: 'tshirt',
+  products: [['Studio Tank', 45, 0, 'tshirt', 'Tops', { Size: SIZES, Color: ['Black', 'Off-white'] }, { ph: ['@p0', '@u0'], tags: ['new'], rating: 4.8, reviews: 64 }], ['Work Shirt', 98, 0, 'jacket', 'Shirts', { Size: SML, Color: ['Sage', 'Bone'] }, { ph: ['@p3', '@shirts:h1'], rating: 4.9, reviews: 41 }],
+    ['Loop Hoodie', 120, 0, 'hoodie', 'Tops', { Size: SIZES, Color: ['Grey', 'Black'] }, { ph: ['@p1', '@u2'] }], ['Knit Poncho', 160, 0, 'jacket', 'Knitwear', { Color: ['Cream', 'Oat'] }, { ph: ['@p2', '@u3'] }], ['Studio Sweat', 88, 0, 'hoodie', 'Tops', { Size: SIZES, Color: ['White', 'Grey'] }, { ph: ['@p4', '@u1'] }], ['Field Jacket', 210, 240, 'jacket', 'Outerwear', { Size: SML, Color: ['Denim'] }, { ph: ['@p5', '@u4'] }]],
+  home: [S('editorial-hero', { layout: 'split', metaLeft: 'Capsule 001 / Rail Studio', metaRight: '06 objects / one creative spirit', heading: 'Made for making', dot: true, text: 'Studio wear for people who make things. Heavy cotton, honest cuts, built to get paint on.', buttonLabel: 'Shop the capsule', buttonLink: '#rail', button2Label: 'The studio', button2Link: 'page:about', image: '@shirts:h1', image2: '@p0', caption: 'Work Shirt — bone', sticker: 'Capsule 001 · Made in small runs' }),
+    S('rail', { eyebrow: 'Capsule 001 / Rail Studio', heading: 'On the rail', metaRight: '06 objects / one creative spirit', source: 'all', limit: 6 }),
+    S('marquee', { text: 'Made in small runs | Free repairs for life | Ships in 48 hours | Carbon-neutral delivery', style: 'ticker', separator: '●', speed: 40 }),
+    S('split-feature', { eyebrow: 'The studio', heading: 'Built for the *studio floor*', text: 'Every piece is tested in our own workshop for a season before it goes on the rail.', image: '@u3', shape: 'arch', imageSide: 'left', background: '#151515', textColor: '#f2eee6', items: [{ icon: 'leaf', title: '400 gsm organic cotton', text: 'Dense, soft and breathable.' }, { icon: 'refresh', title: 'Repairs for life', text: 'Send it back, we fix it free.' }, { icon: 'award', title: 'Reinforced seams', text: 'Bar-tacked where it matters.' }] }),
+    S('spec-list', { eyebrow: '01 Studio Tank', heading: 'The *details*', rows: 'Fabric | 100% organic cotton rib\nWeight | 240 gsm\nFit | Relaxed, long body\nColours | Black / Off-white\nMade in | Porto, Portugal', image: '@p0', imageSide: 'right', buttonLabel: 'Shop the tank', buttonLink: 'collection:all' }),
+    S('polaroids', { heading: 'One tank. *Three ways.*', items: [{ image: '@u0', caption: 'Studio', note: 'Under an apron', link: '' }, { image: '@u1', caption: 'Street', note: 'Layered under denim', link: '' }, { image: '@u2', caption: 'Sunday', note: 'With everything', link: '' }] }),
+    S('newsletter', { heading: 'Capsule notes', text: 'One email when a new capsule lands on the rail.' })],
+  productSections: [S('spec-list', { eyebrow: 'Studio standard', heading: 'Made *properly*', rows: 'Fabric | Organic cotton, OEKO-TEX\nStitching | Double needle, bar-tacked\nRepairs | Free for life\nPackaging | Recycled paper', image: null })],
+  footer: { wordmark: true }, announcement: 'Capsule 001 is live | Free repairs for life', payments: 'Card, Wallets',
+});
+
+def({
+  id: 'checkmate', name: 'Checkmate', niche: 'Playful shirt label', category: 'Fashion', photos: 'shirts', reviews: true, pdp: 'classic', creative: true,
+  description: 'Long, playful landing page in acid lime, lilac and forest: sticker badge, tilted ticker, polaroid collage, timeline and a live drop countdown.',
+  theme: { colors: { background: '#fbfaf3', surface: '#eef2da', text: '#14251b', muted: '#56665b', primary: '#17402d', primaryText: '#d4f25a', accent: '#9b6cf0', border: '#dfe5c6' }, fonts: { heading: 'anton', body: 'manrope', accent: 'instrument' }, headingWeight: 400, headingCase: 'uppercase', radius: 22, buttons: 'pill', density: 'comfortable', headerStyle: 'pill', cardStyle: 'tagged', imageRatio: 'portrait', headingScale: 'huge', tracking: 'normal', shadow: 'soft' },
+  art: ['#eef2da', '#9b6cf0'], swatches: ['#d4f25a', '#c9a7f5', '#17402d', '#fbfaf3'], heroArt: 'tshirt',
+  products: [['Chambray Dot Shirt', 59, 0, 'jacket', 'Shirts', { Size: SIZES, Color: ['Denim', 'White'] }, { ph: ['@p0', '@u0'], tags: ['new'], rating: 4.8, reviews: 126 }], ['Sunday Oxford', 65, 0, 'jacket', 'Shirts', { Size: SIZES, Color: ['White', 'Sky'] }, { ph: ['@p1', '@u1'], rating: 4.9, reviews: 212 }],
+    ['Dip-Dye Camp Shirt', 72, 89, 'jacket', 'Shirts', { Size: SML, Color: ['Lilac', 'Coral', 'Blue'] }, { ph: ['@p2', '@h0'], tags: ['new'], rating: 4.7, reviews: 58 }], ['Bow Blouse', 78, 0, 'dress', 'Blouses', { Size: SIZES, Color: ['White'] }, { ph: ['@p3', '@u3'], rating: 4.9, reviews: 77 }],
+    ['Sky Oxford', 65, 0, 'jacket', 'Shirts', { Size: SIZES, Color: ['Sky', 'Lilac'] }, { ph: ['@p4', '@u2'], rating: 4.8, reviews: 94 }], ['Windowpane Check Blazer', 189, 220, 'jacket', 'Tailoring', { Size: SML, Color: ['Forest', 'Sand'] }, { ph: ['@p5', '@h1'], tags: ['new'], rating: 5, reviews: 31 }]],
+  home: [S('editorial-hero', { layout: 'collage', metaLeft: 'Fashion · 2026 · Shirts', metaRight: 'Drop 02 — out now', heading: 'Shirts that speak *before you do.*', dot: false, text: 'Crisp cottons, loud colour and checks with an opinion. Cut to mix, made to be noticed.', buttonLabel: 'Shop the drop', buttonLink: 'collection:all', button2Label: 'Find your fit', button2Link: '#steps', image: '@h0', image2: '@p5', caption: 'mood 01', sticker: 'Fashion · 2026 · Shirts', background: '#d4f25a', textColor: '#14251b' }),
+    S('marquee', { text: 'New drop | Soft cotton | Free exchanges | Made to mix | Loud on purpose', style: 'solid', separator: '★', tilt: true, background: '#17402d', textColor: '#d4f25a', speed: 34 }),
+    S('featured-products', { eyebrow: 'The line-up', heading: 'Pick your *mood*', columns: 3, limit: 6, buttonLabel: 'Shop all shirts' }),
+    S('split-feature', { eyebrow: 'Why they feel different', heading: 'Easy on you, *loud on the street*', text: 'Brushed long-staple cotton that softens with every wash, in colours that refuse to fade into the background.', image: '@u2', shape: 'tilt', imageSide: 'right', background: '#c9a7f5', textColor: '#14251b', sticker: 'Soft · Breathable · Bold', items: [{ icon: 'leaf', title: 'Breathable cotton', text: 'Long-staple, brushed for softness.' }, { icon: 'refresh', title: 'Free exchanges', text: 'Wrong size? Swap it in two taps.' }, { icon: 'heart', title: 'Cut to move', text: 'Room in the shoulders, never boxy.' }] }),
+    S('polaroids', { eyebrow: 'Style it', heading: 'One check. *Three moods.*', items: [{ image: '@p5', caption: 'Office mode', note: 'Blazer, tucked shirt, loafers', link: 'collection:all' }, { image: '@u0', caption: 'Weekend', note: 'Open over a tee', link: 'collection:all' }, { image: '@u2', caption: 'After dark', note: 'Buttoned to the top', link: 'collection:all' }] }),
+    S('spec-list', { eyebrow: 'Fabric file', heading: 'Soft enough to *live in*', rows: 'Cotton | 100% long-staple, brushed\nWeight | 140 gsm poplin\nCollar | Soft camp or button-down\nFit | Relaxed, true to size\nCare | 30° wash, no ironing drama', image: '@p1', imageSide: 'left', background: '#eef2da' }),
+    S('testimonials', { style: 'big', eyebrow: 'Reviews', heading: 'Loved *loudly*', rating: '4.9', ratingText: 'Average from 2,300+ reviews', items: Q(['The colours are even better in real life. I get stopped on the street.', 'Nia O.', 'Bought 3 shirts', '@u3'], ['Softest shirt I own. It survived a festival and still looks new.', 'Theo B.', 'Sunday Oxford', '@u0'], ['Sized up for the oversized look — perfect.', 'Mara S.', 'Dip-Dye Camp Shirt', '@u2'], ['Fast delivery and the packaging made me smile.', 'Jules K.', 'Bow Blouse', '@u1']) }),
+    S('steps', { eyebrow: 'How it works', heading: 'From cart to *wardrobe*', style: 'line', items: STEPS_SHOP }),
+    S('drop-countdown', { eyebrow: 'Limited check collection 02', heading: 'The check drop *lands soon*', text: '300 pieces. Four checks. When they are gone, they are gone.', buttonLabel: 'Get early access', buttonLink: '#newsletter', image: '@p2', sticker: 'Limited · Drop 02 · 300 pieces', background: '#17402d', textColor: '#d4f25a' }),
+    S('newsletter', { heading: 'Get the drop first', text: 'Early access, styling notes and zero spam.' })],
+  productSections: [S('steps', { heading: 'Ordering is *easy*', style: 'cards', items: STEPS_SHOP.slice(1, 5) })],
+  footer: { dark: true, wordmark: true }, announcement: 'Drop 02 is live | Free exchanges | Ships in 48 h', annStyle: 'marquee', payments: 'Card, Wallets', nav: ['Shirts', 'Blouses', 'Tailoring'],
+});
+
+def({
+  id: 'cutout', name: 'Cutout Press', niche: 'Brutalist streetwear zine', category: 'Fashion', photos: 'fashion', reviews: true, pdp: 'stack', creative: true,
+  description: 'Photocopied-zine streetwear store: paper background, heavy black type, mono body, red tilted ticker and taped polaroids.',
+  theme: { colors: { background: '#efeee8', surface: '#e2e0d6', text: '#0d0d0d', muted: '#4f4f4a', primary: '#0d0d0d', primaryText: '#efeee8', accent: '#ff3d14', border: '#0d0d0d' }, fonts: { heading: 'archivo', body: 'spacemono', accent: 'dmserif' }, headingWeight: 400, headingCase: 'uppercase', radius: 0, buttons: 'sharp', density: 'compact', headerStyle: 'split', cardStyle: 'bordered', imageRatio: 'portrait', headingScale: 'huge', tracking: 'tight', shadow: 'none' },
+  art: ['#e2e0d6', '#ff3d14'], swatches: ['#0d0d0d', '#efeee8', '#ff3d14', '#8a8a82'], heroArt: 'hoodie',
+  products: [['Xerox Tee', 38, 0, 'tshirt', 'Tees', { Size: SIZES, Color: ['White', 'Black'] }, { ph: ['@p0', '@u0'], tags: ['new'] }], ['Cut & Paste Hoodie', 92, 0, 'hoodie', 'Hoodies', { Size: SIZES, Color: ['Grey', 'Black'] }, { ph: ['@p1', '@u2'] }],
+    ['Staple Overshirt', 110, 0, 'jacket', 'Outerwear', { Size: SML }, { ph: ['@p3', '@u4'] }], ['Halftone Knit', 125, 0, 'jacket', 'Knitwear', null, { ph: ['@p2', '@u3'] }], ['Photocopy Crew', 75, 0, 'hoodie', 'Hoodies', { Size: SIZES }, { ph: ['@p4', '@u1'] }], ['Fold-Out Denim', 168, 195, 'jacket', 'Outerwear', { Size: SML }, { ph: ['@p5', '@u4'] }]],
+  home: [S('editorial-hero', { layout: 'stack', metaLeft: 'Issue 09 — Spring / Summer', metaRight: 'Printed in small runs', heading: 'Cut. Paste. *Repeat.*', dot: false, text: 'Streetwear published like a zine: six garments, one issue, no reprints.', buttonLabel: 'Read issue 09', buttonLink: 'collection:all', image: '@h3', sticker: 'Issue 09 · Free zine inside' }),
+    S('marquee', { text: 'Issue 09 | No reprints | Free zine with every order | Worldwide shipping', style: 'solid', separator: '/', tilt: true, background: '#ff3d14', textColor: '#0d0d0d', speed: 28 }),
+    S('featured-products', { eyebrow: 'Contents', heading: 'In this *issue*', columns: 3, limit: 6, buttonLabel: 'All pages' }),
+    S('polaroids', { eyebrow: 'Readers', heading: 'Seen in the *wild*', items: [{ image: '@u0', caption: 'p. 04', note: '@kai.nite' }, { image: '@u2', caption: 'p. 11', note: '@m.vance' }, { image: '@u1', caption: 'p. 17', note: '@lowkeylayers' }, { image: '@u3', caption: 'p. 22', note: '@sora.w' }] }),
+    S('spec-list', { eyebrow: 'Colophon', heading: 'Printing *notes*', rows: 'Print run | 300 per style\nPaper stock | 280 gsm heavyweight cotton\nInk | Water-based, cracks beautifully\nBinding | Flatlock seams\nReprints | Never' }),
+    S('drop-countdown', { eyebrow: 'Next issue', heading: 'Issue 10 *goes to print*', text: 'Subscribers get the link an hour early.', buttonLabel: 'Subscribe', buttonLink: '#newsletter', image: '@u4', sticker: 'Issue 10 · Coming soon', background: '#0d0d0d', textColor: '#efeee8' }),
+    S('newsletter', { heading: 'Subscribe to the issue', text: 'One email per print run.' })],
+  footer: { wordmark: true }, announcement: 'Issue 09 out now | Free zine with every order', annStyle: 'marquee', payments: 'Card, Wallets',
+});
+
+def({
+  id: 'hyperglow', name: 'Hyperglow', niche: 'Y2K beauty', category: 'Beauty', photos: 'beauty', reviews: true, pdp: 'classic', creative: true,
+  description: 'Y2K chrome beauty brand: glowing gradient hero, bubbly display type, organic blob photos and a holo restock countdown.',
+  theme: { colors: { background: '#f3f0ff', surface: '#e7e1ff', text: '#1b1430', muted: '#675e8c', primary: '#1b1430', primaryText: '#f3f0ff', accent: '#ff4fd8', border: '#dcd4fa' }, fonts: { heading: 'unbounded', body: 'manrope', accent: 'instrument' }, headingWeight: 700, headingCase: 'none', radius: 28, buttons: 'pill', density: 'comfortable', headerStyle: 'pill', cardStyle: 'tagged', imageRatio: 'portrait', headingScale: 'large', tracking: 'tight', shadow: 'soft' },
+  art: ['#e7e1ff', '#ff4fd8'], swatches: ['#ff4fd8', '#9db4ff', '#1b1430', '#d6ccff'], heroArt: 'serum',
+  products: [['Liquid Chrome Serum', 38, 0, 'serum', 'Serums', { Size: ['30 ml', '50 ml'] }, { ph: ['@p2', '@p3'], tags: ['new'], rating: 4.9, reviews: 318 }], ['Afterglow Drops', 42, 0, 'serum', 'Serums', null, { ph: ['@p3', '@p2'], rating: 4.8, reviews: 204 }],
+    ['Holo Eye Palette', 34, 0, 'palette', 'Colour', { Finish: ['Holo', 'Matte'] }, { ph: ['@p4', '@p1'], tags: ['new'], rating: 4.7, reviews: 96 }], ['Cloud Cream', 29, 0, 'jar', 'Skincare', null, { ph: ['@p0', '@h1'], rating: 4.8, reviews: 151 }],
+    ['Soft Focus Brush Set', 45, 0, 'lipstick', 'Tools', null, { ph: ['@p1', '@h0'], rating: 4.6, reviews: 63 }], ['Glass Skin Duo', 72, 80, 'serum', 'Sets', null, { ph: ['@p2', '@p0'], rating: 4.9, reviews: 88 }]],
+  home: [S('hero', { layout: 'gradient', eyebrow: 'Glow lab · Est. 2026', heading: 'Skin, but make it *chrome*', text: 'High-shine serums and holo colour, vegan and refillable.', buttonLabel: 'Shop the glow', buttonLink: 'collection:all', button2Label: 'Our science', button2Link: 'page:about', image: '@p2', background: '#1b1430', textColor: '#f3f0ff', sticker: 'Glow · 2026 · Serums', height: 'large' }),
+    S('marquee', { text: 'Vegan | Cruelty-free | Dermatologist tested | Refillable glass | Fragrance-free', style: 'ticker', separator: '✦', background: '#ff4fd8', textColor: '#1b1430', speed: 36 }),
+    S('featured-products', { eyebrow: 'Cult favourites', heading: 'Shine *on repeat*', columns: 3, limit: 6 }),
+    S('split-feature', { eyebrow: 'The science', heading: 'Serums with *serious* science', text: 'Peptides, niacinamide and squalane in concentrations that actually do something.', image: '@p3', shape: 'blob', background: '#1b1430', textColor: '#f3f0ff', imageSide: 'left', items: [{ icon: 'sparkle', title: 'Glass-skin finish', text: 'Visible glow in 7 days.' }, { icon: 'leaf', title: '100% vegan', text: 'No animal anything.' }, { icon: 'shield', title: 'Barrier-safe', text: 'Tested on sensitive skin.' }] }),
+    S('steps', { eyebrow: 'Routine', heading: 'Your 3-step *glow*', style: 'cards', items: [{ icon: 'refresh', title: 'Cleanse', text: 'Start with a soft, fresh base.' }, { icon: 'sparkle', title: 'Serum', text: 'Two drops of Liquid Chrome.' }, { icon: 'heart', title: 'Seal', text: 'Cloud Cream locks it in.' }] }),
+    S('testimonials', { style: 'big', heading: 'Glowing *reviews*', rating: '4.8', ratingText: 'From 5,000+ glow-getters', items: Q(['My skin literally looks like glass. Obsessed.', 'Ama D.', 'Liquid Chrome Serum', '@fashion:u0'], ['The palette is unreal — holo on the lid, wearable at work.', 'Lena V.', 'Holo Eye Palette', '@fashion:u3']) }),
+    S('drop-countdown', { eyebrow: 'Restock alert', heading: 'Holo palette *restock*', text: 'It sold out in four hours last time. Set a reminder.', buttonLabel: 'Notify me', buttonLink: '#newsletter', image: '@p4', sticker: 'Restock · Holo · Limited', background: '#ff4fd8', textColor: '#1b1430' }),
+    S('newsletter', { heading: 'Join the glow list', text: 'Restocks, routines and member-only shades.' })],
+  footer: { dark: true }, announcement: 'Free shipping over $40 | Refills save 20%', payments: 'Card, Wallets',
+});
+
+def({
+  id: 'raster', name: 'Raster Objects', niche: 'Design objects', category: 'Home & living', photos: 'objects', reviews: true, pdp: 'editorial', creative: true,
+  description: 'Swiss-grid design objects shop: white space, Helvetica, a red ticker, indexed products and spec lists.',
+  theme: { colors: { background: '#ffffff', surface: '#f0f0ee', text: '#0a0a0a', muted: '#6b6b6b', primary: '#0a0a0a', primaryText: '#ffffff', accent: '#ff3300', border: '#d9d9d6' }, fonts: { heading: 'helvetica', body: 'helvetica', accent: 'helvetica' }, headingWeight: 700, headingCase: 'none', radius: 0, buttons: 'sharp', density: 'comfortable', headerStyle: 'left', cardStyle: 'plain', imageRatio: 'square', headingScale: 'huge', tracking: 'tight', shadow: 'none' },
+  art: ['#f0f0ee', '#ff3300'], swatches: ['#0a0a0a', '#ff3300', '#9a9a96', '#2a6f73'], heroArt: 'lamp',
+  products: [['Floor Lamp No. 1', 340, 0, 'lamp', 'Lighting', { Color: ['Grey', 'Black'] }, { ph: ['@p0', '@p2'], rating: 4.9, reviews: 38 }], ['Pendant No. 2', 190, 0, 'lamp', 'Lighting', { Color: ['White', 'Teal'] }, { ph: ['@p1', '@h1'], tags: ['new'], rating: 4.8, reviews: 22 }],
+    ['Reading Lamp No. 3', 260, 0, 'lamp', 'Lighting', null, { ph: ['@p2', '@p0'] }], ['Stool No. 4', 140, 0, 'chair', 'Seating', { Finish: ['Ash', 'Oak'] }, { ph: ['@p3', '@p4'] }], ['Shell Chair No. 5', 290, 330, 'chair', 'Seating', { Color: ['Black', 'White'] }, { ph: ['@p4', '@p3'] }], ['Pendant Cluster No. 6', 480, 0, 'lamp', 'Lighting', null, { ph: ['@p5', '@h0'] }]],
+  home: [S('editorial-hero', { layout: 'split', metaLeft: 'Index 01 — Objects for daily use', metaRight: 'Zürich / Berlin', heading: 'Form follows function', dot: true, text: 'Six objects, designed on a grid and built to last decades. Nothing added that does not need to be there.', buttonLabel: 'View the index', buttonLink: '#rail', image: '@h1', image2: '@p3', caption: 'No. 2 Pendant' }),
+    S('marquee', { text: 'Index 01 | 6 objects | Designed to last decades | Free delivery in the EU', style: 'ticker', separator: '/', background: '#ff3300', textColor: '#ffffff', speed: 44 }),
+    S('rail', { eyebrow: 'Index 01', heading: 'The collection', metaRight: '06 objects / one grid', source: 'all', limit: 6 }),
+    S('spec-list', { eyebrow: 'No. 1', heading: 'Floor Lamp No. 1', text: 'Powder-coated steel, a counterweighted arm and one switch.', rows: 'Height | 152 cm\nShade | Ø 32 cm, steel\nLight | E27, max 60 W\nCable | 2.5 m textile\nWarranty | 10 years', image: '@p0', imageSide: 'left', buttonLabel: 'Shop No. 1', buttonLink: 'collection:all' }),
+    S('steps', { eyebrow: 'Process', heading: 'Ordered to last', style: 'line', items: [{ icon: 'card', title: 'Order', text: 'Pay securely online.' }, { icon: 'box', title: 'Built to order', text: 'In our Berlin workshop.' }, { icon: 'truck', title: 'Delivered', text: 'Within 3 weeks.' }, { icon: 'refresh', title: 'Parts for life', text: 'Every part replaceable.' }] }),
+    S('rich-text', { eyebrow: 'Principle', text: 'Less, but better. Every object in the index is designed to be repaired, not replaced.', size: 'large', align: 'left' }),
+    S('newsletter', { heading: 'Index updates', text: 'A new object, twice a year.' })],
+  currency: ['EUR', 'de-DE'], footer: { wordmark: true }, payments: 'Card, Bank transfer',
+});
+
+def({
+  id: 'kiln', name: 'Kiln & Clay', niche: 'Handmade ceramics', category: 'Home & living', photos: 'ceramics', reviews: true, pdp: 'classic', creative: true,
+  description: 'Warm handmade ceramics studio: terracotta palette, soft serif type, organic blob and arch photo shapes, studio polaroids.',
+  theme: { colors: { background: '#f4ece2', surface: '#ebdcc9', text: '#3a2418', muted: '#85695a', primary: '#b5532f', primaryText: '#fff7ef', accent: '#6f8a5b', border: '#e0cdb8' }, fonts: { heading: 'fraunces', body: 'manrope', accent: 'fraunces' }, headingWeight: 500, headingCase: 'none', radius: 24, buttons: 'pill', density: 'airy', headerStyle: 'centered', cardStyle: 'card', imageRatio: 'portrait', headingScale: 'large', tracking: 'tight', shadow: 'soft' },
+  art: ['#ebdcc9', '#b5532f'], swatches: ['#b5532f', '#6f8a5b', '#e8d7c0', '#3a2418'], heroArt: 'vase',
+  products: [['Speckled Cup Set', 48, 0, 'cup', 'Tableware', { Glaze: ['Oat', 'Honey'] }, { ph: ['@p0', '@h0'], tags: ['new'], rating: 4.9, reviews: 57 }], ['Lagoon Plate Set', 86, 0, 'dish', 'Tableware', { Size: ['Set of 2', 'Set of 4'] }, { ph: ['@p1', '@h1'], rating: 4.8, reviews: 33 }],
+    ['Bottle Vase Pair', 64, 0, 'vase', 'Vases', null, { ph: ['@p2', '@p0'], rating: 4.9, reviews: 21 }], ['Mint Planter', 32, 0, 'vase', 'Vases', null, { ph: ['@decor:p3', '@p2'] }], ['Wheel Class for Two', 140, 0, 'ticket', 'Classes', { Date: ['Saturday', 'Sunday'] }, { ph: ['@p3', '@h0'] }], ['Seconds Box', 45, 70, 'box', 'Tableware', null, { ph: ['@h1', '@p0'] }]],
+  home: [S('editorial-hero', { layout: 'split', shape: 'blob', metaLeft: 'Studio pottery — batch 14', metaRight: 'Each piece one of a kind', heading: 'Made slowly, *by hand*', dot: false, text: 'Wheel-thrown stoneware for everyday rituals, glazed in small batches in our Lisbon studio.', buttonLabel: 'Shop batch 14', buttonLink: 'collection:all', button2Label: 'Book a class', button2Link: 'collection:all', image: '@h0', image2: '@p0', sticker: 'Handmade · Batch 14 · Small run' }),
+    S('marquee', { text: 'Wheel-thrown | Food safe | Dishwasher friendly | Made in Lisbon', style: 'ticker', separator: '✺', background: '#3a2418', textColor: '#f4ece2', speed: 42 }),
+    S('featured-products', { eyebrow: 'Batch 14', heading: 'Fresh from the *kiln*', columns: 3, limit: 6 }),
+    S('split-feature', { eyebrow: 'Our glazes', heading: 'Glazes mixed *in-house*', text: 'Every colour is developed from raw minerals in the studio, so no two firings are ever quite the same.', image: '@p2', shape: 'blob', background: '#6f8a5b', textColor: '#f7f1e8', items: [{ icon: 'leaf', title: 'Lead-free & food safe', text: 'Tested every batch.' }, { icon: 'sparkle', title: 'Unique variations', text: 'Speckles, drips and all.' }, { icon: 'gift', title: 'Wrapped by hand', text: 'Ready to give.' }] }),
+    S('polaroids', { eyebrow: 'Inside the studio', heading: 'Mud, fire *and patience*', items: [{ image: '@h0', caption: 'Throwing', note: 'Day one' }, { image: '@p1', caption: 'Glazing', note: 'Day six' }, { image: '@p2', caption: 'Opening the kiln', note: 'Day nine' }] }),
+    S('steps', { eyebrow: 'Process', heading: 'How a cup is *made*', style: 'cards', items: [{ icon: 'heart', title: 'Throw', text: 'Shaped on the wheel.' }, { icon: 'ruler', title: 'Trim', text: 'Feet and rims refined.' }, { icon: 'bolt', title: 'Bisque fire', text: '900° for strength.' }, { icon: 'sparkle', title: 'Glaze fire', text: '1240° for the shine.' }] }),
+    S('spec-list', { eyebrow: 'Care', heading: 'Living with *stoneware*', rows: 'Dishwasher | Yes, top rack\nMicrowave | Yes\nOven | Up to 200°\nClay | Speckled stoneware\nGlaze | Lead-free', image: '@p1', imageSide: 'right' }),
+    S('testimonials', { heading: 'Kind *words*', items: Q(['My morning coffee tastes better in these cups. I am not joking.', 'Inês P.', 'Speckled Cup Set'], ['The class was the best date we have had in years.', 'Sam & Leo', 'Wheel Class for Two'], ['Every plate is slightly different and I love it.', 'Hana M.', 'Lagoon Plate Set']) }),
+    S('newsletter', { heading: 'Kiln opening dates', text: 'Be first to shop each new batch.' })],
+  currency: ['EUR', 'pt-PT'], payments: 'Card, Wallets',
+});
+
+def({
+  id: 'nightshift', name: 'Nightshift', niche: 'Neon sneaker drops', category: 'Fashion', photos: 'sneakers', reviews: true, pdp: 'classic', creative: true,
+  description: 'Night-mode sneaker drop store: neon lime and magenta, a tilted ticker, sneakers hanging on a rail and a midnight countdown.',
+  theme: { colors: { background: '#07070b', surface: '#14141e', text: '#f2f2f7', muted: '#9a9ab0', primary: '#c6ff3d', primaryText: '#07070b', accent: '#ff2bd6', border: '#26263a' }, fonts: { heading: 'anton', body: 'spacegrotesk', accent: 'dmserif' }, headingWeight: 400, headingCase: 'uppercase', radius: 18, buttons: 'pill', density: 'compact', headerStyle: 'split', cardStyle: 'tagged', imageRatio: 'square', headingScale: 'huge', tracking: 'normal', shadow: 'strong' },
+  art: ['#14141e', '#c6ff3d'], swatches: ['#c6ff3d', '#ff2bd6', '#26263a', '#f2f2f7'], heroArt: 'sneaker',
+  products: [['Afterglow Runner', 159, 0, 'sneaker', 'Running', { Size: ['40', '41', '42', '43', '44', '45'], Color: ['Grey', 'Black'] }, { ph: ['@p3', '@p1'], tags: ['new'], rating: 4.8, reviews: 143 }], ['Neon Prism', 179, 199, 'sneaker', 'Lifestyle', { Size: ['39', '40', '41', '42', '43'], Color: ['Coral', 'Sky'] }, { ph: ['@p1', '@h1'], tags: ['new'], rating: 4.9, reviews: 87 }],
+    ['Midnight Court', 129, 0, 'sneaker', 'Lifestyle', { Size: ['38', '39', '40', '41', '42', '43'], Color: ['White'] }, { ph: ['@p2', '@p0'], rating: 4.7, reviews: 210 }], ['Sand Shift Low', 139, 0, 'sneaker', 'Lifestyle', { Size: ['38', '39', '40', '41', '42'], Color: ['Sand', 'White'] }, { ph: ['@p0', '@h0'], rating: 4.8, reviews: 66 }], ['Glow Care Kit', 29, 0, 'bottle', 'Care', null, { ph: ['@h0', '@p2'] }]],
+  home: [S('hero', { layout: 'image', eyebrow: 'Drop 03 · Friday 00:00', heading: 'After hours, *on foot*', text: 'Limited sneakers released at midnight. One pair per person, no bots.', buttonLabel: 'Enter the drop', buttonLink: '#drop', button2Label: 'Shop restocks', button2Link: 'collection:all', image: '@h1', overlay: 45, height: 'full', sticker: 'Drop 03 · Midnight · Limited', textColor: '#f2f2f7' }),
+    S('marquee', { text: 'Drop 03 | Midnight release | One pair per person | Raffle closes soon', style: 'solid', separator: '✺', tilt: true, background: '#c6ff3d', textColor: '#07070b', speed: 26 }),
+    S('drop-countdown', { eyebrow: 'Drop 03 — Neon Prism', heading: 'Lands at *midnight*', text: '500 pairs worldwide. Enter the raffle before the timer hits zero.', buttonLabel: 'Enter the raffle', buttonLink: 'collection:all', image: '@p1', sticker: 'Raffle · Open now · 500 pairs', background: '#ff2bd6', textColor: '#07070b' }),
+    S('rail', { eyebrow: 'Wall of heat', heading: 'Hung up *tonight*', metaRight: '05 pairs / one night', source: 'all', limit: 5, background: '#0d0d14' }),
+    S('featured-products', { eyebrow: 'Restocked', heading: 'Back *in the dark*', columns: 4, limit: 4 }),
+    S('steps', { eyebrow: 'How drops work', heading: 'Four steps to *the pair*', style: 'line', items: [{ icon: 'card', title: 'Join the raffle', text: 'One entry per person.' }, { icon: 'chat', title: 'Get the text', text: 'Winners hear at 00:05.' }, { icon: 'clock', title: 'Check out in 10 min', text: 'Your pair is held.' }, { icon: 'bolt', title: 'Lace up', text: 'Ships next morning.' }] }),
+    S('spec-list', { eyebrow: 'Afterglow Runner', heading: 'Built for *night shifts*', rows: 'Upper | Recycled mesh, reflective yarn\nMidsole | Nitrogen-infused foam\nDrop | 8 mm\nWeight | 248 g (size 42)\nGlow | 360° reflective details', image: '@p3', imageSide: 'right' }),
+    S('newsletter', { heading: 'Drop alerts', text: 'A text and an email 10 minutes before every drop.' })],
+  footer: { wordmark: true }, announcement: 'Drop 03 raffle open | One pair per person', annStyle: 'marquee', payments: 'Card, Wallets',
+});
+
+def({
+  id: 'glasshouse', name: 'Glasshouse', niche: 'Botanical plant shop', category: 'Home & living', photos: 'plants', reviews: true, pdp: 'editorial', creative: true,
+  description: 'Editorial botanical shop: deep green and cream, elegant serif type, arched photos, care spec lists and a plant-care timeline.',
+  theme: { colors: { background: '#f5f1e6', surface: '#e9e4d2', text: '#1d3326', muted: '#5c6d60', primary: '#1d3326', primaryText: '#f5f1e6', accent: '#c9853f', border: '#d9d3bf' }, fonts: { heading: 'instrument', body: 'manrope', accent: 'instrument' }, headingWeight: 400, headingCase: 'none', radius: 6, buttons: 'solid', density: 'airy', headerStyle: 'centered', cardStyle: 'plain', imageRatio: 'portrait', headingScale: 'huge', tracking: 'tight', shadow: 'none' },
+  art: ['#e9e4d2', '#c9853f'], swatches: ['#1d3326', '#9fb29f', '#c9853f', '#e9e4d2'], heroArt: 'plant',
+  products: [['Mint Pot Succulent', 24, 0, 'plant', 'Succulents', null, { ph: ['@p0', '@p4'], rating: 4.8, reviews: 112 }], ['Terracotta Cactus', 28, 0, 'plant', 'Succulents', { Size: ['Small', 'Medium'] }, { ph: ['@p1', '@h0'], rating: 4.7, reviews: 64 }],
+    ['Potting Kit', 32, 0, 'box', 'Care', null, { ph: ['@p2', '@p1'] }], ['Rubber Fig', 58, 0, 'plant', 'Large plants', { Size: ['60 cm', '90 cm'] }, { ph: ['@p3', '@p7'], tags: ['new'], rating: 4.9, reviews: 41 }], ['Succulent Trio', 39, 0, 'plant', 'Succulents', null, { ph: ['@p4', '@p0'] }],
+    ['Bonsai Ficus', 74, 0, 'plant', 'Large plants', null, { ph: ['@p5', '@p3'], rating: 4.9, reviews: 27 }], ['Aloe in Concrete', 34, 0, 'plant', 'Succulents', null, { ph: ['@p6', '@p4'] }], ['Monstera Deliciosa', 69, 79, 'plant', 'Large plants', { Size: ['60 cm', '90 cm'] }, { ph: ['@p7', '@p3'], tags: ['new'], rating: 4.8, reviews: 88 }]],
+  home: [S('editorial-hero', { layout: 'split', shape: 'arch', metaLeft: 'The Glasshouse — plants & studio', metaRight: 'Spring catalogue', heading: 'Grow something *quietly wonderful*', dot: false, text: 'Healthy plants, handpicked pots and care advice that actually fits your life.', buttonLabel: 'Shop plants', buttonLink: 'collection:all', button2Label: 'Care guide', button2Link: '#steps', image: '@p7', image2: '@p5', sticker: 'Pet-friendly picks · Spring' }),
+    S('marquee', { text: 'Free delivery over $60 | Pet-friendly picks | Care card with every plant | Pots included', style: 'ticker', separator: '✦', background: '#1d3326', textColor: '#f5f1e6', speed: 44 }),
+    S('featured-products', { eyebrow: 'Just potted', heading: 'New in the *glasshouse*', columns: 4, limit: 8 }),
+    S('split-feature', { eyebrow: 'Plant care', heading: 'Care that *keeps it simple*', text: 'Every plant arrives with a care card, a soil mix chosen for it and a year of free advice.', image: '@p3', shape: 'arch', background: '#1d3326', textColor: '#f5f1e6', imageSide: 'left', items: [{ icon: 'leaf', title: 'Nursery-grown', text: 'Healthy roots, never root-bound.' }, { icon: 'chat', title: 'Plant doctor', text: 'Send a photo, get advice.' }, { icon: 'shield', title: '30-day guarantee', text: 'If it struggles, we replace it.' }] }),
+    S('spec-list', { eyebrow: 'Plant profile', heading: 'Aloe, *at a glance*', rows: 'Light | Bright, some direct sun\nWater | Every 2–3 weeks\nPet safe | No — keep out of reach\nGrowth | Slow and steady\nDifficulty | Beginner', image: '@p6', imageSide: 'right', buttonLabel: 'Shop aloe', buttonLink: 'collection:all' }),
+    S('polaroids', { eyebrow: 'Customer corners', heading: 'Plants in *real homes*', items: [{ image: '@p7', caption: 'Lisbon flat', note: 'Monstera, 2 years old' }, { image: '@p5', caption: 'Desk buddy', note: 'Bonsai ficus' }, { image: '@p4', caption: 'Windowsill', note: 'Succulent trio' }] }),
+    S('steps', { eyebrow: 'Care guide', heading: 'Happy plants in *four steps*', style: 'line', items: [{ icon: 'globe', title: 'Find the light', text: 'Bright, indirect for most.' }, { icon: 'clock', title: 'Water less', text: 'Check the soil first.' }, { icon: 'leaf', title: 'Feed in spring', text: 'Once a month.' }, { icon: 'refresh', title: 'Repot yearly', text: 'One size up.' }] }),
+    S('newsletter', { heading: 'Seasonal care notes', text: 'Four letters a year, one per season.' })],
+  payments: 'Card, Wallets', freeShipping: 60,
+});
+
+def({
+  id: 'bubbleblock', name: 'Bubble & Block', niche: 'Kids toys', category: 'Hobbies & gifts', photos: 'toys', reviews: true, pdp: 'compact', creative: true,
+  description: 'Bubbly kids toy shop: sunny yellow, rounded type, blob-shaped photos, a stickered hero and a make-it timeline.',
+  theme: { colors: { background: '#fff8ec', surface: '#ffeccc', text: '#1e2a5a', muted: '#5b6690', primary: '#3a5bff', primaryText: '#ffffff', accent: '#ff6b9a', border: '#f5dfbd' }, fonts: { heading: 'fredoka', body: 'manrope', accent: 'dmserif' }, headingWeight: 600, headingCase: 'none', radius: 32, buttons: 'pill', density: 'comfortable', headerStyle: 'pill', cardStyle: 'tagged', imageRatio: 'square', headingScale: 'large', tracking: 'normal', shadow: 'soft' },
+  art: ['#ffeccc', '#ff6b9a'], swatches: ['#ffd84d', '#3a5bff', '#ff6b9a', '#3fc59b'], heroArt: 'blocks',
+  products: [['Wooden Train Set', 64, 0, 'blocks', 'Wooden toys', null, { ph: ['@p0', '@p3'], tags: ['new'], rating: 4.9, reviews: 203 }], ['Robot Shelf Friends', 48, 0, 'rocket', 'Collectibles', null, { ph: ['@p1', '@p2'], rating: 4.7, reviews: 58 }],
+    ['Rainbow Stacking Rings', 22, 0, 'blocks', 'Baby', { Color: ['Rainbow', 'Pastel'] }, { ph: ['@p2', '@p0'], rating: 4.9, reviews: 311 }], ['Track Expansion Pack', 36, 42, 'blocks', 'Wooden toys', null, { ph: ['@p3', '@p0'], rating: 4.8, reviews: 74 }], ['First Birthday Box', 59, 0, 'box', 'Gift sets', null, { ph: ['@p2', '@p3'], tags: ['new'] }]],
+  home: [S('editorial-hero', { layout: 'split', shape: 'blob', metaLeft: 'Toys for ages 1–8', metaRight: 'Wooden · Safe · Joyful', heading: 'Play is *serious* business', dot: true, text: 'Wooden classics and bright little wonders, made with non-toxic paints and lots of love.', buttonLabel: 'Shop toys', buttonLink: 'collection:all', button2Label: 'Gift guide', button2Link: 'collection:all', image: '@p0', image2: '@p2', sticker: 'Wooden · Safe · Joyful', background: '#ffd84d', textColor: '#1e2a5a' }),
+    S('marquee', { text: 'Non-toxic paints | Ages 1–8 | Free gift wrap | Plastic-free packaging', style: 'ticker', separator: '●', background: '#3a5bff', textColor: '#ffffff', speed: 38 }),
+    S('featured-products', { eyebrow: 'Toy box', heading: 'Toy box *favourites*', columns: 3, limit: 5, buttonLabel: 'All toys' }),
+    S('split-feature', { eyebrow: 'Safety first', heading: 'Tested by *tiny hands*', text: 'Every toy is tested to EN 71 and finished with water-based, non-toxic paints.', image: '@p3', shape: 'blob', background: '#ff6b9a', textColor: '#1e2a5a', imageSide: 'right', items: [{ icon: 'shield', title: 'EN 71 tested', text: 'Safe from first birthday.' }, { icon: 'leaf', title: 'FSC wood', text: 'From responsible forests.' }, { icon: 'gift', title: 'Free gift wrap', text: 'With a handwritten card.' }] }),
+    S('steps', { eyebrow: 'Our workshop', heading: 'How we *make* toys', style: 'cards', background: '#fff1d6', items: [{ icon: 'heart', title: 'Sketch', text: 'Ideas from real kids.' }, { icon: 'ruler', title: 'Cut', text: 'Sustainably sourced beech.' }, { icon: 'sparkle', title: 'Paint', text: 'Non-toxic, bright colours.' }, { icon: 'gift', title: 'Play', text: 'Wrapped and on its way.' }] }),
+    S('polaroids', { eyebrow: 'Play time', heading: 'Snapshots from *playrooms*', items: [{ image: '@p0', caption: 'Rainy Sunday', note: 'Train set, 3 hours straight' }, { image: '@p2', caption: 'First steps', note: 'Stacking rings' }, { image: '@p1', caption: 'The shelf', note: 'Robot friends' }] }),
+    S('testimonials', { style: 'big', heading: 'Parents *agree*', rating: '4.9', ratingText: 'From 3,100+ happy families', items: Q(['Our toddler has played with the train every day for a month.', 'Priya N.', 'Mum of two'], ['Beautifully made and the gift wrap was adorable.', 'Tom G.', 'Uncle of the year']) }),
+    S('newsletter', { heading: 'Join the play club', text: 'Birthday reminders and 10% off your first order.' })],
+  payments: 'Card, Wallets', freeShipping: 50,
+});
+
+def({
+  id: 'dialtone', name: 'Dial Tone Coffee', niche: 'Retro coffee roaster', category: 'Food & drink', photos: 'coffee', reviews: true, pdp: 'classic', creative: true,
+  description: 'Retro coffee roaster: tomato red and cream, chunky grotesk type, circular badges, a brew-guide timeline and tasting notes with dotted leaders.',
+  theme: { colors: { background: '#f6ead3', surface: '#efdcb8', text: '#2d1a10', muted: '#77604c', primary: '#e0532a', primaryText: '#fff4e2', accent: '#1f7a6d', border: '#e3cfa8' }, fonts: { heading: 'bricolage', body: 'manrope', accent: 'dmserif' }, headingWeight: 800, headingCase: 'none', radius: 20, buttons: 'pill', density: 'comfortable', headerStyle: 'split', cardStyle: 'card', imageRatio: 'square', headingScale: 'huge', tracking: 'tight', shadow: 'soft' },
+  art: ['#efdcb8', '#e0532a'], swatches: ['#e0532a', '#1f7a6d', '#2d1a10', '#f2b33d'], heroArt: 'coffeebag',
+  products: [['Hotline House Blend', 16, 0, 'coffeebag', 'Coffee', { Size: ['250 g', '1 kg'], Grind: ['Whole bean', 'Filter', 'Espresso'] }, { ph: ['@p0', '@p4'], tags: ['new'], rating: 4.9, reviews: 412 }], ['Party Line Espresso', 18, 0, 'coffeebag', 'Coffee', { Size: ['250 g', '1 kg'], Grind: ['Whole bean', 'Espresso'] }, { ph: ['@p1', '@p6'], rating: 4.8, reviews: 233 }],
+    ['Long Distance Decaf', 17, 0, 'coffeebag', 'Coffee', { Size: ['250 g', '1 kg'] }, { ph: ['@p3', '@p2'], rating: 4.7, reviews: 96 }], ['Operator Single Origin', 21, 0, 'coffeebag', 'Coffee', { Size: ['250 g', '1 kg'] }, { ph: ['@p4', '@p0'], rating: 4.9, reviews: 154 }], ['Pour-Over Starter Kit', 54, 64, 'mug', 'Brewing', null, { ph: ['@p5', '@p4'], rating: 4.8, reviews: 71 }], ['Barista Tool Set', 39, 0, 'mug', 'Brewing', null, { ph: ['@p6', '@p1'] }]],
+  home: [S('editorial-hero', { layout: 'collage', metaLeft: 'Roasted every Monday', metaRight: 'Est. 2019 — Line 01', heading: 'Good coffee, *on the line*', dot: false, text: 'Small-batch roasts with big, friendly flavour. Roasted Monday, at your door by Thursday.', buttonLabel: 'Shop coffee', buttonLink: 'collection:all', button2Label: 'Brew guide', button2Link: '#steps', image: '@h1', image2: '@p4', caption: 'line 01', sticker: 'Roasted fresh · Every Monday', background: '#e0532a', textColor: '#fff4e2' }),
+    S('marquee', { text: 'Roasted Monday | Shipped Tuesday | Free delivery over $40 | Compostable bags', style: 'solid', separator: '★', tilt: true, background: '#2d1a10', textColor: '#f6ead3', speed: 30 }),
+    S('featured-products', { eyebrow: 'On the menu', heading: 'Roasted *this week*', columns: 3, limit: 6 }),
+    S('spec-list', { eyebrow: 'Hotline House Blend', heading: 'Tasting *notes*', rows: 'Origin | Brazil & Ethiopia\nRoast | Medium\nNotes | Milk chocolate, red apple, honey\nBest for | Espresso, moka, filter\nAltitude | 1,400–2,000 m', image: '@p0', imageSide: 'left', buttonLabel: 'Shop the blend', buttonLink: 'collection:all' }),
+    S('steps', { eyebrow: 'Brew guide', heading: 'Brew it *like a barista*', style: 'line', items: [{ icon: 'ruler', title: 'Grind', text: '15 g, medium-fine.' }, { icon: 'clock', title: 'Bloom', text: '30 g water, 30 seconds.' }, { icon: 'refresh', title: 'Pour', text: 'Slow circles to 250 g.' }, { icon: 'heart', title: 'Sip', text: 'Ready in 3 minutes.' }] }),
+    S('split-feature', { eyebrow: 'Subscriptions', heading: 'Subscribe & *never run out*', text: 'Pick a roast and a rhythm. Pause, skip or switch whenever you like.', image: '@p5', shape: 'circle', background: '#1f7a6d', textColor: '#f6ead3', sticker: 'Save 15% · Every delivery', buttonLabel: 'Start a subscription', buttonLink: 'collection:all', items: [{ icon: 'refresh', title: 'Every 2 or 4 weeks', text: 'You choose the rhythm.' }, { icon: 'truck', title: 'Free delivery', text: 'On every subscription box.' }, { icon: 'gift', title: 'Roaster picks', text: 'A surprise bag every 3rd box.' }] }),
+    S('drop-countdown', { eyebrow: 'Next roast', heading: 'Monday’s roast *ships in*', text: 'Order before the timer ends to get the freshest beans.', buttonLabel: 'Order now', buttonLink: 'collection:all', image: '@p6', sticker: 'Fresh roast · Monday', background: '#2d1a10', textColor: '#f6ead3', bursts: true }),
+    S('testimonials', { heading: 'Regulars *say*', items: Q(['Best house blend I have tried. My moka pot is happy.', 'Rosa M.', 'Subscriber'], ['Fast, fresh and the bags are actually compostable.', 'Ben T.', 'Subscriber'], ['The brew guide fixed my pour-over in one morning.', 'Kai L.', 'Verified buyer']) }),
+    S('newsletter', { heading: 'The roast report', text: 'New origins and brew tips, every other week.' })],
+  checkout: 'whatsapp', announcement: 'Free delivery over $40 | Roasted every Monday', payments: 'Card, Cash', freeShipping: 40,
+});
+
 const photoSet = t => PHOTOS[t.photos] || PHOTOS.general;
 const tokenRef = (set, tok) => {
   const m = /^@(?:([a-z]+):)?([hpu])(\d+)$/.exec(tok); if (!m) return tok;
@@ -546,8 +735,10 @@ const tokenRef = (set, tok) => {
 };
 const resolveTokens = (v, set) => typeof v === 'string' ? tokenRef(set, v) : Array.isArray(v) ? v.map(x => resolveTokens(x, set)) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, resolveTokens(x, set)])) : v;
 
-export const STORE_TEMPLATES = T.map(t => ({ id: t.id, name: t.name, niche: t.niche, category: t.category, description: t.description, swatch: [t.theme.colors.background, t.theme.colors.primary, t.theme.colors.accent], photo: 'unsplash:' + photoSet(t).hero[0][0] }));
+export const STORE_TEMPLATES = T.map(t => ({ id: t.id, name: t.name, niche: t.niche, category: t.category, creative: !!t.creative, description: t.description, swatch: [t.theme.colors.background, t.theme.colors.primary, t.theme.colors.accent], photo: 'unsplash:' + photoSet(t).hero[0][0] }));
 export const TEMPLATE_CATEGORIES = [...new Set(T.map(t => t.category))];
+/** Gallery filter that cuts across niches: templates built from the creative sections (rail, polaroids, stickers, drops…). */
+export const CREATIVE_FILTER = 'Creative';
 
 const REVIEW_POOL = [
   ['Perfect fit', 'Fits true to size and the quality is better than I expected. Already ordered a second one.', 5],
@@ -605,12 +796,12 @@ export function createStore(templateId = 'general') {
     if (s.type === 'image-text' && !st.image) st.image = tokenRef(set, '@h1');
     if (s.type === 'banner' && st.style === 'image' && !st.image) st.image = tokenRef(set, '@h0');
     if (s.type === 'gallery' && !(st.images || []).length) st.images = products.slice(0, 6).map(p => ({ image: p.images[0], caption: '' }));
-    if (s.type === 'countdown' && !st.endsAt) st.endsAt = new Date(Date.now() + 5 * 864e5 + 7 * 36e5).toISOString().slice(0, 16);
+    if ((s.type === 'countdown' || s.type === 'drop-countdown') && !st.endsAt) st.endsAt = new Date(Date.now() + 5 * 864e5 + 7 * 36e5).toISOString().slice(0, 16);
     return { type: s.type, settings: st };
   });
   // in-page anchors used by hero buttons point to a section of the home page
   const homeSections = home.map(s => ({ id: uid('s'), ...s }));
-  const anchor = { '#plans': 'pricing', '#curriculum': 'curriculum', '#newsletter': 'newsletter' };
+  const anchor = { '#plans': 'pricing', '#curriculum': 'curriculum', '#newsletter': 'newsletter', '#drop': 'drop-countdown', '#rail': 'rail', '#steps': 'steps' };
   const fix = o => { for (const k of ['buttonLink', 'button2Link']) { const want = anchor[o[k]]; if (want) { const target = homeSections.find(x => x.type === want); o[k] = target ? '#' + target.id : 'collection:all'; } } };
   for (const s of homeSections) { fix(s.settings); (s.settings.slides || []).forEach(fix); }
   const [cur, loc] = t.currency || ['USD', 'en-US'];
@@ -620,15 +811,16 @@ export function createStore(templateId = 'general') {
   const store = {
     kind: 'store', templateId: t.id, name: t.name, logo: { text: t.name, image: null, height: 32 }, theme: t.theme, currency: { code: cur, locale: loc }, fallbackArt,
     announcement: { enabled: !!t.announcement, text: t.announcement || 'Free shipping on your first order', link: 'collection:all', style: t.annStyle || 'static' },
-    layout: { header: { type: 'header', settings: { sticky: true, transparent: true, showSearch: true, showWishlist: true, badge: t.badge || '', searchPlaceholder: 'Search groceries, bakery, meals…' } }, footer: { type: 'footer', settings: { text: t.description, newsletter: true, payments: t.payments || '' } } },
+    layout: { header: { type: 'header', settings: { sticky: true, transparent: true, showSearch: true, showWishlist: true, badge: t.badge || '', searchPlaceholder: 'Search groceries, bakery, meals…' } }, footer: { type: 'footer', settings: { text: t.description, newsletter: true, payments: t.payments || '', ...(t.footer || {}) } } },
     pages: {
       home: homeSections,
       collection: [S('collection-main', { columns: products.length > 4 ? 3 : 4 })],
       product: [S('product-main', { layout: t.pdp || 'classic', blocks: productBlocks(t.id === 'formfield' ? ['breadcrumb', 'title', 'price', 'variants', 'sizeguide', 'buy', 'specs', 'delivery', 'details'] : t.pdp === 'compact' ? ['title', 'price', 'urgency', 'variants', 'buy', 'delivery', 'trust', 'details'] : undefined, { delivery: t.pdp === 'compact' ? { min: 0, max: 1, text: 'Delivery' } : {} }) }),
+        ...(t.productSections || []).map(x => S(x.type, resolveTokens(structuredClone(x.settings), set))),
         S('bundle'), ...(t.reviews ? [S('product-reviews')] : []), S('related-products'),
         ...(t.home.some(x => x.type === 'ugc') ? [S('ugc', resolveTokens(structuredClone(t.home.find(x => x.type === 'ugc').settings), set))] : []),
         S('recently-viewed'), S('features', { style: 'strip', columns: 4, items: STRIP })],
-      about: [S('page-title', { eyebrow: 'About', heading: `About ${t.name}`, text: '', image: tokenRef(set, '@h1') }),
+      about: t.about ? t.about.map(x => S(x.type, resolveTokens(structuredClone(x.settings), set))) : [S('page-title', { eyebrow: 'About', heading: `About ${t.name}`, text: '', image: tokenRef(set, '@h1') }),
         S('image-text', { image: tokenRef(set, '@h0'), eyebrow: 'Our story', heading: 'Small team, big care', text: `${t.name} started with a simple idea: ${t.description.charAt(0).toLowerCase() + t.description.slice(1)}\n\nWe are a small team who care about every detail, from the first sketch to the moment your order arrives.` }),
         S('features', { columns: 3, items: STRIP.slice(0, 3) })],
       contact: [S('page-title', { heading: 'Contact us', text: 'Questions about an order or a product? We are happy to help.' }), S('contact-form')],

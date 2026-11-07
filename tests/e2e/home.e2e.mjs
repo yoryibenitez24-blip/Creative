@@ -45,6 +45,8 @@ await step('custom size from Home', async () => {
 });
 await step('E-commerce: first visit → setup wizard → template → intro → admin at /commerce/<handle>; Customize opens the builder', async () => {
   await page.locator(APP).getByRole('navigation', { name: 'Sections' }).getByRole('button', { name: 'E-commerce' }).click();
+  await page.getByTestId('commerce-intro').waitFor({ timeout: 20000 }); // the entrance animation plays over the setup wizard too
+  await page.getByTestId('commerce-intro').waitFor({ state: 'detached', timeout: 5000 });
   await page.getByLabel('Store name').waitFor({ timeout: 20000 });
   assert.equal(path(), '/commerce/new');
   await page.getByLabel('Store name').fill('Ironclad'); await page.waitForTimeout(500); await shotJ('setup-wizard');

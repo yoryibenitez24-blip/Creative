@@ -1,0 +1,45 @@
+/* Analytics › "Visitors around the world" (src/store/admin/VisitorGlobe.jsx + globe.js).
+   The card is dark in both admin themes: orange dot continents on near-black, like a mission-control screen. */
+.caCard.caGlobeCard { position: relative; overflow: hidden; color: #f3eee8; border: 1px solid rgba(255, 150, 80, .16);
+  background: radial-gradient(120% 90% at 28% 45%, #1c1410 0%, #0d0b0a 55%, #080707 100%); box-shadow: 0 30px 60px -36px rgba(0, 0, 0, .55); padding: 0; }
+.caGlobeCard::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: radial-gradient(rgba(255, 255, 255, .06) 1px, transparent 1px); background-size: 22px 22px; mask-image: radial-gradient(80% 80% at 30% 50%, #000, transparent); }
+.caGlobeHead { position: relative; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; padding: 20px 24px 0; }
+.caGlobeHead h2 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -.01em; color: #fff; }
+.caGlobeHead p { margin: 4px 0 0; font-size: 12.5px; color: rgba(243, 238, 232, .55); }
+.caGlobeStats { display: flex; flex-wrap: wrap; gap: 8px; }
+.caGlobeStats span { display: inline-flex; align-items: baseline; gap: 5px; padding: 6px 11px; border-radius: 999px; font-size: 12px; color: rgba(243, 238, 232, .7);
+  background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .08); }
+.caGlobeStats strong { color: #ff9a52; font-size: 14px; font-variant-numeric: tabular-nums; }
+.caGlobeBody { position: relative; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(260px, 1fr); gap: 8px 24px; padding: 4px 24px 22px 8px; align-items: center; }
+.caGlobeStage { position: relative; aspect-ratio: 1 / 1; max-height: 520px; width: 100%; justify-self: center; }
+.caGlobeCanvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.caGlobeCanvas.dragging { cursor: grabbing; }
+.caGlobeHint { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); font-size: 11px; letter-spacing: .04em; color: rgba(243, 238, 232, .35); pointer-events: none; }
+.caGlobeEmpty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; gap: 6px; max-width: 280px; padding: 14px 18px; text-align: center;
+  border-radius: 14px; background: rgba(10, 8, 7, .78); border: 1px solid rgba(255, 150, 80, .25); backdrop-filter: blur(6px); pointer-events: none; }
+.caGlobeEmpty strong { font-size: 14px; color: #fff; } .caGlobeEmpty span { font-size: 12.5px; color: rgba(243, 238, 232, .7); line-height: 1.45; }
+.caGlobeTip { position: absolute; z-index: 2; transform: translate(-50%, calc(-100% - 16px)); display: grid; gap: 2px; padding: 8px 12px; border-radius: 10px; white-space: nowrap; pointer-events: none;
+  background: rgba(18, 13, 11, .92); border: 1px solid rgba(255, 150, 80, .45); box-shadow: 0 10px 30px rgba(0, 0, 0, .5); font-size: 12px; color: rgba(243, 238, 232, .75); }
+.caGlobeTip.centered { left: 50%; top: 50%; }
+.caGlobeTip strong { color: #fff; font-size: 13px; font-weight: 600; }
+.caGlobeSide { position: relative; display: grid; gap: 10px; align-content: center; min-width: 0; }
+.caGlobeSide h3 { margin: 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: rgba(243, 238, 232, .5); }
+.caGlobeList { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.caGlobeList button { width: 100%; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 10px; row-gap: 6px; align-items: center;
+  padding: 9px 12px; border-radius: 12px; border: 1px solid transparent; background: transparent; color: inherit; font: inherit; text-align: left; cursor: default; }
+.caGlobeList button:hover, .caGlobeList button:focus-visible { background: rgba(255, 140, 60, .09); border-color: rgba(255, 150, 80, .3); outline: none; }
+.caGlobeFlag { grid-row: 1 / 3; font-size: 20px; line-height: 1; }
+.caGlobeName { font-size: 13.5px; font-weight: 550; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.caGlobeName small { margin-left: 6px; font-weight: 400; font-size: 11.5px; color: rgba(243, 238, 232, .45); }
+.caGlobeNum { font-variant-numeric: tabular-nums; font-weight: 650; font-size: 13.5px; color: #ffb07a; display: inline-flex; gap: 6px; align-items: baseline; }
+.caGlobeNum small { font-weight: 400; font-size: 11px; color: rgba(243, 238, 232, .45); min-width: 30px; text-align: right; }
+.caGlobeShare { grid-column: 2 / 4; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, .07); overflow: hidden; }
+.caGlobeShare i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff5a1f, #ffab5c); box-shadow: 0 0 10px rgba(255, 120, 40, .6); }
+.caGlobeNone, .caGlobeNote { margin: 0; font-size: 12px; line-height: 1.5; color: rgba(243, 238, 232, .55); }
+.caGlobeHome { display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 50%; background: #fff4ea; box-shadow: 0 0 0 2px #ff7a2f, 0 0 10px #ff7a2f; vertical-align: 0; }
+@media (max-width: 900px) {
+  .caGlobeBody { grid-template-columns: 1fr; padding: 4px 16px 18px; }
+  .caGlobeStage { max-width: 440px; }
+  .caGlobeHead { padding: 16px 16px 0; }
+}

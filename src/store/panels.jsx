@@ -142,6 +142,7 @@ export function ThemePanel({ store, edit, env }) {
     <p className="stGroupTitle">Typography</p>
     <Select label="Heading font" value={t.fonts.heading} options={fonts} onChange={v => th(x => { x.fonts.heading = v; }, 'Heading font')} />
     <Select label="Body font" value={t.fonts.body} options={fonts} onChange={v => th(x => { x.fonts.body = v; }, 'Body font')} />
+    <Select label="Accent font (*starred* words in headings)" value={t.fonts.accent || 'display'} options={fonts} onChange={v => th(x => { x.fonts.accent = v; }, 'Accent font')} />
     <ValueSlider label="Heading weight" value={t.headingWeight} min={300} max={900} step={100} format={v => String(v)} onChange={v => th(x => { x.headingWeight = v; }, 'Heading weight', 'hw')} />
     <Segmented label="Heading size" value={t.headingScale} options={[['regular', 'Regular'], ['large', 'Large'], ['huge', 'Huge']]} onChange={v => th(x => { x.headingScale = v; }, 'Heading size')} />
     <Segmented label="Letter spacing" value={t.tracking} options={[['tight', 'Tight'], ['normal', 'Normal'], ['wide', 'Wide']]} onChange={v => th(x => { x.tracking = v; }, 'Letter spacing')} />
@@ -149,7 +150,7 @@ export function ThemePanel({ store, edit, env }) {
     <p className="stGroupTitle">Shape & layout</p>
     <ValueSlider label="Corner radius" value={t.radius} min={0} max={32} format={v => v + ' px'} onChange={v => th(x => { x.radius = v; }, 'Corner radius', 'radius')} />
     <Segmented label="Buttons" value={t.buttons} options={[['solid', 'Solid'], ['outline', 'Outline'], ['pill', 'Pill'], ['sharp', 'Sharp']]} onChange={v => th(x => { x.buttons = v; }, 'Button style')} />
-    <Segmented label="Product cards" value={t.cardStyle} options={[['plain', 'Plain'], ['card', 'Card'], ['bordered', 'Bordered']]} onChange={v => th(x => { x.cardStyle = v; }, 'Card style')} />
+    <Segmented label="Product cards" value={t.cardStyle} options={[['plain', 'Plain'], ['card', 'Card'], ['bordered', 'Bordered'], ['tagged', 'Tagged']]} onChange={v => th(x => { x.cardStyle = v; }, 'Card style')} />
     <Segmented label="Image shape" value={t.imageRatio} options={[['square', 'Square'], ['portrait', 'Portrait'], ['landscape', 'Landscape']]} onChange={v => th(x => { x.imageRatio = v; }, 'Image shape')} />
     <Segmented label="Shadows" value={t.shadow} options={[['none', 'None'], ['soft', 'Soft'], ['strong', 'Strong']]} onChange={v => th(x => { x.shadow = v; }, 'Shadows')} />
     <Segmented label="Spacing" value={t.density} options={[['compact', 'Compact'], ['comfortable', 'Comfortable'], ['airy', 'Airy']]} onChange={v => th(x => { x.density = v; }, 'Spacing')} />

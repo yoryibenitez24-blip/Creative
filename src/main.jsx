@@ -487,6 +487,8 @@ function Workspace(){
  const navigate=useCallback((r,{replace}={})=>{const p=formatRoute(r);if(p!==location.pathname||location.hash||location.search)history[replace?'replaceState':'pushState'](null,'',p);setLoc(r)},[]);
  useEffect(()=>{const onPop=()=>setLoc(parseLocation(location.pathname,location.hash));window.addEventListener('popstate',onPop);return()=>window.removeEventListener('popstate',onPop)},[]);
  const ecomIntro=useRef(undefined);const setSection=sec=>{if(sec==='ecom')ecomIntro.current=true;navigate(sec==='ecom'?{section:'ecom',commerce:{view:'auto'}}:{section:sec})};
+ // entering E-commerce from any other section (section bar, Home card, Back/Forward to a /commerce URL) plays the entrance animation
+ const prevSection=useRef(null);if(section==='ecom'&&prevSection.current&&prevSection.current!=='ecom')ecomIntro.current=true;prevSection.current=section;
  const navCommerce=useCallback((c,o)=>navigate({section:'ecom',commerce:c},o),[navigate]);
  const updateWs=useCallback(fn=>setState(s=>s&&fn(s)),[]);
  useEffect(()=>{if(!state)return;const e=loc.section==='ecom'&&loc.commerce?.view==='store'?findStore(state.stores,loc.commerce.handle):null;document.title=routeTitle(loc,e?.store?.name)},[loc,state]);

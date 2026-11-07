@@ -38,7 +38,7 @@ createRoot(document.getElementById('root')).render(<App />);
 `);
 await build({ entryPoints: [join(work, 'harness.jsx')], bundle: true, minify: true, outfile: join(work, 'harness.js'), loader: { '.jsx': 'jsx' }, nodePaths: [join(repo, 'node_modules')], logLevel: 'error' });
 await writeFile(join(work, 'harness.html'), `<!doctype html><html><head><meta charset="utf-8"><title>Commerce harness</title>
-<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/css/modern.css"><link rel="stylesheet" href="/css/store.css"><link rel="stylesheet" href="/css/admin.css"><link rel="stylesheet" href="/css/commerce-intro.css"><link rel="stylesheet" href="/css/stores.css"></head>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/css/modern.css"><link rel="stylesheet" href="/css/store.css"><link rel="stylesheet" href="/css/admin.css"><link rel="stylesheet" href="/css/commerce-intro.css"><link rel="stylesheet" href="/css/globe.css"><link rel="stylesheet" href="/css/stores.css"></head>
 <body><div id="root"></div><script src="/harness.js"></script></body></html>`);
 
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
@@ -225,6 +225,8 @@ try {
     await page.keyboard.press('/');
     const search = page.getByRole('combobox', { name: 'Search orders, products and customers' });
     assert.equal(await search.evaluate(el => el === document.activeElement), true, '"/" focuses search');
+    await search.evaluate(el => el.blur()); await page.keyboard.press('Control+k');
+    assert.equal(await search.evaluate(el => el === document.activeElement), true, 'Ctrl+K focuses search');
     await search.fill('ana@');
     await page.getByRole('listbox', { name: 'Search results' }).getByText('Customer').first().waitFor();
     await search.press('ArrowDown'); await search.press('ArrowUp');
@@ -253,6 +255,31 @@ try {
     await popup.waitForLoadState();
     await page.waitForFunction(() => (window.__commerce.analytics.events || []).some(e => e.type === 'visit'), null, { timeout: 10000 });
     await popup.close();
+  });
+
+  await step('Analytics shows the visitor globe and Top locations after a preview session', async () => {
+    const visit = (await commerce()).analytics.events.find(e => e.type === 'visit');
+    assert.ok(visit.geo && /^[A-Z]{2}$/.test(visit.geo.country), 'the preview visit carries an approximate location');
+    await nav('Analytics');
+    const card = main.getByRole('region', { name: 'Visitors around the world' });
+    const globe = card.getByRole('img', { name: /Globe of visitor locations: \d+ sessions? from \d+ countr/ });
+    await globe.waitFor();
+    const list = card.getByRole('list', { name: 'Top locations' });
+    await list.getByRole('listitem').first().waitFor();
+    assert.ok(await list.getByRole('listitem').count() >= 1);
+    await list.getByRole('button').first().focus();
+    await card.getByRole('status').waitFor(); // keyboard focus shows the same tooltip as hovering a marker
+    const box = await globe.boundingBox();
+    assert.ok(box.width > 200 && box.height > 200, 'the globe canvas has a real size');
+    const painted = await globe.evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 16) if (d[i] > 200 && d[i + 1] > 90 && d[i + 1] < 190 && d[i + 2] < 120) n++; return n; });
+    assert.ok(painted > 200, 'orange land dots are drawn');
+    await page.mouse.move(5, 5);
+    await card.scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
+    await card.screenshot({ path: join(evidence, 'globe-light.jpg'), type: 'jpeg', quality: 85 });
+    await page.getByRole('button', { name: 'Switch to dark theme' }).click();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: join(evidence, 'globe-dark.jpg'), type: 'jpeg', quality: 85 });
+    await page.getByRole('button', { name: 'Switch to light theme' }).click();
   });
 
   await step('Online Store › Customize opens the store builder and returns', async () => {
@@ -284,8 +311,10 @@ try {
     await page.getByRole('navigation', { name: 'Commerce' }).getByRole('button', { name: 'Settings' }).click();
     await main.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: 'Taxes and duties' }).click();
     assert.equal(await main.getByLabel('Tax rate 1 percent').inputValue(), '8.25');
-    await nav('Home');
+    await nav('Dashboard');
     await main.getByRole('group', { name: 'Orders', exact: true }).getByText('1', { exact: true }).waitFor();
+    // the setup guide ticks itself off: a saved product with a sample photo, and the store builder was opened
+    assert.equal(await page.getByRole('progressbar', { name: 'Setup progress' }).getAttribute('aria-valuenow'), '2');
     await shot('home');
   });
 
@@ -306,7 +335,7 @@ try {
     await nav('Orders'); await main.getByRole('button', { name: 'Create order' }).first().click(); await page.screenshot({ path: join(process.env.ADMIN_SHOTS, 'new-order.jpg'), type: 'jpeg', quality: 70 });
     await page.getByRole('navigation', { name: 'Commerce' }).getByRole('button', { name: 'Settings' }).click();
     for (const t of ['General', 'Payments', 'Shipping and delivery', 'Notifications', 'Policies', 'Domains']) { await main.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: t }).click(); await page.screenshot({ path: join(process.env.ADMIN_SHOTS, 'set-' + t.split(' ')[0] + '.jpg'), type: 'jpeg', quality: 70 }); }
-    await page.setViewportSize({ width: 820, height: 1100 }); await nav('Home').catch(() => {}); await page.screenshot({ path: join(process.env.ADMIN_SHOTS, 'tablet.jpg'), type: 'jpeg', quality: 70 });
+    await page.setViewportSize({ width: 820, height: 1100 }); await nav('Dashboard').catch(() => {}); await page.screenshot({ path: join(process.env.ADMIN_SHOTS, 'tablet.jpg'), type: 'jpeg', quality: 70 });
   }
   console.log('All admin e2e steps passed');
 } finally {

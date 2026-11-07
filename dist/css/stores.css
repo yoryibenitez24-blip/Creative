@@ -1,5 +1,5 @@
 /* Zertake Commerce · multi-store layer: setup wizard, store switcher, All stores, plan picker (src/store/admin/Stores.jsx).
-   Builds on admin.css: every colour comes from the --ca-* tokens of .caRoot (light / [data-theme="dark"]). */
+   Builds on admin.css (clean light / navy dark tokens): every colour comes from the --ca-* tokens of .caRoot (light / [data-theme="dark"]). */
 
 .zsRoot { overflow-y: auto; overflow-x: hidden; }
 
@@ -11,13 +11,13 @@
 .zsBrand strong { font-size: 18px; font-weight: 700; letter-spacing: -.02em; }
 .zsLogo { margin: 0 !important; width: 42px !important; height: 42px !important; font-size: 17px !important; }
 .zsTopTools { display: flex; align-items: center; gap: 10px; }
-.zsTopTools .caRound { width: 44px !important; height: 44px !important; }
+.zsTopTools .caRound { width: 40px !important; height: 40px !important; }
 .zsGhost { background: var(--ca-surface) !important; border: 1px solid var(--ca-card-line) !important; box-shadow: var(--ca-shadow); }
 .zsGhost:hover { background: var(--ca-solid) !important; }
 .zsBackBtn { height: 44px !important; padding: 0 18px !important; }
 
 .zsCenter { flex: 1; display: grid; place-items: center; padding: 8px 24px 48px; }
-.zsCard { background: var(--ca-surface); border: 1px solid var(--ca-card-line); border-radius: 28px; box-shadow: var(--ca-shadow); backdrop-filter: var(--ca-blur); -webkit-backdrop-filter: var(--ca-blur); }
+.zsCard { background: var(--ca-surface); border: 1px solid var(--ca-card-line); border-radius: 18px; box-shadow: var(--ca-shadow); backdrop-filter: var(--ca-blur); -webkit-backdrop-filter: var(--ca-blur); }
 
 /* ---------- setup wizard: step 1 ---------- */
 .zsSetup { width: min(1040px, 100%); display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); overflow: hidden; animation: caPopIn .35s cubic-bezier(.2, .9, .3, 1.1); }
@@ -35,7 +35,7 @@
 .zsStepNum.light { background: rgba(255, 255, 255, .2); color: #fff; }
 .zsSetupForm { padding: 40px 40px 32px; display: grid; gap: 24px; align-content: start; }
 .zsSetupForm .caField { gap: 8px; }
-.zsBig { height: 54px !important; font-size: 18px !important; font-weight: 600; border-radius: 16px !important; padding: 0 18px !important; }
+.zsBig { height: 54px !important; font-size: 18px !important; font-weight: 600; border-radius: 12px !important; padding: 0 16px !important; }
 .zsBig.bad { border-color: var(--ca-bad) !important; box-shadow: 0 0 0 3px var(--ca-bad-bg) !important; }
 .zsErr { color: var(--ca-bad); font-size: 12.5px; font-weight: 600; }
 .zsUrl { display: block !important; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px !important; }
@@ -46,8 +46,8 @@
 .zsChip { height: 36px; padding: 0 15px !important; border-radius: 999px; border: 1px solid var(--ca-line-2) !important; background: var(--ca-input) !important; color: var(--ca-text-2); font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s, color .15s, border-color .15s, transform .12s; }
 .zsChip:hover { border-color: var(--ca-faint) !important; color: var(--ca-text) !important; }
 .zsChip:active { transform: scale(.96); }
-.zsChip.on, .zsChip.on:hover { background: var(--ca-ink) !important; border-color: var(--ca-ink) !important; color: var(--ca-on-ink) !important; }
-.zsSetupForm select.caInput { height: 46px; border-radius: 14px; }
+.zsChip.on, .zsChip.on:hover { background: var(--ca-accent) !important; border-color: var(--ca-accent) !important; color: var(--ca-on-accent) !important; }
+.zsSetupForm select.caInput { height: 44px; border-radius: 12px; }
 .zsActions { display: flex; align-items: center; gap: 12px; padding-top: 18px; border-top: 1px solid var(--ca-line); }
 .zsPlanNote { margin-right: auto; color: var(--ca-dim); font-size: 12.5px; font-weight: 500; }
 .zsActions .zsGhost + .zsPlanNote { margin-left: 4px; }
@@ -64,21 +64,21 @@
 .zsDots li { width: 26px; height: 6px; border-radius: 3px; background: var(--ca-line-2); }
 .zsDots li.done { background: var(--ca-accent-2); }
 .zsDots li.on { width: 40px; background: var(--ca-accent); }
-.zsGalleryWrap.stRoot { position: relative; inset: auto; z-index: auto; flex: 1; min-height: 0; margin: 0 16px 16px; border-radius: 26px; overflow: hidden; box-shadow: var(--ca-shadow-lg); }
+.zsGalleryWrap.stRoot { position: relative; inset: auto; z-index: auto; flex: 1; min-height: 0; margin: 0 16px 16px; border-radius: 16px; overflow: hidden; box-shadow: var(--ca-shadow-lg); }
 .zsGalleryWrap .stTplInfo h2, .zsGalleryWrap .stGalleryHead h1 { color: #f2f2f5; }
 
 /* ---------- limit / plan ---------- */
 .zsLimitCard { width: min(720px, 100%); padding: 36px; display: grid; gap: 18px; justify-items: start; animation: caPopIn .3s cubic-bezier(.2, .9, .3, 1.1); }
 .zsLimitCard h1 { font-size: 28px; font-weight: 750; letter-spacing: -.03em; }
 .zsBadgeIcon { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--ca-accent-soft); color: var(--ca-accent); }
-.zsLimit { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px; background: var(--ca-warn-bg); color: var(--ca-warn); font-weight: 550; line-height: 1.45; width: 100%; }
+.zsLimit { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px; background: var(--ca-warn-bg); color: var(--ca-warn); font-weight: 550; line-height: 1.45; width: 100%; }
 .zsLimit > svg { flex: none; }
 .zsLimit > span { flex: 1; }
 .zsLimit b { font-weight: 750; }
 .zsLimit.compact { padding: 10px 12px; border-radius: 14px; font-size: 12.5px; }
 .zsUpgrade { flex: none; }
 .zsPlans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 100%; }
-.zsPlan { position: relative; display: grid !important; gap: 8px !important; align-content: start; text-align: left; padding: 18px !important; border-radius: 20px; border: 1.5px solid var(--ca-line-2) !important; background: var(--ca-surface-2) !important; color: var(--ca-text); cursor: pointer; transition: border-color .15s, background .15s, transform .15s, box-shadow .15s; }
+.zsPlan { position: relative; display: grid !important; gap: 8px !important; align-content: start; text-align: left; padding: 18px !important; border-radius: 14px; border: 1.5px solid var(--ca-line-2) !important; background: var(--ca-surface-2) !important; color: var(--ca-text); cursor: pointer; transition: border-color .15s, background .15s, transform .15s, box-shadow .15s; }
 .zsPlan:hover { border-color: var(--ca-faint) !important; transform: translateY(-1px); }
 .zsPlan.on, .zsPlan.on:hover { border-color: var(--ca-accent) !important; background: var(--ca-accent-soft) !important; box-shadow: 0 0 0 3px var(--ca-accent-soft); }
 .zsPlanTop { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -87,7 +87,7 @@
 .zsPlanBig small { font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--ca-dim); }
 .zsPlanBlurb { color: var(--ca-dim); font-size: 12.5px; line-height: 1.45; }
 .zsPlanWarn { font-size: 11.5px; color: var(--ca-warn); font-weight: 600; }
-.zsPill { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; background: var(--ca-ink); color: var(--ca-on-ink); font-size: 11px; font-weight: 700; letter-spacing: .01em; }
+.zsPill { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; background: var(--ca-accent); color: var(--ca-on-accent); font-size: 11px; font-weight: 700; letter-spacing: .01em; }
 .zsNote { display: flex; align-items: center; gap: 7px; color: var(--ca-dim); font-size: 12.5px; }
 
 /* ---------- store switcher (admin header) ---------- */
@@ -96,11 +96,11 @@
 .zsSwitchBtn:hover, .zsSwitchBtn[aria-expanded="true"] { background: var(--ca-hover) !important; }
 .zsSwitchBtn svg { flex: none; color: var(--ca-dim); }
 .caBrand .zsSwitchBtn strong { min-width: 0; }
-.zsMenu { position: absolute; top: calc(100% + 10px); left: -8px; z-index: 60; width: 340px; padding: 8px; border-radius: 22px; background: var(--ca-solid); border: 1px solid var(--ca-line); box-shadow: var(--ca-shadow-lg); animation: caPopIn .16s cubic-bezier(.2, .9, .3, 1.1); }
+.zsMenu { position: absolute; top: calc(100% + 10px); left: -8px; z-index: 60; width: 320px; padding: 6px; border-radius: 14px; background: var(--ca-solid); border: 1px solid var(--ca-line); box-shadow: var(--ca-shadow-lg); animation: caPopIn .16s cubic-bezier(.2, .9, .3, 1.1); }
 .zsMenuHead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 8px 10px 6px; font-size: 11.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ca-dim); }
 .zsMenuHead span { text-transform: none; letter-spacing: 0; font-weight: 500; }
 .zsMenuList { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 320px; overflow-y: auto; }
-.zsMenuItem { width: 100%; display: flex !important; align-items: center; gap: 11px !important; padding: 8px 10px !important; border: 0; border-radius: 14px; background: transparent; color: var(--ca-text); text-align: left; cursor: pointer; }
+.zsMenuItem { width: 100%; display: flex !important; align-items: center; gap: 11px !important; padding: 8px 10px !important; border: 0; border-radius: 9px; background: transparent; color: var(--ca-text); text-align: left; cursor: pointer; }
 .zsMenuItem:hover:not(:disabled) { background: var(--ca-hover) !important; }
 .zsMenuItem.on { background: var(--ca-surface-2); }
 .zsMenuItem:disabled { opacity: .45; cursor: not-allowed; }
@@ -108,11 +108,11 @@
 .zsMenuText { flex: 1; min-width: 0; display: grid; gap: 1px; }
 .caBrand .zsMenu strong, .zsMenuText strong { font-size: 13.5px !important; font-weight: 650 !important; letter-spacing: -.005em !important; line-height: 1.3 !important; }
 .zsMenuText small { font-size: 11.5px; color: var(--ca-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.zsMenuIcon { flex: none; width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: var(--ca-btn); color: var(--ca-text-2); }
+.zsMenuIcon { flex: none; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: var(--ca-btn); color: var(--ca-text-2); }
 .zsMenuFoot { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--ca-line); display: grid; gap: 2px; }
 .zsMenuLimit { margin: 0 10px 6px 55px !important; font-size: 11.5px; line-height: 1.45; color: var(--ca-warn); }
 .zsLinkBtn { padding: 0 !important; border: 0; background: none !important; color: var(--ca-accent) !important; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
-.zsDot { flex: none; width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; font-weight: 800; font-size: 14px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06); }
+.zsDot { flex: none; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font-weight: 800; font-size: 14px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06); }
 
 /* ---------- all stores ---------- */
 .zsAllMain { width: min(1240px, 100%); margin: 0 auto; padding: 12px 24px 64px; display: grid; gap: 22px; }
@@ -122,7 +122,7 @@
 .zsAllHead p { color: var(--ca-dim); margin-top: 6px !important; font-size: 14px; }
 .zsAllHead .caBtn { height: 46px; padding: 0 22px; font-size: 13.5px; }
 .zsStoreGrid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 18px; }
-.zsStoreCard { display: flex; flex-direction: column; border-radius: 26px; background: var(--ca-surface); border: 1px solid var(--ca-card-line); box-shadow: var(--ca-shadow); overflow: hidden; backdrop-filter: var(--ca-blur); -webkit-backdrop-filter: var(--ca-blur); animation: caBentoIn .35s ease-out backwards; transition: transform .18s, box-shadow .18s; }
+.zsStoreCard { display: flex; flex-direction: column; border-radius: 18px; background: var(--ca-surface); border: 1px solid var(--ca-card-line); box-shadow: var(--ca-shadow); overflow: hidden; backdrop-filter: var(--ca-blur); -webkit-backdrop-filter: var(--ca-blur); animation: caBentoIn .35s ease-out backwards; transition: transform .18s, box-shadow .18s; }
 .zsStoreCard:hover { transform: translateY(-2px); box-shadow: var(--ca-shadow), 0 24px 40px -28px rgba(0, 0, 0, .45); }
 .zsStoreCard.on { box-shadow: 0 0 0 2px var(--ca-accent), var(--ca-shadow); }
 .zsStoreThumb { display: block !important; padding: 10px 10px 0 !important; border: 0; background: transparent; cursor: pointer; }
@@ -133,7 +133,7 @@
 .zsStoreSub { color: var(--ca-dim); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .zsMono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; }
 .zsStats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 2px 0 0; }
-.zsStats > div { padding: 10px 12px; border-radius: 14px; background: var(--ca-surface-2); }
+.zsStats > div { padding: 10px 12px; border-radius: 10px; background: var(--ca-surface-2); }
 .zsStats dt { font-size: 11px; color: var(--ca-dim); font-weight: 600; }
 .zsStats dd { margin: 2px 0 0; font-size: 18px; font-weight: 700; letter-spacing: -.02em; }
 .zsStoreActions { display: flex; gap: 8px; margin-top: 4px; }
@@ -145,13 +145,13 @@
 .zsAdd button:hover { background: var(--ca-hover) !important; }
 .zsAdd strong { font-size: 16px; font-weight: 700; }
 .zsAdd small { color: var(--ca-dim); font-size: 12.5px; }
-.zsAddIcon { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; background: var(--ca-ink); color: var(--ca-on-ink); margin-bottom: 4px; }
+.zsAddIcon { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; background: var(--ca-accent); color: var(--ca-on-accent); margin-bottom: 4px; }
 .zsPlanCard { padding: 26px; display: grid; gap: 16px; scroll-margin-top: 90px; }
 .zsPlanHead h2 { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
 .zsPlanHead p { color: var(--ca-dim); margin-top: 4px !important; }
 
 /* storefront mock in the template's colours */
-.zsMock { --m-bg: #f4f1ea; --m-fg: #1c1c1a; --m-ac: #5b7d64; height: 168px; border-radius: 18px; padding: 12px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; background: var(--m-bg); color: var(--m-fg); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06); overflow: hidden; text-align: left; }
+.zsMock { --m-bg: #f4f1ea; --m-fg: #1c1c1a; --m-ac: #5b7d64; height: 168px; border-radius: 12px; padding: 12px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; background: var(--m-bg); color: var(--m-fg); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06); overflow: hidden; text-align: left; }
 .zsMockBar { display: flex; align-items: center; gap: 6px; }
 .zsMockBar b { flex: 1; font-size: 11px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .zsMockBar i { width: 18px; height: 4px; border-radius: 2px; background: currentColor; opacity: .35; }

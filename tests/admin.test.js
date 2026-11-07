@@ -342,3 +342,172 @@ test('preview tracker forwards discount codes and the chosen shipping address to
   const o = parseTrackerMessage({ zcEvent: { type: 'order_placed', sessionId: 's', lines: [{ pid: 'tee', vid: f.S.id, qty: 1 }], codes: [' ten ', 7, ''], country: 'us', region: 'CA', rateId: 'std', customer: { name: 'Ana' } } }, f.store);
   assert.deepEqual(o.order.codes, ['TEN']); assert.equal(o.order.country, 'US'); assert.equal(o.order.region, 'CA'); assert.equal(o.order.rateId, 'std');
 });
+
+// ---------- setup guide (automatic) ----------
+import { setupProgress, realPhone, realEmail, checkoutConfigured, sellableProducts } from '../src/store/admin/setup.js';
+
+test('setup guide: a fresh template store has nothing done; placeholders do not count', () => {
+  const s = normalizeStore(createStore('everyday')), c = createCommerce(s);
+  const p = setupProgress(s, c);
+  assert.deepEqual(p.steps, { product: false, theme: false, shipping: false, payments: false, domain: false, launch: false });
+  assert.equal(p.done, 0); assert.equal(p.total, 6); assert.equal(p.complete, false); assert.equal(p.next, 'product');
+  assert.ok(sellableProducts(s).length > 0, 'samples are sellable but are not the merchant’s own work');
+  assert.equal(realPhone('+1 555 0100'), false); assert.equal(realPhone('15550100'), false); assert.equal(realPhone('+1 415 555 1234'), false);
+  assert.equal(realPhone('+44 20 7946 0000'), true); assert.equal(realPhone('123'), false);
+  assert.equal(realEmail('hello@everydaygoods.example'), false); assert.equal(realEmail('me@example.com'), false); assert.equal(realEmail('orders@shop.co'), true);
+});
+
+test('setup guide: each step completes from real data', () => {
+  const s = normalizeStore(createStore('everyday')), c0 = createCommerce(s);
+  // product: a saved product (flag written by the editor) or an uploaded image
+  const own = structuredClone(s); own.products[0].images = ['asset:abc'];
+  assert.equal(setupProgress(own, c0).steps.product, true);
+  const flagged = normalizeCommerce({ ...c0, onboarding: { steps: { product: true } } });
+  assert.equal(setupProgress(s, flagged).steps.product, true);
+  const noImg = structuredClone(s); noImg.products.forEach(p => { p.images = []; });
+  assert.equal(setupProgress(noImg, flagged).steps.product, false, 'needs a product with an image');
+  const drafts = structuredClone(own); drafts.products.forEach(p => { p.status = 'draft'; });
+  assert.equal(setupProgress(drafts, c0).steps.product, false, 'drafts do not count');
+  const free = structuredClone(own); free.products.forEach(p => { p.price = 0; p.variants.forEach(v => { v.price = null; }); });
+  assert.equal(setupProgress(free, c0).steps.product, false, 'needs a price');
+  // shipping: edited zones, or saved defaults; no rates → not done
+  const c1 = structuredClone(c0); c1.settings.shipping.zones[0].rates[0].price = 7;
+  assert.equal(setupProgress(s, c1).steps.shipping, true);
+  const c2 = normalizeCommerce({ ...c0, onboarding: { steps: { shipping: true } } });
+  assert.equal(setupProgress(s, c2).steps.shipping, true);
+  const c3 = structuredClone(c2); c3.settings.shipping.zones.forEach(z => { z.rates = []; });
+  assert.equal(setupProgress(s, c3).steps.shipping, false);
+  // payments: real WhatsApp number / email / payment link
+  const w = structuredClone(s); w.checkout.phone = '+351 912 345 678';
+  assert.equal(checkoutConfigured(w), true);
+  const e = structuredClone(s); e.checkout.mode = 'email'; e.checkout.email = 'orders@ironclad.shop';
+  assert.equal(setupProgress(e, c0).steps.payments, true);
+  const l = structuredClone(s); l.checkout.mode = 'paymentLinks';
+  assert.equal(checkoutConfigured(l), false);
+  l.checkout.paymentLinks[l.products[0].id] = 'https://buy.stripe.com/abc';
+  assert.equal(checkoutConfigured(l), true);
+  const n = structuredClone(w); n.checkout.mode = 'none';
+  assert.equal(checkoutConfigured(n), false, 'catalog only is not a checkout');
+  const oldManual = normalizeCommerce({ ...c0, onboarding: { steps: { payments: true, domain: true } } });
+  assert.equal(setupProgress(s, oldManual).steps.payments, false, 'old hand-ticked flags are ignored');
+  assert.equal(setupProgress(s, oldManual).steps.domain, false);
+  // domain, theme, launch
+  const d = structuredClone(c0); d.settings.domains.primary = 'ironclad.shop';
+  assert.equal(setupProgress(s, d).steps.domain, true);
+  const all = normalizeCommerce({ ...d, onboarding: { steps: { product: true, theme: true, shipping: true, launch: true } } });
+  const p = setupProgress(w, all);
+  assert.equal(p.done, 6); assert.equal(p.complete, true); assert.equal(p.next, null);
+});
+
+// ---------- visitor locations (geo.js, analytics visitorsByLocation, globe land mask) ----------
+import { visitorsByLocation, unlocatedSessions, storeLocation } from '../src/store/admin/analytics.js';
+import { geoFromBrowser, normalizeGeo, countryGeo, flagEmoji, countryFromAddress, TZ_GEO, COUNTRY_GEO } from '../src/store/admin/geo.js';
+import { isLand, landDots, landMask } from '../src/store/admin/globe.js';
+
+test('geo: time zone and language map to an approximate, validated location', () => {
+  assert.deepEqual(geoFromBrowser('Europe/Lisbon', 'pt-PT'), { country: 'PT', city: 'Lisbon', lat: 38.7, lon: -9.1 });
+  assert.equal(geoFromBrowser('America/Los_Angeles', 'en-GB').country, 'US', 'the time zone wins over the language');
+  assert.equal(geoFromBrowser('Etc/UTC', 'de-AT').country, 'AT', 'language region as fallback');
+  assert.equal(geoFromBrowser('', 'ja').country, 'JP', 'bare language → main country');
+  assert.equal(geoFromBrowser('Mars/Olympus', 'xx'), null);
+  assert.equal(geoFromBrowser({ toString: () => 'Europe/Lisbon' }, 42), null, 'non-strings are ignored');
+  assert.ok(Object.keys(TZ_GEO).length >= 150);
+  for (const [tz, [c, , lat, lon]] of Object.entries(TZ_GEO)) { assert.ok(COUNTRY_GEO[c], tz + ' → known country'); assert.ok(Math.abs(lat) <= 90 && Math.abs(lon) <= 180, tz); }
+  assert.equal(normalizeGeo({ country: 'ZZ', lat: 1, lon: 1 }), null, 'unknown country rejected');
+  assert.deepEqual(normalizeGeo({ country: 'fr', lat: 999, lon: -999, city: '<b>Paris</b>\u0000' }), { country: 'FR', lat: 90, lon: -180, city: 'bParis/b' });
+  assert.deepEqual(normalizeGeo({ country: 'DE', lat: 'x' }), { country: 'DE', lat: 51.2, lon: 10.5 }, 'bad coordinates → country centre');
+  assert.equal(normalizeGeo('PT'), null);
+  assert.equal(flagEmoji('pt'), '\u{1F1F5}\u{1F1F9}'); assert.equal(flagEmoji('P'), '');
+  assert.equal(countryFromAddress('Rua Augusta 1\n1100-048 Lisbon\nPortugal'), 'PT');
+  assert.equal(countryFromAddress('1 Main St, Austin, TX, USA'), 'US');
+  assert.equal(countryFromAddress('somewhere'), '');
+  assert.equal(countryGeo('br').country, 'BR');
+});
+
+test('tracker visit carries the browser time zone; parseTrackerMessage stores a validated geo', () => {
+  const html = trackedPreviewHtml('<html><body><iframe id="f"></iframe></body></html>', 'store_1');
+  assert.match(html, /resolvedOptions\(\)\.timeZone/); assert.match(html, /navigator\.language/);
+  const f = fixture();
+  const v = parseTrackerMessage({ zcEvent: { type: 'visit', sessionId: 's', tz: 'Asia/Tokyo', lang: 'ja-JP', geo: { country: 'US', lat: 0, lon: 0 } } }, f.store);
+  assert.deepEqual(v.events[0].geo, { country: 'JP', city: 'Tokyo', lat: 35.7, lon: 139.7 }, 'derived from tz, a posted geo is ignored');
+  assert.equal('geo' in parseTrackerMessage({ zcEvent: { type: 'visit', sessionId: 's', tz: 123 } }, f.store).events[0], false);
+  const c = addEvents(f.commerce, v.events);
+  assert.equal(c.analytics.events.at(-1).geo.country, 'JP', 'geo survives normalizeEvent');
+  assert.equal(normalizeCommerce(c).analytics.events.at(-1).geo.city, 'Tokyo', 'and normalizeCommerce');
+  assert.equal(addEvents(f.commerce, [{ type: 'visit', sessionId: 'x', geo: { country: 'QQ' } }]).analytics.events.at(-1).geo, undefined);
+});
+
+test('visitorsByLocation: sessions by session geo, orders by shipping country, sales net of refunds, range', () => {
+  const f = fixture();
+  let { store, commerce } = f;
+  const at = d => Date.parse(d);
+  const g = tz => geoFromBrowser(tz, '');
+  commerce = addEvents(commerce, [
+    { type: 'visit', sessionId: 'a', at: '2026-06-10T09:00:00Z', geo: g('Europe/Lisbon') }, { type: 'page_view', sessionId: 'a', at: '2026-06-10T09:01:00Z' },
+    { type: 'visit', sessionId: 'b', at: '2026-06-11T09:00:00Z', geo: g('Europe/Lisbon') },
+    { type: 'visit', sessionId: 'c', at: '2026-06-12T09:00:00Z', geo: g('America/New_York') },
+    { type: 'visit', sessionId: 'd', at: '2026-06-12T10:00:00Z' }, // no location
+    { type: 'visit', sessionId: 'e', at: '2026-05-01T10:00:00Z', geo: g('Asia/Tokyo') }, // out of range
+  ]);
+  let r = createOrder(store, commerce, { lines: [lineFor(store, 'tee', f.S.id, 1)], sessionId: 'c', source: 'preview' }, at('2026-06-12T09:30:00Z')); ({ store, commerce } = r);
+  r = createOrder(store, commerce, { lines: [lineFor(store, 'mug', f.mug.variants[0].id, 2)], paid: true, shippingAddress: { name: 'B', country: 'DE' } }, at('2026-06-13T09:30:00Z')); ({ store, commerce } = r);
+  r = refundOrder(store, commerce, r.order.id, { amount: 5 }, at('2026-06-13T10:00:00Z')); ({ store, commerce } = r);
+  r = createOrder(store, commerce, { lines: [lineFor(store, 'mug', f.mug.variants[0].id, 1)] }, at('2026-06-13T11:00:00Z')); ({ store, commerce } = r); // no location at all
+  const range = { from: '2026-06-09', to: '2026-06-15' };
+  const locs = visitorsByLocation(commerce, range);
+  assert.deepEqual(locs.map(l => [l.country, l.sessions, l.orders]), [['PT', 2, 0], ['US', 1, 1], ['DE', 0, 1]]);
+  assert.equal(locs[0].name, 'Portugal'); assert.equal(locs[0].city, 'Lisbon'); assert.equal(locs[0].lat, 38.7);
+  const us = locs[1]; assert.equal(us.city, 'New York', 'order placed in a located session uses its city point');
+  assert.equal(us.sales, commerce.orders.find(o => o.source === 'preview').totals.total);
+  const de = locs[2]; assert.equal(de.lat, COUNTRY_GEO.DE[1], 'shipping country → country centre');
+  assert.equal(de.sales, Math.round((commerce.orders.find(o => o.shippingAddress.country === 'DE').totals.total - 5) * 100) / 100);
+  assert.equal(unlocatedSessions(commerce, range), 1);
+  assert.deepEqual(visitorsByLocation(commerce, { from: '2026-04-01', to: '2026-05-30' }).map(l => l.country), ['JP']);
+  assert.deepEqual(visitorsByLocation({ orders: [], analytics: { events: [] } }, range), []);
+  // the store's own location: settings address country, else the busiest visitor location
+  assert.equal(storeLocation(commerce, store, locs).country, 'PT');
+  assert.equal(storeLocation(commerce, store, locs).fromVisitors, true);
+  const c2 = structuredClone(commerce); c2.settings.general.address = '1 Main St\nAustin, TX\nUnited States';
+  assert.deepEqual(storeLocation(c2, store, locs), { country: 'US', name: 'United States', lat: 39.8, lon: -98.6 });
+  assert.equal(storeLocation(f.commerce, store, []), null);
+});
+
+test('globe land mask: continents and oceans where they belong', () => {
+  assert.equal(landMask().length, 720 * 360);
+  for (const [lat, lon] of [[48.9, 2.35], [40, -100], [-15, -55], [0, 25], [60, 100], [-25, 135], [-80, 0], [72, -40]]) assert.equal(isLand(lat, lon), true, `${lat},${lon} is land`);
+  for (const [lat, lon] of [[30, -40], [0, -140], [-30, 80], [35, 160], [-60, -60]]) assert.equal(isLand(lat, lon), false, `${lat},${lon} is sea`);
+  const share = landMask().reduce((s, v) => s + v, 0) / landMask().length;
+  assert.ok(share > 0.25 && share < 0.35, 'about 30% land in equirectangular cells');
+  const dots = landDots(1.25); assert.equal(dots.length % 3, 0); assert.ok(dots.length / 3 > 4000 && dots.length / 3 < 20000);
+});
+
+// ---------- dashboard numbers ----------
+import { dashRange, previousRange, weekdayActivity, customerSegments, repeatRate, grossProfit, dashboardCsv, change } from '../src/store/admin/dashboard.js';
+
+test('dashboard: ranges, weekday activity, customer segments, repeat rate, profit and CSV', () => {
+  assert.deepEqual(dashRange('7d', NOW), { from: '2026-06-09', to: '2026-06-15' });
+  assert.deepEqual(dashRange('ytd', NOW), { from: '2026-01-01', to: '2026-06-15' });
+  assert.deepEqual(previousRange({ from: '2026-06-09', to: '2026-06-15' }), { from: '2026-06-02', to: '2026-06-08' });
+  assert.equal(change(15, 10), 0.5); assert.equal(change(3, 0), null);
+  const days = [{ date: '2026-06-14', orders: 2, sessions: 5 }, { date: '2026-06-15', orders: 5, sessions: 9 }, { date: '2026-06-21', orders: 1, sessions: 1 }];
+  const w = weekdayActivity(days); // 06-14 is a Sunday, 06-15 a Monday
+  assert.equal(w.metric, 'orders'); assert.deepEqual(w.values, [3, 5, 0, 0, 0, 0, 0]); assert.equal(w.max, 1);
+  assert.equal(weekdayActivity([{ date: '2026-06-16', orders: 0, sessions: 4 }]).metric, 'sessions');
+  assert.equal(weekdayActivity([]).max, -1);
+  const o = (id, at, customerId, extra = {}) => ({ id, number: +id.slice(1), createdAt: at, customerId, email: '', lines: [{ productId: 'p1', variantId: 'v1', title: 'Mug', price: 20, quantity: 2 }], totals: { subtotal: 40, total: 40 }, financialStatus: 'paid', ...extra });
+  const c = normalizeCommerce({ orders: [
+    o('o1', '2026-05-01T10:00:00Z', 'a'), o('o2', '2026-06-10T10:00:00Z', 'a'),                       // returning
+    o('o3', '2026-06-11T10:00:00Z', 'b'),                                                                // new
+    o('o4', '2026-04-01T10:00:00Z', 'v'), o('o5', '2026-05-01T10:00:00Z', 'v'), o('o6', '2026-06-12T10:00:00Z', 'v'), // VIP
+    o('o7', '2026-06-13T10:00:00Z', null),                                                               // guest → new
+    o('o8', '2026-06-13T10:00:00Z', 'x', { status: 'cancelled' }), o('o9', '2026-06-14T10:00:00Z', 'y', { draft: true }),
+  ], productMeta: { p1: { cost: 5, variants: { v1: { cost: 8 } } } } });
+  assert.deepEqual(customerSegments(c, { from: '2026-06-09', to: '2026-06-15' }), { new: 2, returning: 1, vip: 1, total: 4 });
+  assert.deepEqual(repeatRate(c), { rate: 2 / 3, repeat: 2, customers: 3 });
+  assert.deepEqual(grossProfit(c, { from: '2026-06-09', to: '2026-06-15' }), { profit: 4 * (20 - 8) * 2, costed: true }, 'variant cost wins over product cost');
+  assert.equal(grossProfit(normalizeCommerce({ orders: c.orders }), { from: '2026-06-09', to: '2026-06-15' }).costed, false);
+  const csv = dashboardCsv({ range: { from: '2026-06-09', to: '2026-06-15' }, prev: { from: '2026-06-02', to: '2026-06-08' }, metrics: [['Total sales', 150, 100], ['Orders, net', 3, 0]], days: [{ date: '2026-06-09', sales: 10, orders: 1, sessions: 2, addToCart: 1, checkouts: 1 }] });
+  assert.match(csv, /^Period,2026-06-09 to 2026-06-15,Previous 2026-06-02 to 2026-06-08,/);
+  assert.match(csv, /\nTotal sales,150,100,50\.0\n/); assert.match(csv, /\n"Orders, net",3,0,\n/);
+  assert.match(csv, /\n2026-06-09,10,1,2,1,1\n$/);
+});

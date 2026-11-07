@@ -1,6 +1,7 @@
 // Store analytics from commerce.analytics.events and commerce.orders (pure), plus the tracker that the admin
 // injects into its "View store" preview tab so visits, add-to-cart, checkouts and preview orders are recorded.
 import { normalizeEvent, MAX_EVENTS } from './model.js';
+import { geoFromBrowser, countryGeo, countryLabel, countryFromAddress, isCountry } from './geo.js';
 
 const DAY = 86400000;
 const C = n => Math.round((+n || 0) * 100), M = c => Math.round(c) / 100;
@@ -83,7 +84,7 @@ export function addEvents(commerce, events) {
 /**
  * Wrap the HTML of previewShellHtml() (src/store/exporter.js) with a tracker. The tracker posts
  * { zcEvent: { type, sessionId, path, productSlug?, lines?, customer? } } to window.opener:
- *   visit (first page), page_view, view_product (products/<slug>.html), add_to_cart (cart quantity grew, read from the
+ *   visit (first page; carries the browser's time zone `tz` and `lang`, mapped to an approximate geo in parseTrackerMessage), page_view, view_product (products/<slug>.html), add_to_cart (cart quantity grew, read from the
  *   storefront's localStorage cart 'zstore-cart:<storeId>'), checkout_started (checkout.html), order_placed (checkout form
  *   submitted or a payment link clicked; carries the cart lines [{ pid, vid, qty }] and the form's name/email/phone/address/notes).
  */
@@ -98,7 +99,7 @@ function js(k,d){try{var v=JSON.parse(localStorage.getItem(k)||'null');return v=
 function order(form){if(ordered)return;var c=cart();if(!c.length)return;ordered=true;var fd={};if(form)['name','email','phone','address','notes'].forEach(function(k){var el=form.elements[k];fd[k]=el?el.value:''});var sh=js('zstore-ship:'+SID,{})||{};post({type:'order_placed',lines:c,customer:fd,codes:js('zstore-codes:'+SID,[]),country:sh.country||'',region:sh.region||'',rateId:sh.rateId||''})}
 lastQty=qty(cart());addEventListener('storage',function(e){if(e.key===KEY)checkCart()});setInterval(checkCart,1000);
 var f=document.getElementById('f');f.addEventListener('load',function(){var w=f.contentWindow,d=w&&w.document;if(!d)return;var p=d.documentElement.getAttribute('data-path')||location.hash.slice(1)||'index.html';
-if(first){post({type:'visit',path:p});first=false}post({type:'page_view',path:p});var m=/^products\\/(.+)\\.html$/.exec(p);if(m)post({type:'view_product',path:p,productSlug:m[1]});if(p==='checkout.html'){ordered=false;post({type:'checkout_started',path:p})}
+if(first){var tz='',lg='';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){}try{lg=navigator.language||''}catch(e){}post({type:'visit',path:p,tz:tz,lang:lg});first=false}post({type:'page_view',path:p});var m=/^products\\/(.+)\\.html$/.exec(p);if(m)post({type:'view_product',path:p,productSlug:m[1]});if(p==='checkout.html'){ordered=false;post({type:'checkout_started',path:p})}
 d.addEventListener('submit',function(e){var t=e.target;if(t&&t.matches&&t.matches('[data-checkout-form]'))order(t)},true);
 d.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('[data-pay-links] a');if(a)order(null)},true);
 setTimeout(checkCart,50)});
@@ -111,7 +112,8 @@ export function parseTrackerMessage(data, store, now = Date.now()) {
   const e = data && data.zcEvent;
   if (!e || typeof e !== 'object' || typeof e.type !== 'string' || typeof e.sessionId !== 'string') return null;
   const at = new Date(now).toISOString(), base = { at, sessionId: e.sessionId.slice(0, 40), path: String(e.path || '').slice(0, 200), source: 'preview' };
-  if (e.type === 'visit' || e.type === 'page_view' || e.type === 'checkout_started') return { events: [{ ...base, type: e.type }] };
+  if (e.type === 'visit') { const geo = geoFromBrowser(e.tz, e.lang); return { events: [{ ...base, type: 'visit', ...(geo ? { geo } : {}) }] }; }
+  if (e.type === 'page_view' || e.type === 'checkout_started') return { events: [{ ...base, type: e.type }] };
   if (e.type === 'view_product') { const p = store.products.find(x => x.slug === e.productSlug); return { events: [{ ...base, type: 'view_product', productId: p ? p.id : '' }] }; }
   const lines = (Array.isArray(e.lines) ? e.lines : []).slice(0, 100).filter(l => l && typeof l.pid === 'string' && typeof l.vid === 'string').map(l => ({ productId: l.pid, variantId: l.vid, quantity: Math.max(1, Math.min(999, Math.round(+l.qty || 1))) }));
   if (e.type === 'add_to_cart') return { events: [{ ...base, type: 'add_to_cart', quantity: Math.max(1, Math.round(+e.quantity || 1)) }] };
@@ -122,4 +124,70 @@ export function parseTrackerMessage(data, store, now = Date.now()) {
     return { events: [], order: { sessionId: base.sessionId, lines, codes, country: str(e.country).toUpperCase().slice(0, 2), region: str(e.region), rateId: str(e.rateId), customer: { name: s('name'), email: s('email'), phone: s('phone'), address: s('address'), notes: s('notes') } } };
   }
   return null;
+}
+
+/**
+ * Where visitors and buyers come from over [from, to] (same range rules as aggregateAnalytics).
+ * A session's location is the geo stored on its events (the preview tracker derives it from the visitor's time zone).
+ * An order's location is its shipping country (country centre, or the session's city point when it is in that country),
+ * else its session's location. → [{ country, name, city, lat, lon, sessions, orders, sales }] sorted by sessions, orders, sales.
+ * Sessions and orders without any location are left out (see unlocatedCount).
+ */
+export function visitorsByLocation(commerce, { from, to, tz = 0 } = {}) {
+  const keys = new Set(dayRange(from, to)), events = commerce.analytics?.events || [];
+  const sessionGeo = new Map();
+  for (const e of events) if (e.sessionId && e.geo && isCountry(e.geo.country) && !sessionGeo.has(e.sessionId)) sessionGeo.set(e.sessionId, e.geo);
+  const orderSession = new Map();
+  for (const e of events) if (e.type === 'order_placed' && e.orderId && e.sessionId) orderSession.set(e.orderId, e.sessionId);
+  const by = new Map();
+  const row = (country, g) => {
+    let r = by.get(country);
+    if (!r) { const c = countryGeo(country); r = { country, name: countryLabel(country), city: '', lat: c.lat, lon: c.lon, sessions: 0, orders: 0, sales: 0, _pts: new Map() }; by.set(country, r); }
+    if (g && g.country === country && isFinite(g.lat) && isFinite(g.lon)) { const k = g.lat + ',' + g.lon, p = r._pts.get(k) || { n: 0, g }; p.n++; r._pts.set(k, p); }
+    return r;
+  };
+  const seen = new Set();
+  for (const e of events) {
+    if (!e.sessionId || seen.has(e.sessionId) || !keys.has(dayKey(Date.parse(e.at), tz))) continue;
+    const g = sessionGeo.get(e.sessionId); if (!g) continue;
+    seen.add(e.sessionId); row(g.country, g).sessions++;
+  }
+  for (const o of commerce.orders || []) {
+    if (o.draft || o.status === 'cancelled' || !keys.has(dayKey(Date.parse(o.createdAt), tz))) continue;
+    const sg = sessionGeo.get(orderSession.get(o.id) || o.sessionId || '');
+    const ship = String(o.shippingAddress?.country || '').toUpperCase();
+    const country = isCountry(ship) ? ship : sg ? sg.country : '';
+    if (!country) continue;
+    const r = row(country, sg && sg.country === country ? sg : null);
+    r.orders++; r.sales += C(o.totals.total) - (o.refunds || []).reduce((s, x) => s + C(x.amount), 0);
+  }
+  return [...by.values()].map(r => {
+    const best = [...r._pts.values()].sort((a, b) => b.n - a.n)[0];
+    const out = { country: r.country, name: r.name, city: best ? best.g.city || '' : '', lat: best ? best.g.lat : r.lat, lon: best ? best.g.lon : r.lon, sessions: r.sessions, orders: r.orders, sales: M(r.sales) };
+    return out;
+  }).sort((a, b) => b.sessions - a.sessions || b.orders - a.orders || b.sales - a.sales || a.name.localeCompare(b.name));
+}
+
+/** Sessions in [from, to] whose location is unknown (recorded before locations were captured, or no usable time zone). */
+export function unlocatedSessions(commerce, { from, to, tz = 0 } = {}) {
+  const keys = new Set(dayRange(from, to)), events = commerce.analytics?.events || [], located = new Set(), all = new Set();
+  for (const e of events) if (e.sessionId && e.geo && isCountry(e.geo.country)) located.add(e.sessionId);
+  for (const e of events) if (e.sessionId && keys.has(dayKey(Date.parse(e.at), tz))) all.add(e.sessionId);
+  let n = 0; for (const s of all) if (!located.has(s)) n++;
+  return n;
+}
+
+/**
+ * The store's own location for the globe's arcs: the country named in Settings › General address or the default
+ * location's address (store contact address as a further fallback), else the busiest visitor location. → { country, name, lat, lon } | null
+ */
+export function storeLocation(commerce, store, locations = []) {
+  const st = commerce?.settings || {};
+  const def = (st.locations || []).find(l => l.isDefault) || (st.locations || [])[0];
+  for (const a of [st.general?.address, def?.address, store?.contact?.address]) {
+    const c = countryFromAddress(a);
+    if (c) { const g = countryGeo(c); return { country: c, name: countryLabel(c), lat: g.lat, lon: g.lon }; }
+  }
+  const top = locations[0];
+  return top ? { country: top.country, name: top.name, lat: top.lat, lon: top.lon, fromVisitors: true } : null;
 }

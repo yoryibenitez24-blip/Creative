@@ -37,7 +37,8 @@
 //                              utm: { url, source, medium, campaign, content, term } }] },
 //   staffNotes: [{ id, at, author, text }],
 //   analytics: { events: [{ id, at, type: 'visit'|'page_view'|'view_product'|'add_to_cart'|'checkout_started'|'order_placed',
-//                           sessionId, path, productId, variantId, quantity, value, orderId, source: 'preview'|'manual'|'import' }] }
+//                           sessionId, path, productId, variantId, quantity, value, orderId, source: 'preview'|'manual'|'import',
+//                           geo?: { country (ISO alpha-2), city?, lat, lon } (approximate, from the visitor's time zone; see geo.js) }] }
 //   onboarding: { dismissed: bool, steps: { product, theme, shipping, payments, domain, launch: bool } }   (Home checklist)
 // }
 //
@@ -58,6 +59,8 @@
 //       lines: [{ productId, variantId, title, sku, price, quantity }], subtotal, note }
 //   settings.backend.eventsWebhookUrl — optional analytics events, POSTed as { type: 'event', storeId, event: AnalyticsEvent }.
 //   The collected order payloads (a JSON array of the objects above) can be imported back in Orders › Import (importOrderPayloads()).
+
+import { normalizeGeo } from './geo.js';
 
 export const COMMERCE_VERSION = 1;
 export const ONBOARDING_STEPS = ['product', 'theme', 'shipping', 'payments', 'domain', 'launch'];
@@ -178,7 +181,8 @@ export const EVENT_TYPES = ['visit', 'page_view', 'view_product', 'add_to_cart',
 export const MAX_EVENTS = 5000;
 export function normalizeEvent(e) {
   return { id: str(e.id) || cid('e'), at: iso(e.at, new Date().toISOString()), type: pick(e.type, EVENT_TYPES, 'page_view'), sessionId: str(e.sessionId), path: str(e.path),
-    productId: str(e.productId), variantId: str(e.variantId), quantity: Math.max(0, Math.round(num(e.quantity, 0, 0))), value: money(e.value), orderId: str(e.orderId), source: pick(e.source, ['preview', 'manual', 'import'], 'preview') };
+    productId: str(e.productId), variantId: str(e.variantId), quantity: Math.max(0, Math.round(num(e.quantity, 0, 0))), value: money(e.value), orderId: str(e.orderId), source: pick(e.source, ['preview', 'manual', 'import'], 'preview'),
+    ...(e.geo && normalizeGeo(e.geo) ? { geo: normalizeGeo(e.geo) } : {}) };
 }
 
 /** Default back-office document for a store (one shipping zone, empty lists, policy and email templates). */

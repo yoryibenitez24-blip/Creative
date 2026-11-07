@@ -3,12 +3,13 @@
 import React, { useMemo, useState } from 'react';
 import { Server, Trash2, Upload } from 'lucide-react';
 import { useAdmin, Page, Card, Btn, Text, Area, AreaChart, BarList, Segmented, Empty, fmtDate, pct, Check } from './ui.jsx';
-import { aggregateAnalytics, presetRange } from './analytics.js';
+import { aggregateAnalytics, presetRange, visitorsByLocation, unlocatedSessions, storeLocation } from './analytics.js';
+import VisitorGlobe from './VisitorGlobe.jsx';
 
 const PRESETS = [['today', 'Today'], ['7d', 'Last 7 days'], ['30d', 'Last 30 days'], ['90d', 'Last 90 days'], ['12m', 'Last 12 months'], ['custom', 'Custom']];
 
 export default function Analytics() {
-  const { commerce, fmt, editCommerce, confirm, go } = useAdmin();
+  const { commerce, store, fmt, editCommerce, confirm, go } = useAdmin();
   const tz = -new Date().getTimezoneOffset();
   const [preset, setPreset] = useState('30d');
   const [custom, setCustom] = useState(() => presetRange('30d', Date.now(), tz));
@@ -25,6 +26,9 @@ export default function Analytics() {
   const pts = key => a.days.map(d => ({ label: fmtDate(d.date + 'T12:00:00'), short: d.date.slice(5), value: key === 'aov' ? (d.orders ? d.sales / d.orders : 0) : d[key] }));
   const hasData = a && (a.totals.orders > 0 || a.totals.sessions > 0);
   const b = commerce.settings.backend;
+  const locs = useMemo(() => valid ? visitorsByLocation(commerce, { ...range, tz }) : [], [commerce, range.from, range.to, valid]); // eslint-disable-line react-hooks/exhaustive-deps
+  const unlocated = useMemo(() => valid ? unlocatedSessions(commerce, { ...range, tz }) : 0, [commerce, range.from, range.to, valid]); // eslint-disable-line react-hooks/exhaustive-deps
+  const home = useMemo(() => storeLocation(commerce, store, locs), [commerce, store, locs]);
 
   return <Page title="Analytics" subtitle={valid ? `${fmtDate(range.from + 'T12:00:00')} – ${fmtDate(range.to + 'T12:00:00')}` : 'Choose a valid date range'}
     actions={<div className="caRange">
@@ -39,6 +43,7 @@ export default function Analytics() {
           ['Sessions', String(a.totals.sessions), prev && String(prev.totals.sessions)], ['Conversion rate', a.totals.sessions ? pct(a.totals.conversion) : '—', prev && (prev.totals.sessions ? pct(prev.totals.conversion) : '—')], ['Units sold', String(a.totals.unitsSold), prev && String(prev.totals.unitsSold)]]
           .map(([l, v, p]) => <div key={l} className="caKpi" role="group" aria-label={l}><span className="caKpiLabel">{l}</span><strong className="caKpiValue">{v}</strong>{p != null && <span className="caKpiChange">Previous period: {p}</span>}</div>)}
       </div>
+      <VisitorGlobe locations={locs} home={home} unlocated={unlocated} fmt={v => fmt(v)} rangeLabel={PRESETS.find(p => p[0] === preset)?.[1]} />
       {!hasData && <Card><Empty art="analytics" title="No data for this period yet" action={<Btn onClick={() => go({ page: 'order-new' })}>Create an order</Btn>}>Shop your store with <strong>View store</strong> (top bar) or create orders, and the numbers show up here.</Empty></Card>}
       <div className="caGrid c2">
         <Card title="Total sales over time"><AreaChart label="Total sales over time" points={pts('sales')} compare={prev ? prev.days.map(d => ({ value: d.sales })) : null} format={(v, axis) => fmt(v, axis)} /></Card>

@@ -134,7 +134,10 @@ export function editorAgent(win, doc) {
     if (editing && editing.el === el) return;
     if (editing) finish(true);
     var s = secOf(el); if (!s) return;
-    editing = { el: el, sid: s.getAttribute('data-sid'), key: el.getAttribute('data-edit'), html: el.innerHTML, text: el.innerText.trim() };
+    // headings with *starred* accent words carry their raw text: edit the stars, not the rendered italics
+    var raw = el.getAttribute('data-raw'), html = el.innerHTML;
+    if (raw != null) el.textContent = raw;
+    editing = { el: el, sid: s.getAttribute('data-sid'), key: el.getAttribute('data-edit'), html: html, text: raw != null ? raw.trim() : el.innerText.trim() };
     try { el.setAttribute('contenteditable', 'plaintext-only'); if (el.contentEditable !== 'plaintext-only') el.setAttribute('contenteditable', 'true'); } catch (err) { el.setAttribute('contenteditable', 'true'); }
     el.focus();
     var range = doc.createRange(); range.selectNodeContents(el); var sel = win.getSelection(); sel.removeAllRanges(); sel.addRange(range);

@@ -75,6 +75,9 @@ export const PHOTOS = {
       ['1511920170033-f8396924c348', 'Espresso portafilters with ground coffee'],
       ['1509042239860-f550ce710b93', 'Two lattes with leaf art'],
       ['1495474472287-4d71bcdd2085', 'Latte art cups'],
+      ['1514432324607-a09d9b4aefdd', 'Black coffee in a white cup from above'],
+      ['1442512595331-e89e73853f31', 'Pour-over coffee being brewed with a kettle'],
+      ['1497935586351-b67a49e012bf', 'Portafilters, ground coffee and a latte on wood'],
     ],
   },
   bakery: {
@@ -125,6 +128,9 @@ export const PHOTOS = {
     product: [
       ['1608248543803-ba4f8c70ae0b', 'White cosmetic tube and box'],
       ['1596462502278-27bfdc403348', 'Makeup brushes and compact'],
+      ['1617897903246-719242758050', 'Serum dropper bottle on a wooden tray with eucalyptus'],
+      ['1608571423902-eed4a5ad8108', 'Amber dropper bottle on a turned wood stand'],
+      ['1596704017254-9b121068fb31', 'Hands holding an eyeshadow palette and brush'],
     ],
   },
   jewelry: {
@@ -142,6 +148,11 @@ export const PHOTOS = {
       ['1485955900006-10f4d324d411', 'Succulent in a mint pot'],
       ['1459411552884-841db9b3cc2a', 'Cactus in a terracotta pot'],
       ['1416879595882-3373a0480b5b', 'Potting soil and garden trowel'],
+      ['1501004318641-b39e6451bec6', 'Rubber fig plant on white'],
+      ['1459156212016-c812468e2115', 'Succulents in terracotta pots from above'],
+      ['1512428813834-c702c7702b78', 'Small bonsai tree in a white pot'],
+      ['1509423350716-97f9360b4e09', 'Aloe in a concrete pot'],
+      ['1545241047-6083a3684587', 'Monstera on a wooden stool beside a white chair'],
     ],
   },
   books: {
@@ -158,7 +169,7 @@ export const PHOTOS = {
   },
   toys: {
     hero: [['1596461404969-9ae70f2830c1', 'Wooden toy train set']],
-    product: [['1596461404969-9ae70f2830c1', 'Wooden train and station'], ['1558060370-d644479cb6f7', 'Shelf of vintage toy robots and cars']],
+    product: [['1596461404969-9ae70f2830c1', 'Wooden train and station'], ['1558060370-d644479cb6f7', 'Shelf of vintage toy robots and cars'], ['1618842676088-c4d48a6a7c9d', 'Colourful stacking rings toy'], ['1558877385-81a1c7e67d72', 'Wooden toy train on a track']],
   },
   art: {
     hero: [['1547891654-e66ed7ebb968', 'Colourful street-art mural face'], ['1579783902614-a3fb3927b6a5', 'Still-life flower painting']],
@@ -179,6 +190,43 @@ export const PHOTOS = {
   business: {
     hero: [['1552664730-d307ca884978', 'Team workshop with sticky notes'], ['1522071820081-009f0129c71c', 'Team working at a shared table']],
     product: [['1600880292203-757bb62b4baf', 'Colleagues high-fiving at a desk'], ['1556761175-b413da4baf72', 'Team meeting in an open office'], ['1460925895917-afdab827c52f', 'Analytics on a laptop']],
+  },
+  shirts: {
+    hero: [['1626497764746-6dc36546b388', 'Colourful shirts on a white clothes rail'], ['1603252109303-2751441dd157', 'White shirts on wooden hangers against a mustard wall']],
+    product: [
+      ['1596755094514-f87e34085b2c', 'Patterned chambray shirt on a hanger'],
+      ['1603252109303-2751441dd157', 'White shirts on wooden hangers'],
+      ['1626497764746-6dc36546b388', 'Dip-dyed shirts on a rail'],
+      ['1608234807905-4466023792f5', 'Woman in a white bow blouse'],
+      ['1588359348347-9bc6cbbb689e', 'Smiling man in a pale blue shirt'],
+      ['1580657018950-c7f7d6a6d990', 'Check tweed jackets on mannequins'],
+    ],
+    people: [
+      ['1588359348347-9bc6cbbb689e', 'Smiling man in a pale blue shirt'],
+      ['1586790170083-2f9ceadc732d', 'Man in a plain white T-shirt'],
+      ['1598554747436-c9293d6a588f', 'Woman in a white tee and wide jeans'],
+      ['1608234807905-4466023792f5', 'Woman in a white bow blouse'],
+    ],
+  },
+  ceramics: {
+    hero: [['1493106641515-6b5631de4bb9', 'Hands shaping a pot on a pottery wheel'], ['1578749556568-bc2c40e68b61', 'Stacked glazed plates and bowls on a shelf']],
+    product: [
+      ['1610701596007-11502861dcfa', 'Speckled ceramic cups'],
+      ['1578749556568-bc2c40e68b61', 'Blue glazed plates and bowls'],
+      ['1565193566173-7a0ee3dbe261', 'Grey ceramic bottle vases with dried pods'],
+      ['1493106641515-6b5631de4bb9', 'Pot being thrown on a wheel'],
+    ],
+  },
+  objects: {
+    hero: [['1540932239986-30128078f3c5', 'Copper pendant lamps'], ['1513506003901-1e6a229e2d15', 'White pendant lamp against a teal wall']],
+    product: [
+      ['1507473885765-e6ed057f782c', 'Grey floor lamp on white'],
+      ['1513506003901-1e6a229e2d15', 'White pendant lamp on teal'],
+      ['1494438639946-1ebd1d20bf85', 'Black floor lamp against sage green'],
+      ['1503602642458-232111445657', 'Wooden stool on blue'],
+      ['1592078615290-033ee584e267', 'Black shell chair on blue'],
+      ['1540932239986-30128078f3c5', 'Cluster of copper pendant lamps'],
+    ],
   },
   general: {
     hero: [['1441986300917-64674bd600d8', 'Shop interior with shelves'], ['1472851294608-062f824d29cc', 'Open shop sign']],

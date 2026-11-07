@@ -10,6 +10,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ChevronsUpDown, Plus, LayoutGrid, Store as StoreIcon, Pencil, Trash2, Sparkles, Lock, Sun, Moon, LogOut } from 'lucide-react';
 import CommerceApp from './CommerceApp.jsx';
+import Intro from './Intro.jsx';
 import Gallery from '../Gallery.jsx';
 import { STORE_TEMPLATES, TEMPLATE_CATEGORIES, createStore } from '../templates.js';
 import { PLANS, planFor, canCreateStore, storeLimit, planForCount } from './plans.js';
@@ -278,6 +279,7 @@ export default function CommerceShell({ stores = [], activeStoreId, plan, route,
   const active = findStore(stores, activeStoreId) || stores[0] || null;
   const introNext = useRef(intro);
   const [focusPlan, setFocusPlan] = useState(false);
+  const [, setIntroShown] = useState(0); // re-render once the wizard's entrance animation is over
   const toStore = useCallback((e, page = { page: 'home' }, opts) => navigate({ view: 'store', handle: e.handle, ...page }, opts), [navigate]);
 
   // /commerce → active store (or the setup wizard); unknown handle with no stores → wizard
@@ -295,14 +297,16 @@ export default function CommerceShell({ stores = [], activeStoreId, plan, route,
   const onNew = useCallback(() => navigate({ view: 'new' }), [navigate]);
   const onAll = useCallback(upgrade => { setFocusPlan(!!upgrade); navigate({ view: 'stores' }); }, [navigate]);
 
-  if (view === 'new') return <SetupWizard stores={stores} plan={plan} onPlan={onPlan} sectionBar={sectionBar} onExit={onExit}
+  // the entrance animation also plays when the first screen is the setup wizard (no store yet)
+  const wizardIntro = introNext.current && <Intro onDone={() => { introNext.current = false; setIntroShown(n => n + 1); }} />;
+  if (view === 'new') return <>{wizardIntro}<SetupWizard stores={stores} plan={plan} onPlan={onPlan} sectionBar={sectionBar} onExit={onExit}
     onCancel={stores.length ? () => (active ? toStore(active) : navigate({ view: 'stores' })) : null}
     onCreate={store => {
       const e = storeEntry(store, { stores });
       introNext.current = true;
       update(ws => ({ ...ws, stores: [...(ws.stores || []), e], activeStoreId: e.id }));
       toStore(e, undefined, { replace: true });
-    }} />;
+    }} /></>;
   if (view === 'stores') return <AllStores stores={stores} activeStoreId={active && active.id} plan={plan} onPlan={onPlan} sectionBar={sectionBar} onExit={onExit} focusPlan={focusPlan}
     onOpen={e => toStore(e)} onNew={onNew} onBack={() => active && toStore(active)}
     onRename={(id, name) => update(ws => renameStore(ws, id, name))}
@@ -313,7 +317,7 @@ export default function CommerceShell({ stores = [], activeStoreId, plan, route,
   const switcher = <StoreSwitcher stores={stores} activeId={entry.id} plan={plan} onOpen={e => toStore(e)} onNew={onNew} onAll={onAll} />;
   const id = entry.id;
   return <CommerceApp key={id} store={entry.store} commerce={entry.commerce} assetStore={assetStore} sectionBar={sectionBar} intro={introNext.current}
-    storeSwitcher={switcher} onExit={onExit} onOpenPhotoStudio={onOpenPhotoStudio}
+    storeSwitcher={switcher} onExit={onExit} onOpenPhotoStudio={onOpenPhotoStudio} plan={plan} onUpgrade={() => onAll(true)}
     route={adminRoute(route)}
     onRoute={r => { const cur = adminRoute(route); toStore(entry, r, { replace: cur.id === 'new' && r.page === cur.page && r.id && r.id !== 'new' }); }}
     onChange={doc => update(ws => updateStoreEntry(ws, id, { store: doc }))}
