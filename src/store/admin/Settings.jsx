@@ -105,11 +105,11 @@ export default function Settings({ tab }) {
       <div className="csSearch" role="search">
         <Search size={15} aria-hidden="true" />
         <input type="search" aria-label="Search settings" placeholder="Search settings" value={q} onChange={e => setQ(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Escape' && q) { e.stopPropagation(); setQ(''); } else if (e.key === 'Enter') { const f = found.items[0]; if (f) open(f.tab, f.id); else if (found.sections[0]) open(found.sections[0]); } }} />
+          onKeyDown={e => { if (e.key === 'Escape' && q) { e.stopPropagation(); setQ(''); } else if (e.key === 'Enter') { const f = found.items[0]; if (f) { setQ(''); open(f.tab, f.id); } else if (found.sections[0]) open(found.sections[0]); } }} />
         {q && <button type="button" className="csIconBtn" aria-label="Clear search" onClick={() => setQ('')}><X size={14} /></button>}
       </div>
       {q && <div className="csResults" aria-label="Matching settings" role="group">
-        {found.items.length ? <ul>{found.items.map(r => <li key={r.tab + r.id}><button type="button" onClick={() => open(r.tab, r.id)}><CornerDownRight size={13} aria-hidden="true" /><span><strong>{r.label}</strong><small>{r.section}</small></span></button></li>)}</ul>
+        {found.items.length ? <ul>{found.items.map(r => <li key={r.tab + r.id}><button type="button" onClick={() => { setQ(''); open(r.tab, r.id); }}><CornerDownRight size={13} aria-hidden="true" /><span><strong>{r.label}</strong><small>{r.section}</small></span></button></li>)}</ul>
           : !found.sections.length && <p className="csNone">No settings match “{q.trim()}”.</p>}
       </div>}
       <nav className="csNav" aria-label="Settings sections">

@@ -15,6 +15,7 @@ import { canonicalCart, idempotencyKey, safeCheckoutId } from '../_shared/idempo
 import { verifyTurnstile } from '../_shared/turnstile.ts';
 import { createLimiter, clientIp } from '../_shared/ratelimit.ts';
 import { toMinor, roundMoney } from '../_shared/money.ts';
+import { bookingSlots, zonedDay, normalizeService } from '../_shared/services.js';
 
 interface Body {
   storeId?: string; checkoutId?: string; lines?: unknown; codes?: unknown; country?: string; region?: string; rateId?: string | null;
@@ -54,11 +55,20 @@ serve(['POST'], async (req, baseCors) => {
   // ---- cart: products, variants, stock and prices from the stored snapshot ----
   const raw = Array.isArray(body.lines) ? body.lines.slice(0, 101) : [];
   const ids = [...new Set(raw.map(l => (l && typeof l === 'object' ? String((l as { productId?: unknown }).productId ?? '') : '')).filter(Boolean))].slice(0, 100);
-  const { data: prods, error: pErr } = ids.length ? await db.from('products').select('id, title, active, price, image, kind, recurring, variants').eq('store_id', store.id).in('id', ids) : { data: [], error: null };
+  const { data: prods, error: pErr } = ids.length ? await db.from('products').select('id, title, active, price, image, kind, recurring, variants, service').eq('store_id', store.id).in('id', ids) : { data: [], error: null };
   if (pErr) throw pErr;
   const catalog: CatalogProduct[] = (prods || []).map(p => ({ ...p, price: Number(p.price) }));
   const cart = validateCart(raw, catalog);
   if (!cart.ok) return errorJson(409, 'cart_invalid', cart.errors[0]?.message || 'Your cart could not be checked out.', cors, { errors: cart.errors });
+  // booked services: the chosen slot must still be free in the store's calendar (same rules as the admin)
+  for (const l of cart.lines.filter(x => x.start)) {
+    const p = catalog.find(x => x.id === l.productId)!, svc = normalizeService(p.service), t = Date.parse(l.start!);
+    const { data: busy } = await db.from('bookings').select('product_id, starts_at, ends_at, status').eq('store_id', store.id)
+      .gte('ends_at', new Date(t - 2 * 86400_000).toISOString()).lte('starts_at', new Date(t + 2 * 86400_000).toISOString());
+    const slots = bookingSlots({ id: p.id, service: svc }, { from: zonedDay(t, svc.booking.timezone), days: 1, now: Date.now(),
+      bookings: (busy || []).map(b => ({ productId: b.product_id, start: b.starts_at, end: b.ends_at, status: b.status })) });
+    if (!slots.some(x => Date.parse(x.start) === t)) return errorJson(409, 'slot_unavailable', `The time you chose for “${l.title}” is no longer available. Please pick another time.`, cors, { productId: l.productId });
+  }
 
   // ---- totals: same engine as the storefront (discounts → shipping → tax) ----
   const cfg = (store.checkout_config || {}) as unknown as EngineConfig;
@@ -99,7 +109,7 @@ serve(['POST'], async (req, baseCors) => {
     key = `${key}_${Date.now().toString(36)}`; // expired: start a fresh session
   } else if (prev) orderId = prev.id;
 
-  const mode = cart.lines.some(l => l.recurring) && pay.billing?.subscriptions !== false ? 'subscription' : 'payment';
+  const mode = cart.lines.some(l => l.recurring || l.stripePriceId) ? 'subscription' : 'payment';
   if (!orderId) {
     orderId = crypto.randomUUID();
     const { error: oErr } = await db.from('orders').insert({
@@ -116,7 +126,8 @@ serve(['POST'], async (req, baseCors) => {
     }
     const { error: lErr } = await db.from('order_lines').insert(cart.lines.map((l, i) => ({
       order_id: orderId, store_id: store.id, position: i, product_id: l.productId, variant_id: l.variantId, title: l.title, variant_title: l.variantTitle, sku: l.sku,
-      unit_price: l.price, quantity: l.quantity, total: roundMoney(l.price * l.quantity), recurring: l.recurring,
+      unit_price: l.price, quantity: l.quantity, total: roundMoney(l.price * l.quantity), recurring: l.recurring, kind: l.kind,
+      details: l.kind === 'service' ? { start: l.start, intake: l.intake, addOns: l.addOns, basePrice: l.basePrice } : {},
     })));
     if (lErr) throw lErr;
   }

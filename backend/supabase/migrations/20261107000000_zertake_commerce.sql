@@ -94,6 +94,8 @@ create table public.products (
   image       text not null default '',
   kind        text not null default 'physical' check (kind in ('physical', 'digital', 'service')),
   recurring   jsonb,                                     -- { interval: 'day'|'week'|'month'|'year', intervalCount }
+  service     jsonb,                                     -- normalizeService() of src/store/serviceProduct.js (booking, intake, add-ons, pricing)
+  digital     jsonb,                                     -- { file: 'storage:<path>' | https URL, fileName, downloadLimit }
   variants    jsonb not null default '[]'::jsonb check (jsonb_typeof(variants) = 'array'),
   updated_at  timestamptz not null default now(),
   primary key (store_id, id)
@@ -192,6 +194,8 @@ create table public.order_lines (
   quantity      int not null check (quantity between 1 and 999),
   total         numeric(12, 2) not null,
   recurring     jsonb,
+  kind          text not null default 'physical' check (kind in ('physical', 'digital', 'service')),
+  details       jsonb not null default '{}'::jsonb,       -- services: { start, intake: [{ question, answer }], addOns: [{ id, name, price }] }
   created_at    timestamptz not null default now()
 );
 create index order_lines_order_idx on public.order_lines (order_id);
@@ -296,7 +300,9 @@ create table public.bookings (
   timezone    text not null default 'UTC',
   status      text not null default 'requested' check (status in ('requested', 'confirmed', 'completed', 'cancelled', 'no_show')),
   attendee    jsonb not null default '{}'::jsonb,         -- { name, email, phone }
-  intake      jsonb not null default '{}'::jsonb,         -- answers to the service's intake questions
+  intake      jsonb not null default '[]'::jsonb,         -- [{ question, answer }] answers to the service's intake questions
+  add_ons     jsonb not null default '[]'::jsonb,         -- [{ id, name, price }]
+  price       numeric(12, 2) not null default 0,
   notes       text not null default '',
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
@@ -304,6 +310,57 @@ create table public.bookings (
 );
 create index bookings_store_time_idx on public.bookings (store_id, starts_at);
 create trigger bookings_touch before update on public.bookings for each row execute function public.touch_updated_at();
+
+-- service projects (services without booking: delivered asynchronously; mirrors commerce.serviceProjects in the admin)
+create table public.service_projects (
+  id           uuid primary key default gen_random_uuid(),
+  store_id     text not null references public.stores (id) on delete cascade,
+  order_id     uuid references public.orders (id) on delete set null,
+  customer_id  uuid references public.customers (id) on delete set null,
+  product_id   text not null default '',
+  title        text not null default '',
+  stage        text not null default 'new' check (stage in ('new', 'in_progress', 'delivered', 'revision', 'completed')),
+  due_date     date,
+  deliverables jsonb not null default '[]'::jsonb,
+  intake       jsonb not null default '[]'::jsonb,
+  add_ons      jsonb not null default '[]'::jsonb,
+  client       jsonb not null default '{}'::jsonb,         -- { name, email, phone }
+  notes        text not null default '',
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+create index service_projects_store_idx on public.service_projects (store_id, stage);
+create trigger service_projects_touch before update on public.service_projects for each row execute function public.touch_updated_at();
+
+-- digital downloads: one grant per paid order line; the `download` function redeems the token for a short-lived
+-- signed Storage URL (private bucket `digital-products`, files at <store id>/<file>)
+create table public.digital_downloads (
+  id             uuid primary key default gen_random_uuid(),
+  token          text not null unique default encode(extensions.gen_random_bytes(24), 'hex'),
+  store_id       text not null references public.stores (id) on delete cascade,
+  order_id       uuid not null references public.orders (id) on delete cascade,
+  product_id     text not null,
+  title          text not null default '',
+  file           text not null,                           -- 'storage:<path in digital-products>' or an https URL
+  file_name      text not null default '',
+  download_limit int,                                     -- null = unlimited
+  download_count int not null default 0,
+  expires_at     timestamptz,
+  created_at     timestamptz not null default now(),
+  unique (order_id, product_id)
+);
+create index digital_downloads_store_idx on public.digital_downloads (store_id, created_at desc);
+
+-- Count one download if the grant is still valid; returns the file to sign, or nothing.
+create or replace function public.redeem_download(p_token text) returns table (file text, file_name text, store_id text)
+language sql security definer set search_path = '' as $$
+  update public.digital_downloads d set download_count = d.download_count + 1
+   where d.token = p_token and (d.download_limit is null or d.download_count < d.download_limit) and (d.expires_at is null or d.expires_at > now())
+     and exists (select 1 from public.orders o where o.id = d.order_id and o.financial_status in ('paid', 'partially_refunded'))
+  returning d.file, d.file_name, d.store_id;
+$$;
+revoke all on function public.redeem_download(text) from public, anon, authenticated;
+grant execute on function public.redeem_download(text) to service_role;
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- analytics events (ingested by the `track` function; geo from edge headers or the visitor's time zone)
@@ -420,6 +477,8 @@ alter table public.refunds            enable row level security;
 alter table public.disputes           enable row level security;
 alter table public.subscriptions      enable row level security;
 alter table public.bookings           enable row level security;
+alter table public.service_projects   enable row level security;
+alter table public.digital_downloads  enable row level security;
 alter table public.analytics_events   enable row level security;
 alter table public.webhooks_log       enable row level security;
 alter table public.rate_limits        enable row level security;
@@ -445,6 +504,9 @@ create policy "owner reads disputes" on public.disputes for select to authentica
 create policy "owner reads subscriptions" on public.subscriptions for select to authenticated using (public.is_store_owner(store_id));
 create policy "owner manages bookings" on public.bookings for all to authenticated
   using (public.is_store_owner(store_id)) with check (public.is_store_owner(store_id));
+create policy "owner manages service projects" on public.service_projects for all to authenticated
+  using (public.is_store_owner(store_id)) with check (public.is_store_owner(store_id));
+create policy "owner reads downloads" on public.digital_downloads for select to authenticated using (public.is_store_owner(store_id));
 create policy "owner reads analytics" on public.analytics_events for select to authenticated using (public.is_store_owner(store_id));
 
 -- Column-level limits on owner updates (RLS decides the rows, these grants decide the columns).
@@ -457,3 +519,12 @@ grant update (name, phone, address, accepts_marketing) on public.customers to au
 
 -- Anonymous visitors get nothing directly.
 revoke all on all tables in schema public from anon;
+
+-- Private bucket for digital products (Supabase Storage). Upload files to digital-products/<store id>/… in the dashboard
+-- or with `supabase storage cp`; only the `download` function (service role) creates signed URLs for buyers.
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_schema = 'storage' and table_name = 'buckets') then
+    insert into storage.buckets (id, name, public) values ('digital-products', 'digital-products', false) on conflict (id) do nothing;
+  end if;
+end $$;

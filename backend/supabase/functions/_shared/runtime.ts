@@ -80,3 +80,6 @@ export function serve(methods: string[], handler: (req: Request, cors: Record<st
 }
 
 export { json, errorJson };
+
+/** Public link of a digital download grant (the `download` function). */
+export const downloadUrl = (token: string): string => `${env('SUPABASE_URL').replace(/\/+$/, '')}/functions/v1/download?token=${token}`;

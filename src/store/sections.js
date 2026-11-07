@@ -14,6 +14,23 @@
 //   blk(path) → ' data-block="list.index"' in the editor (canvas drag & drop of blocks), people (sample people photos) }
 
 import { frameOf } from './frame.js';
+import { productKind, servicePriceLabel, DELIVERY_MODES } from './serviceProduct.js';
+
+// ---------- service & digital products (src/store/serviceProduct.js) on product pages and cards ----------
+const DELIVERY_LABEL = Object.fromEntries(DELIVERY_MODES);
+/** Call-to-action of a product: "Book now" / "Buy service" for services, else the block's own label. */
+export const buyLabel = (p, fallback = 'Add to cart') => productKind(p) === 'service' ? (p.service && p.service.booking && p.service.booking.enabled ? 'Book now' : 'Buy service') : fallback;
+const fmtMinutes = m => m >= 60 ? (m % 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m / 60} h`) : `${m} min`;
+/** "Online meeting · 1 h" / "Async delivery · ready in 7 days". */
+export const serviceDelivery = sv => { const mode = sv.delivery.mode; return (DELIVERY_LABEL[mode] || 'Online meeting') + (mode === 'async' ? (sv.delivery.turnaroundDays ? ` · ready in ${sv.delivery.turnaroundDays} day${sv.delivery.turnaroundDays === 1 ? '' : 's'}` : '') : ` · ${fmtMinutes(sv.durationMinutes)}`); };
+function servicePanel(p, ctx, at) {
+  const sv = p.service; if (!sv) return '';
+  const rows = [[ctx.icon('clock'), 'Session', fmtMinutes(sv.durationMinutes)], [ctx.icon(sv.delivery.mode === 'in_person' ? 'pin' : sv.delivery.mode === 'async' ? 'box' : 'globe'), 'Delivery', serviceDelivery(sv)]];
+  if (sv.revisions) rows.push([ctx.icon('refresh'), 'Revisions', `${sv.revisions} round${sv.revisions === 1 ? '' : 's'} included`]);
+  return `<div class="svc pb"${at}><dl class="svc-rows">${rows.map(([i, k, v]) => `<div>${i}<dt>${ctx.e(k)}</dt><dd>${ctx.e(v)}</dd></div>`).join('')}</dl>
+    ${sv.deliverables.length ? `<div class="svc-list"><b>What you get</b><ul>${sv.deliverables.map(d => `<li>${ctx.icon('check')}<span>${ctx.e(d)}</span></li>`).join('')}</ul></div>` : ''}
+    ${sv.addOns.length ? `<div class="svc-list"><b>Add-ons</b><ul class="svc-addons">${sv.addOns.map(a => `<li><span>${ctx.e(a.name)}</span><span>+${ctx.money(a.price)}</span></li>`).join('')}</ul></div>` : ''}</div>`;
+}
 
 const CONTENT = ['home', 'about', 'contact', 'collection', 'product', 'cart', 'checkout'];
 const linkF = (key, label) => ({ key, label, type: 'link' });
@@ -84,10 +101,11 @@ function productBlock(b, i, p, s, ctx, st) {
       const r = st.rating;
       return `<div class="pb pb-title"${at}>${p.category ? `<p class="eyebrow">${ctx.e(p.category)}</p>` : ''}<h1 class="ptitle-h"${ctx.ed('@title')}>${ctx.e(p.title)}</h1>${b.showRating && r.avg ? `<a class="rating-link" href="#reviews">${ctx.stars(r.avg, r.count)}<span>${r.count ? `${r.count} review${r.count === 1 ? '' : 's'}` : ''}</span></a>` : ''}</div>`;
     }
-    case 'price': return `<p class="pprice pb"${at}><span data-price>${ctx.money(price)}</span> <s class="compare" data-compare${cmp ? '' : ' hidden'}>${cmp ? ctx.money(cmp) : ''}</s>${b.showSaved ? ` <span class="saved" data-saved${cmp ? '' : ' hidden'}>${cmp ? `Save ${ctx.money(cmp - price)} (${Math.round((1 - price / cmp) * 100)}%)` : ''}</span>` : ''}</p>`;
+    case 'price': if (productKind(p) === 'service') return `<p class="pprice pb"${at}><span class="svc-price">${servicePriceLabel(p, ctx.money)}</span> <span class="tag-svc">Service</span></p>${servicePanel(p, ctx, '')}`;
+      return `<p class="pprice pb"${at}><span data-price>${ctx.money(price)}</span> <s class="compare" data-compare${cmp ? '' : ' hidden'}>${cmp ? ctx.money(cmp) : ''}</s>${b.showSaved ? ` <span class="saved" data-saved${cmp ? '' : ' hidden'}>${cmp ? `Save ${ctx.money(cmp - price)} (${Math.round((1 - price / cmp) * 100)}%)` : ''}</span>` : ''}</p>`;
     case 'bnpl': return `<p class="bnpl pb"${at} data-bnpl="${ctx.e(b.text)}">${ctx.e(b.text).replace('{amount}', `<strong>${ctx.money(Math.round(price * 25) / 100)}</strong>`)}</p>`;
-    case 'urgency': return `<p class="urgency pb"${at} data-low-stock="${+b.threshold || 5}"${v0 && v0.stock != null && v0.stock > 0 && v0.stock <= b.threshold ? '' : ' hidden'}>${ctx.icon('bolt')}<span>Only <b data-left>${v0?.stock ?? ''}</b> left in stock</span></p>`;
-    case 'dispatch': return `<p class="dispatch pb"${at} data-dispatch="${Math.min(23, Math.max(0, +b.cutoff || 0))}">${ctx.icon('truck')}<span>Order today for fast dispatch</span></p>`;
+    case 'urgency': if (productKind(p) !== 'physical') return `<span class="pb-marker"${at} hidden></span>`; return `<p class="urgency pb"${at} data-low-stock="${+b.threshold || 5}"${v0 && v0.stock != null && v0.stock > 0 && v0.stock <= b.threshold ? '' : ' hidden'}>${ctx.icon('bolt')}<span>Only <b data-left>${v0?.stock ?? ''}</b> left in stock</span></p>`;
+    case 'dispatch': if (productKind(p) !== 'physical') return `<span class="pb-marker"${at} hidden></span>`; return `<p class="dispatch pb"${at} data-dispatch="${Math.min(23, Math.max(0, +b.cutoff || 0))}">${ctx.icon('truck')}<span>Order today for fast dispatch</span></p>`;
     case 'social': {
       const av = b.avatars ? `<span class="avstack" aria-hidden="true">${ctx.people.slice(0, 4).map(r => ctx.pic(r, { size: 'avatar', alt: '' })).join('')}</span>` : '';
       const msgs = String(b.messages || '').split('|').map(x => x.trim()).filter(Boolean);
@@ -99,15 +117,19 @@ function productBlock(b, i, p, s, ctx, st) {
         <div class="pills${sw ? ' swatches' : ''}${imgs ? ' imgswatch' : ''}">${o.values.map((val, vi) => `<label class="pill"><input type="radio" name="opt${k}" value="${ctx.e(val)}"${imgs ? ` data-image="${vi}"` : ''}${v0 && v0.options[k] === val ? ' checked' : ''}><span>${imgs ? ctx.pic(p.images[vi], { size: 'thumb', alt: '', fallback: p.art, ...ctx.pframe(p, vi) }) : sw ? `<i style="background:${ctx.colorOf(val)}"></i>` : ''}${ctx.e(val)}</span></label>`).join('')}</div></fieldset>`;
     }).join('')}${v0 && v0.sku ? `<p class="pmeta"><span>SKU <span data-sku>${ctx.e(v0.sku)}</span></span></p>` : ''}</div>` : '';
     case 'sizeguide': return st.sizeIdx < 0 ? `<p class="pb"${at}><button type="button" class="link sg-link" data-modal-open="sg-${p.id}">${ctx.icon('ruler')}${ctx.e(b.label || 'Size guide')}</button></p>` : `<span class="pb-marker"${at} hidden></span>`;
-    case 'buy': return ctx.checkoutEnabled ? `<div class="buy pb"${at}><div class="qty"><button type="button" data-qty-step="-1" aria-label="Decrease quantity">−</button><input type="number" name="qty" value="1" min="1" max="999" aria-label="Quantity" inputmode="numeric"><button type="button" data-qty-step="1" aria-label="Increase quantity">+</button></div>
+    case 'buy': b = { ...b, buttonLabel: buyLabel(p, b.buttonLabel || 'Add to cart') }; return ctx.checkoutEnabled ? `<div class="buy pb"${at}><div class="qty"><button type="button" data-qty-step="-1" aria-label="Decrease quantity">−</button><input type="number" name="qty" value="1" min="1" max="999" aria-label="Quantity" inputmode="numeric"><button type="button" data-qty-step="1" aria-label="Increase quantity">+</button></div>
         <button class="btn btn-lg" type="submit" data-add-to-cart${ok ? '' : ' disabled'}${E('buttonLabel')}>${ctx.e(ok ? b.buttonLabel || 'Add to cart' : 'Sold out')}</button>
         ${b.wishlist ? `<button type="button" class="round light wish-lg" data-wish="${p.id}" aria-pressed="false" aria-label="Save ${ctx.e(p.title)} to wishlist">${ctx.icon('heart')}</button>` : ''}
         ${b.buyNow ? `<button class="btn btn-lg btn-ghost buy-now" type="submit" name="buynow" value="1" data-buy-now${ok ? '' : ' disabled'}>Buy it now</button>` : ''}</div>`
       : `<p class="note pb"${at}>${ctx.store.contact.email ? `To order, <a href="${ctx.link('page:contact')}">contact us</a>.` : 'Online ordering is not available.'}</p>`;
-    case 'delivery': return `<p class="delivery pb"${at} data-delivery="${+b.min || 0},${Math.max(+b.min || 0, +b.max || 0)}">${ctx.icon('clock')}<span><span${E('text')}>${ctx.e(b.text || 'Estimated delivery')}</span>: <b data-delivery-dates>${+b.min || 0}–${Math.max(+b.min || 0, +b.max || 0)} business days</b></span></p>`;
+    case 'delivery': if (productKind(p) === 'digital') return `<p class="delivery pb"${at}>${ctx.icon('bolt')}<span><b>Instant download</b> after your order is confirmed</span></p>`;
+      if (productKind(p) === 'service') return `<p class="delivery pb"${at}>${ctx.icon('clock')}<span>${ctx.e(serviceDelivery(p.service))}</span></p>`;
+      return `<p class="delivery pb"${at} data-delivery="${+b.min || 0},${Math.max(+b.min || 0, +b.max || 0)}">${ctx.icon('clock')}<span><span${E('text')}>${ctx.e(b.text || 'Estimated delivery')}</span>: <b data-delivery-dates>${+b.min || 0}–${Math.max(+b.min || 0, +b.max || 0)} business days</b></span></p>`;
     case 'trust': return `<ul class="trust pb"${at}>${String(b.items || '').split('|').map(x => x.trim()).filter(Boolean).map((x, j) => `<li>${ctx.icon(['lock', 'refresh', 'shield', 'truck'][j % 4])}<span>${ctx.e(x)}</span></li>`).join('')}</ul>`;
     case 'details': {
-      const rows = [['Description', p.description, '@description'], [b.materialsTitle, p.materials, '@materials'], [b.shippingTitle, b.shipping, 'blocks.' + i + '.shipping']].filter(([t, x]) => t && x);
+      const kind = productKind(p), ship = kind === 'service' ? null : kind === 'digital' ? ['Delivery', 'Instant download — the download link arrives by email as soon as your order is confirmed.', null] : [b.shippingTitle, b.shipping, 'blocks.' + i + '.shipping'];
+      const faq = kind === 'service' && p.service ? p.service.faq.map(f => [f.q, f.a, null]) : [];
+      const rows = [['Description', p.description, '@description'], [b.materialsTitle, p.materials, '@materials'], ship, ...faq].filter(r => r && r[0] && r[1]);
       return `<div class="acc pb"${at}>${rows.map(([t, x, key], j) => `<details${j ? '' : ' open'}><summary><span>${ctx.e(t)}</span><i aria-hidden="true">${ctx.icon('plus')}</i></summary><div class="prose"${ctx.ed(key)}>${ctx.t(x)}</div></details>`).join('')}</div>`;
     }
     case 'specs': return `<table class="specs pb"${at}><tbody>${String(b.rows || '').split('\n').map(r => r.split('|').map(c => c.trim())).filter(r => r[0]).map(([k, v]) => `<tr><th scope="row">${ctx.e(k)}</th><td>${ctx.e(v || '')}</td></tr>`).join('')}</tbody></table>`;
@@ -603,7 +625,7 @@ export const SECTIONS = {
       const guideTable = guide ? String(guide.table || '').split('\n').map(r => r.split('|').map(c => c.trim())).filter(r => r.some(Boolean)) : [];
       const modal = guide ? `<div class="modal" id="sg-${p.id}" data-modal hidden><div class="drawer-scrim" data-modal-close></div><div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="sgt-${p.id}"><div class="drawer-head"><h2 id="sgt-${p.id}">${ctx.e(guide.label || 'Size guide')}</h2><button type="button" class="hicon" data-modal-close aria-label="Close size guide">${ctx.icon('close')}</button></div>
         <table class="sgtable">${guideTable.map((r, i) => `<tr>${r.map(c => i ? `<td>${ctx.e(c)}</td>` : `<th scope="col">${ctx.e(c)}</th>`).join('')}</tr>`).join('')}</table></div></div>` : '';
-      const sticky = s.stickyBar && ctx.checkoutEnabled ? `<div class="sticky-atc" data-sticky-atc hidden aria-hidden="true"><div class="wrap sticky-in">${imgs[0] ? ctx.pic(imgs[0], { size: 'thumb', alt: '', fallback: p.art, ...ctx.pframe(p, 0) }) : ''}<div class="sticky-info"><b>${ctx.e(p.title)}</b><span data-price>${ctx.money(price)}</span></div><button type="button" class="btn" data-sticky-add${ok ? '' : ' disabled'}>${ctx.e((blocks.find(b => b.type === 'buy') || {}).buttonLabel || 'Add to cart')}</button></div></div>` : '';
+      const sticky = s.stickyBar && ctx.checkoutEnabled ? `<div class="sticky-atc" data-sticky-atc hidden aria-hidden="true"><div class="wrap sticky-in">${imgs[0] ? ctx.pic(imgs[0], { size: 'thumb', alt: '', fallback: p.art, ...ctx.pframe(p, 0) }) : ''}<div class="sticky-info"><b>${ctx.e(p.title)}</b>${productKind(p) === 'service' ? `<span>${servicePriceLabel(p, ctx.money)}</span>` : `<span data-price>${ctx.money(price)}</span>`}</div><button type="button" class="btn" data-sticky-add${ok ? '' : ' disabled'}>${ctx.e(buyLabel(p, (blocks.find(b => b.type === 'buy') || {}).buttonLabel || 'Add to cart'))}</button></div></div>` : '';
       return `<section class="sec pmain pl-${layout}" id="${sec.id}" data-sid="${sec.id}" data-type="product-main" data-product="${p.id}"><div class="wrap">
         <div class="product">${gallery}<div class="pinfo"><form class="pform" data-product-form="${p.id}">${html.join('')}</form></div></div></div>${modal}${sticky}</section>`;
     },

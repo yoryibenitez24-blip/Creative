@@ -69,24 +69,33 @@ export function couponFor(totals: EngineTotals, currency: string, orderId: strin
 
 export function buildSessionParams(i: BuildInput): BuildOutput {
   const cur = i.currency.toLowerCase(), cfg = i.cfg, t = i.totals;
-  const sub = isSubscription(i.lines) && cfg.billing?.subscriptions !== false;
+  const sub = isSubscription(i.lines); // recurring lines (retainers, subscriptions) always need subscription mode
   const mode: 'payment' | 'subscription' = sub ? 'subscription' : 'payment';
   const how = connectMode(cfg, i.accountId);
   const taxBehavior: 'inclusive' | 'exclusive' | undefined = cfg.automaticTax ? (t.taxInclusive ? 'inclusive' : 'exclusive') : undefined;
   const meta: Record<string, string> = { order_id: i.orderId, store_id: i.storeId, ...(t.appliedCodes.length ? { codes: t.appliedCodes.join(',').slice(0, 500) } : {}), ...(i.sessionRef ? { session_ref: i.sessionRef.slice(0, 100) } : {}) };
 
-  const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = i.lines.map(l => {
+  const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+  for (const l of i.lines) {
+    // retainer with its own Stripe recurring price: charge that price; add-ons become one-time extras
+    if (sub && l.stripePriceId) {
+      line_items.push({ price: l.stripePriceId, quantity: l.quantity });
+      for (const a of l.addOns) line_items.push({ quantity: l.quantity, price_data: { currency: cur, unit_amount: toMinor(a.price, i.currency), product_data: { name: clip(`${l.title} – ${a.name}`, 250), metadata: { product_id: l.productId, addon_id: a.id } } } });
+    } else line_items.push(lineItem(l));
+  }
+  function lineItem(l: ValidLine): Stripe.Checkout.SessionCreateParams.LineItem {
     const img = l.image ? absImage(l.image, i.siteBase) : '';
+    const desc = [l.start ? 'Booked for ' + l.start.replace('T', ' ').slice(0, 16) + ' UTC' : '', l.addOns.length ? 'Extras: ' + l.addOns.map(a => a.name).join(', ') : ''].filter(Boolean).join(' · ');
     return {
       quantity: l.quantity,
       price_data: {
         currency: cur, unit_amount: toMinor(l.price, i.currency),
-        product_data: { name: clip(l.title + (l.variantTitle ? ' – ' + l.variantTitle : ''), 250), ...(img ? { images: [img] } : {}), metadata: { product_id: l.productId, variant_id: l.variantId, ...(l.sku ? { sku: l.sku } : {}) } },
+        product_data: { name: clip(l.title + (l.variantTitle ? ' – ' + l.variantTitle : ''), 250), ...(desc ? { description: clip(desc, 500) } : {}), ...(img ? { images: [img] } : {}), metadata: { product_id: l.productId, variant_id: l.variantId, ...(l.sku ? { sku: l.sku } : {}), ...(l.start ? { start: l.start } : {}) } },
         ...(sub && l.recurring ? { recurring: { interval: l.recurring.interval, interval_count: l.recurring.intervalCount || 1 } } : {}),
         ...(taxBehavior ? { tax_behavior: taxBehavior } : {}),
       },
     };
-  });
+  }
   let expected = i.lines.reduce((s, l) => s + toMinor(l.price, i.currency) * l.quantity, 0);
 
   // tax from the store's own tax table (only when Stripe Tax is off and prices exclude tax)

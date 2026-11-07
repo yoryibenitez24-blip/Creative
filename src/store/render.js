@@ -15,6 +15,7 @@
 //   resolveHref(fromPath, href)              → site-root-relative path ('products/x.html'), or null for external links
 
 import { SECTIONS, sectionMotion } from './sections.js';
+import { productKind, servicePriceLabel } from './serviceProduct.js';
 import { FONT_STACKS, webFontUrl, collectionProducts, activeProducts, PAGE_LABELS } from './model.js';
 import { cartKit } from './cart.js';
 import { storeRuntime } from './runtime.js';
@@ -180,11 +181,12 @@ function makeCtx(store, route, opts) {
     const q = quick && checkoutEnabled && !sold ? (single ? `<button type="button" class="quick" data-quick-add="${p.id}" aria-label="Add ${esc(p.title)} to cart">${icon('plus')}<span>Quick add</span></button>` : `<a class="quick" href="${href}" aria-label="Choose options for ${esc(p.title)}">${icon('plus')}<span>Choose options</span></a>`) : '';
     const sw = p.options.find(o => isSwatch(o.name));
     const swatches = sw ? `<span class="swatches-mini" aria-label="${sw.values.length} ${esc(sw.name.toLowerCase())}s">${sw.values.slice(0, 5).map(v => `<i title="${esc(v)}" style="background:${colorOf(v)}"></i>`).join('')}${sw.values.length > 5 ? `<small>+${sw.values.length - 5}</small>` : ''}</span>` : '';
-    const badge = sold ? '<span class="badge sold">Sold out</span>' : sale ? `<span class="badge sale">−${Math.round((1 - lo / p.compareAt) * 100)}%</span>` : p.tags.includes('new') ? '<span class="badge">New</span>' : '';
+    const svc = productKind(p) === 'service';
+    const badge = svc ? '<span class="badge svc">Service</span>' : sold ? '<span class="badge sold">Sold out</span>' : sale ? `<span class="badge sale">−${Math.round((1 - lo / p.compareAt) * 100)}%</span>` : p.tags.includes('new') ? '<span class="badge">New</span>' : '';
     return `<article class="pcard" data-card data-price="${lo}" data-category="${esc(p.category)}" data-title="${esc(p.title)}" data-index="${index}">
       <div class="pcard-media"><a class="pcard-img" href="${href}" tabindex="-1" aria-hidden="true">${p.images[0] ? pic(p.images[0], { size: 'card', alt: '', fallback: p.art, ...pframe(p, 0) }) : p.art ? pic(p.art, { alt: '' }) : ''}${p.images[1] ? pic(p.images[1], { size: 'card', alt: '', cls: 'alt', fallback: p.art, ...pframe(p, 1) }) : ''}</a>
       ${badge}<button type="button" class="wish" data-wish="${p.id}" aria-pressed="false" aria-label="Save ${esc(p.title)} to wishlist">${icon('heart')}</button>${q}</div>
-      <div class="pcard-body"><h3><a href="${href}">${esc(p.title)}</a></h3><p class="price">${lo !== hi ? '<span class="from">From</span> ' : ''}${money(lo)}${sale ? ` <s>${money(p.compareAt)}</s>` : ''}</p>
+      <div class="pcard-body"><h3><a href="${href}">${esc(p.title)}</a></h3><p class="price">${svc ? servicePriceLabel(p, money) : `${lo !== hi ? '<span class="from">From</span> ' : ''}${money(lo)}${sale ? ` <s>${money(p.compareAt)}</s>` : ''}`}</p>
       ${p.rating || swatches ? `<div class="pcard-meta">${p.rating ? stars(p.rating, p.reviews) : ''}${swatches}</div>` : ''}</div></article>`;
   };
   const ed = key => editor && key ? ` data-edit="${esc(key)}"` : '';
@@ -388,7 +390,11 @@ export function storeCss(store) {
 }
 
 // Motion layer (src/store/motion.js) and the motion sections (motion hero, stats, sticky stack, pinned lookbook, flip cards).
-const MOTION_CSS = `/* ---- motion ---- */
+const MOTION_CSS = `/* ---- service & digital products ---- */
+.badge.svc{background:var(--text);color:var(--bg)}.tag-svc{display:inline-block;vertical-align:4px;margin-left:8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:var(--surface);color:var(--muted)}
+.svc{display:grid;gap:16px;padding:16px 18px;border:1px solid var(--border);border-radius:var(--r-lg)}.svc-rows{margin:0;display:grid;gap:10px}.svc-rows div{display:grid;grid-template-columns:22px 92px 1fr;gap:8px;align-items:center;font-size:14px}.svc-rows .ico{width:18px;height:18px;color:var(--accent)}.svc-rows dt{color:var(--muted)}.svc-rows dd{margin:0;font-weight:600}
+.svc-list b{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px}.svc-list ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:14px}.svc-list li{display:flex;gap:10px;align-items:flex-start}.svc-list .ico{width:16px;height:16px;color:var(--accent);margin-top:3px}.svc-addons li{justify-content:space-between;border-bottom:1px dashed var(--border);padding-bottom:6px}
+/* ---- motion ---- */
 .zm-split{text-wrap:balance}.zm-w{display:inline-block;overflow:hidden;vertical-align:top;padding:0 .06em .12em;margin:0 -.06em -.12em}.zm-wi{display:inline-block;will-change:translate}
 .zm-tilt{transform-style:preserve-3d;will-change:transform}.zm-glare{position:absolute;left:-50%;top:-50%;width:200%;height:200%;z-index:1;pointer-events:none;opacity:0;transition:opacity .4s;background:radial-gradient(closest-side,rgba(255,255,255,.28),transparent 60%);mix-blend-mode:soft-light}
 .zm-spot{position:absolute;left:0;top:0;width:600px;height:600px;border-radius:50%;pointer-events:none;z-index:1;background:radial-gradient(closest-side,color-mix(in srgb,var(--accent) 34%,transparent),color-mix(in srgb,var(--accent) 8%,transparent) 55%,transparent);mix-blend-mode:screen}

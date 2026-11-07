@@ -230,7 +230,13 @@ return (function commerceKit(applyDiscounts) {
     var c = input.customer || {}, codes = Array.isArray(input.codes) ? input.codes : [];
     return {
       storeId: storeId, checkoutId: clip(input.checkoutId, 64), currency: clip(input.currency, 3).toUpperCase(),
-      lines: lines.map(function (l) { return { productId: l.productId, variantId: l.variantId, quantity: l.quantity, price: l.price }; }),
+      lines: lines.map(function (l) {
+        var o = { productId: l.productId, variantId: l.variantId, quantity: l.quantity, price: l.price };
+        if (l.start) o.start = clip(l.start, 40);
+        if (Array.isArray(l.intake) && l.intake.length) o.intake = l.intake.slice(0, 50).map(function (a) { return { question: clip(a.question, 200), answer: clip(a.answer, 4000) }; });
+        if (Array.isArray(l.addOns) && l.addOns.length) o.addOns = l.addOns.slice(0, 50).map(function (a) { return clip(a, 80); });
+        return o;
+      }),
       codes: codes.map(function (x) { return clip(x, 40).toUpperCase(); }).filter(Boolean).slice(0, 10),
       country: clip(input.country, 2).toUpperCase(), region: clip(input.region, 100), rateId: input.rateId == null || input.rateId === '' ? null : clip(input.rateId, 80),
       customer: { name: clip(c.name, 200), email: clip(c.email, 200), phone: clip(c.phone, 50), address: clip(c.address, 500) }, note: clip(input.note, 1000),

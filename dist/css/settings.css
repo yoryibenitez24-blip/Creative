@@ -229,5 +229,7 @@ section.csFlash { animation: csFlashSec 1.6s ease-out; border-radius: 18px; }
   .csAppBody { padding-left: 18px; }
   .csChecks { grid-template-columns: minmax(0, 1fr); }
   .csConnect { flex-wrap: wrap; }
+  .csConnectText { flex-basis: calc(100% - 60px); }
+  .csConnect > .caBtn { margin-left: 54px; }
 }
 @media (prefers-reduced-motion: reduce) { .csFlash, section.csFlash, .csSavePill { animation: none; } }

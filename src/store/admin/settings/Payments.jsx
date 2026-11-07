@@ -2,7 +2,7 @@
 // Billing, webhooks, server secrets) and the alternative / manual methods of the static store.
 import React, { useState } from 'react';
 import { Plus, Trash2, ExternalLink, KeyRound, Webhook, CircleCheck, CircleAlert } from 'lucide-react';
-import { useAdmin, Btn, Text, Num, Select, Check, Area, Segmented } from '../ui.jsx';
+import { Btn, Text, Num, Select, Check, Area, Segmented } from '../ui.jsx';
 import { CHECKOUT_MODES } from '../../model.js';
 import { cid } from '../model.js';
 import { CONNECT_TYPES, PAYMENT_METHODS, PAYMENT_GROUPS, STRIPE_WEBHOOK_EVENTS, WEEKDAYS, STRIPE_CURRENCIES, backendReady, onboardUrl, webhookUrl,

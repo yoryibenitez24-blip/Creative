@@ -57,6 +57,8 @@ export interface OrderForEmail {
   subtotal: number; discount_total: number; shipping: number; tax: number; tax_inclusive?: boolean; total: number;
   shipping_name?: string; codes?: string[];
   shipping_address?: { name?: string; address1?: string; address2?: string; city?: string; province?: string; zip?: string; country?: string } | null;
+  downloads?: { title: string; url: string }[];
+  bookings?: { title: string; start: string; timezone: string }[];
 }
 export interface StoreForEmail { name: string; siteUrl?: string; replyTo?: string; orderPrefix?: string; locale?: string }
 
@@ -64,6 +66,12 @@ export const escapeHtml = (s: unknown): string => String(s ?? '').replace(/[&<>"
 
 export function formatMoney(amount: number, currency: string, locale = 'en-US'): string {
   try { return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(amount); } catch { return `${currency} ${amount.toFixed(2)}`; }
+}
+
+/** '2026-11-09T14:00:00Z' in Europe/Berlin → 'Mon, 9 Nov 2026, 15:00 (Europe/Berlin)'. */
+export function when(iso: string, timeZone: string, locale = 'en-GB'): string {
+  try { return new Intl.DateTimeFormat(locale, { timeZone, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)) + ` (${timeZone})`; }
+  catch { return iso; }
 }
 
 export function orderConfirmation(o: OrderForEmail, store: StoreForEmail): { subject: string; html: string; text: string } {
@@ -78,7 +86,9 @@ export function orderConfirmation(o: OrderForEmail, store: StoreForEmail): { sub
   const text = [hi, '', `Thank you for your order ${ref} at ${store.name}. We have received your payment.`, '',
     ...o.lines.map(l => `${l.quantity} × ${l.title}${l.variant_title ? ' (' + l.variant_title + ')' : ''} — ${fm(l.total)}`), '',
     ...rows.map(r => `${r[0]}: ${r[1]}`), `Total: ${fm(o.total)}`,
-    ...(addr.length ? ['', 'Shipping to:', ...addr] : []), '', store.siteUrl ? `${store.name} — ${store.siteUrl}` : store.name].join('\n');
+    ...(addr.length ? ['', 'Shipping to:', ...addr] : []),
+    ...(o.bookings?.length ? ['', 'Your bookings (we will confirm the time):', ...o.bookings.map(b => `${b.title}: ${when(b.start, b.timezone, store.locale)}`)] : []),
+    ...(o.downloads?.length ? ['', 'Your downloads:', ...o.downloads.map(d => `${d.title}: ${d.url}`)] : []), '', store.siteUrl ? `${store.name} — ${store.siteUrl}` : store.name].join('\n');
   const td = 'padding:6px 0;border-bottom:1px solid #eee';
   const html = `<!doctype html><html><body style="margin:0;background:#f6f6f6;font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#222">
 <div style="max-width:560px;margin:0 auto;padding:24px"><div style="background:#fff;border-radius:12px;padding:28px">
@@ -88,6 +98,8 @@ export function orderConfirmation(o: OrderForEmail, store: StoreForEmail): { sub
 ${rows.map(r => `<tr><td style="padding:4px 0;color:#555">${escapeHtml(r[0])}</td><td style="padding:4px 0;text-align:right;color:#555">${escapeHtml(r[1])}</td></tr>`).join('')}
 <tr><td style="padding:8px 0;font-weight:700">Total</td><td style="padding:8px 0;text-align:right;font-weight:700">${escapeHtml(fm(o.total))}</td></tr></table>
 ${addr.length ? `<p style="margin:16px 0 0"><strong>Shipping to</strong><br>${addr.map(escapeHtml).join('<br>')}</p>` : ''}
+${o.bookings?.length ? `<p style="margin:16px 0 0"><strong>Your bookings</strong> (we will confirm the time)<br>${o.bookings.map(b => `${escapeHtml(b.title)}: ${escapeHtml(when(b.start, b.timezone, store.locale))}`).join('<br>')}</p>` : ''}
+${o.downloads?.length ? `<p style="margin:16px 0 0"><strong>Your downloads</strong><br>${o.downloads.map(d => `<a href="${escapeHtml(d.url)}" style="color:#0b57d0">${escapeHtml(d.title)}</a>`).join('<br>')}</p>` : ''}
 </div><p style="color:#888;font-size:12px;text-align:center;margin-top:16px">${store.siteUrl ? `<a href="${escapeHtml(store.siteUrl)}" style="color:#888">${escapeHtml(store.name)}</a>` : escapeHtml(store.name)}${store.replyTo ? ` · Questions? Reply to this email.` : ''}</p></div></body></html>`;
   return { subject, html, text };
 }

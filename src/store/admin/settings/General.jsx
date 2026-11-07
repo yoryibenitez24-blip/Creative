@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Store as StoreIcon, Mail, Phone, MapPin, Clock, Plus } from 'lucide-react';
 import { useAdmin, Modal, Btn, Text, Num, Area, Select, Check } from '../ui.jsx';
 import { CURRENCIES } from '../../model.js';
-import { COUNTRIES, countryName, WEIGHT_UNITS, BUSINESS_ENTITIES, STAFF_ROLES, STAFF_PERMISSIONS, cid } from '../model.js';
+import { COUNTRIES, WEIGHT_UNITS, BUSINESS_ENTITIES, STAFF_ROLES, STAFF_PERMISSIONS, cid } from '../model.js';
 import { PLANS, planFor } from '../plans.js';
 import { Section, Row, Toggle, SelectRow, Menu, Pill, flag, Note } from './kit.jsx';
 

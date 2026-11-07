@@ -566,3 +566,101 @@ test('creative templates: 10 new, flagged for the gallery, multi-page, built fro
   assert.ok(createStore('plants').pages.home.some(x => x.type === 'spec-list'));
   assert.ok(createStore('boutique').pages.home.some(x => x.type === 'polaroids'));
 });
+
+// ---------- motion (src/store/motion.js) and premium templates ----------
+test('motion settings: theme level and per-section animation normalise to known values', async () => {
+  const { normalizeMotion, sectionMotion, MOTION_DEFAULTS } = await import('../src/store/sections.js');
+  assert.equal(normalizeStore({}).theme.motion, 'subtle');
+  assert.equal(normalizeStore({ theme: { motion: 'expressive' } }).theme.motion, 'expressive');
+  assert.equal(normalizeStore({ theme: { motion: 'wild' } }).theme.motion, 'subtle');
+  assert.deepEqual(normalizeMotion({}), MOTION_DEFAULTS);
+  assert.deepEqual(normalizeMotion({ anim: 'spin', animDelay: -40, animDuration: 99999, animEase: 'bouncy', fx: 'laser' }), { anim: 'auto', animDelay: 0, animDuration: 3000, animEase: 'spring', fx: 'none' });
+  assert.deepEqual(normalizeMotion({ anim: 'blur-in', animDelay: '250', animDuration: 900.4, animEase: 'snappy', fx: 'tilt' }), { anim: 'blur-in', animDelay: 250, animDuration: 900, animEase: 'snappy', fx: 'tilt' });
+  // 'Theme default' resolves per level; 'off' switches everything off
+  assert.equal(sectionMotion({ type: 'hero', settings: {} }, 'subtle').anim, 'fade-up');
+  assert.equal(sectionMotion({ type: 'hero', settings: {} }, 'expressive').anim, 'split-text');
+  assert.equal(sectionMotion({ type: 'featured-products', settings: {} }, 'expressive').anim, 'stagger');
+  assert.deepEqual(sectionMotion({ type: 'hero', settings: { anim: 'scale-in', fx: 'tilt' } }, 'off'), { anim: 'none', delay: 0, duration: 0, ease: 'spring', fx: 'none' });
+  // every content section offers the animation fields; the shared layout sections do not
+  for (const [type, def] of Object.entries(SECTIONS)) {
+    const keys = def.fields.map(f => f.key);
+    assert.equal(keys.includes('anim') && keys.includes('fx') && keys.includes('animEase'), !def.global, type);
+  }
+});
+
+test('motion: rendered hooks, body level, CSS and runtime (no hidden content without JavaScript)', () => {
+  const s = createStore('general');
+  const hero = s.pages.home.find(x => x.type === 'hero');
+  Object.assign(hero.settings, { anim: 'blur-in', animDelay: 200, animDuration: 900, animEase: 'snappy', fx: 'spotlight' });
+  let html = renderPage(s, { page: 'home' }, { mode: 'export', imageUrl });
+  assert.match(html, new RegExp(`<section class="fx-spotlight hero [^"]*" id="${hero.id}"[^>]*data-anim="blur-in" data-anim-delay="200" data-anim-dur="900" data-anim-ease="snappy" data-fx="spotlight"><i class="zm-spot"`));
+  assert.match(html, /<body class="page-home[^"]* motion-subtle"/);
+  const fp = s.pages.home.find(x => x.type === 'featured-products');
+  assert.match(html, new RegExp(`data-sid="${fp.id}"[^>]*data-anim="fade-up"`), 'subtle default: fade up');
+  // reveals are set up by the engine, never by a stylesheet rule
+  const css = storeCss(s);
+  assert.doesNotMatch(css, /\[data-reveal\]\{opacity:0/); assert.match(css, /@view-transition\{navigation:auto\}/); assert.match(css, /prefers-reduced-motion:reduce\)\{@view-transition\{navigation:none\}\}/);
+  const js = storeScript(s, imageUrl);
+  assert.match(js, /window\.__zm|win\.__zm = \{/); assert.match(js, /js-motion/); assert.match(js, /prefers-reduced-motion: reduce/);
+  // off: no hooks, no view transitions
+  const off = structuredClone(s); off.theme.motion = 'off';
+  html = renderPage(off, { page: 'home' }, { mode: 'export', imageUrl });
+  assert.doesNotMatch(html, /data-anim=|data-fx=/); assert.match(html, /motion-off/); assert.doesNotMatch(storeCss(off), /@view-transition\{navigation:auto/);
+  // editor preview keeps the hooks (Edit mode shows final states at runtime) and inline editing attributes
+  const pv = renderPage(s, { page: 'home' }, { mode: 'preview', imageUrl, editor: true });
+  assert.match(pv, /data-anim="blur-in"/); assert.match(pv, /data-edit="heading"/);
+});
+
+test('motion sections render with defaults and degrade without JavaScript', () => {
+  const s = createStore('general'), types = ['motion-hero', 'stats', 'stack-cards', 'lookbook', 'flip-cards'];
+  for (const type of types) assert.equal(SECTIONS[type].group, 'Motion', type);
+  s.pages.home = types.map((type, i) => ({ id: 'm' + i, type, settings: { ...structuredClone(SECTIONS[type].defaults), image: 'unsplash:' + ALL_PHOTO_IDS[0], items: (SECTIONS[type].defaults.items || []).map(it => ({ ...it, image: 'unsplash:' + ALL_PHOTO_IDS[1] })) } }));
+  const st = normalizeStore(s), html = renderPage(st, { page: 'home' }, { mode: 'export', imageUrl });
+  assert.doesNotMatch(html, /could not be shown|undefined|NaN/);
+  assert.match(html, /<span data-count="120" data-dec="0"[^>]*>120<\/span>/, 'count-up shows the final number in the markup');
+  assert.match(html, /data-count="4\.9" data-dec="1"/);
+  assert.match(html, /class="mh-words" data-words="Rings\|Earrings\|Watches" data-wfx="typewriter">Rings</);
+  assert.match(html, /class="zlb-track" data-lb-track/); assert.match(html, /class="zstack" data-stack/); assert.match(html, /data-flip aria-pressed="false"/);
+});
+
+test('premium templates: flagged, expressive, complete and choreographed', async () => {
+  const { PREMIUM_FILTER } = await import('../src/store/templates.js');
+  assert.equal(PREMIUM_FILTER, 'Premium');
+  const premium = STORE_TEMPLATES.filter(t => t.premium).map(t => t.id);
+  for (const id of ['noctis', 'aurora', 'maisonvale', 'voltdrop', 'rail', 'checkmate', 'hyperglow', 'nightshift', 'raster', 'glasshouse']) assert.ok(premium.includes(id), id);
+  assert.ok(STORE_TEMPLATES.length >= 50);
+  assert.ok(!STORE_TEMPLATES.find(t => t.id === 'general').premium);
+  for (const id of premium) {
+    const s = createStore(id);
+    assert.equal(s.theme.motion, 'expressive', id);
+    assert.ok(s.pages.home.some(x => x.settings.fx && x.settings.fx !== 'none'), id + ' uses at least one effect');
+    for (const pg of sitePages(s)) assert.doesNotMatch(renderPage(s, pg.route, { mode: 'export', imageUrl }), /could not be shown|undefined|NaN/, id + ' ' + pg.path);
+    const html = renderPage(s, { page: 'home' }, { mode: 'export', imageUrl });
+    assert.match(html, /motion-expressive/); assert.match(html, /data-anim="split-text"/); assert.match(html, /data-anim="stagger"/);
+  }
+  for (const id of ['noctis', 'aurora', 'maisonvale', 'voltdrop']) {
+    const types = new Set(createStore(id).pages.home.map(x => x.type));
+    assert.ok(types.has('motion-hero'), id);
+    assert.ok(['stats', 'stack-cards', 'lookbook', 'flip-cards'].filter(t => types.has(t)).length >= 1, id);
+  }
+  const vd = createStore('voltdrop').pages.home.find(x => x.type === 'motion-hero');
+  assert.ok(vd.settings.endsAt && vd.settings.endsAt !== 'auto', 'the sneaker drop hero counts down');
+});
+
+test('service and digital products: price label, booking button, details; digital shows instant download', () => {
+  const s = createStore('general');
+  s.products[0] = { ...s.products[0], kind: 'service', price: 90, service: { pricing: { model: 'hourly' }, durationMinutes: 90, booking: { enabled: true }, delivery: { mode: 'online' }, deliverables: ['Action plan'], revisions: 2, addOns: [{ name: 'Rush delivery', price: 50 }], faq: [{ q: 'Can I reschedule?', a: 'Up to 24 hours before.' }] } };
+  s.products[1] = { ...s.products[1], kind: 'digital', digital: { file: '', fileName: 'guide.pdf' } };
+  const st = normalizeStore(s), [svc, dig] = st.products;
+  const html = renderPage(st, { page: 'product', productId: svc.id }, { mode: 'export', imageUrl });
+  assert.match(html, /<span class="svc-price">\$90\.00 \/ hour<\/span>/);
+  assert.match(html, /data-add-to-cart[^>]*>Book now<\/button>/);
+  assert.match(html, /Online meeting · 1 h 30 min/); assert.match(html, /Action plan/); assert.match(html, /2 rounds included/); assert.match(html, /Rush delivery<\/span><span>\+\$50\.00/); assert.match(html, /Can I reschedule\?/);
+  assert.doesNotMatch(html, /data-low-stock|data-dispatch/);
+  st.products[0].service.booking.enabled = false;
+  assert.match(renderPage(st, { page: 'product', productId: svc.id }, { mode: 'export', imageUrl }), />Buy service<\/button>/);
+  const col = renderPage(st, { page: 'collection', collectionId: 'all' }, { mode: 'export', imageUrl });
+  assert.match(col, /<span class="badge svc">Service<\/span>/); assert.match(col, /\$90\.00 \/ hour/);
+  const d = renderPage(st, { page: 'product', productId: dig.id }, { mode: 'export', imageUrl });
+  assert.match(d, /Instant download/); assert.doesNotMatch(d, /data-low-stock|data-dispatch|Shipping &amp; returns/);
+});

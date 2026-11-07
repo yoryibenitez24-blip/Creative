@@ -35,8 +35,21 @@ export function payConfig(commerce) {
   if (!commerce || typeof commerce !== 'object' || !commerce.settings) return null;
   const pc = publicConfig(commerce), fn = pc.backend.functionsUrl;
   if (!fn) return null;
-  const stripe = pc.ready ? { mode: pc.mode, publishableKey: pc.publishableKey, endpoint: fn + '/create-checkout-session', statusUrl: fn + '/order-status' } : null;
+  const stripe = pc.ready ? { mode: pc.mode, publishableKey: pc.publishableKey, endpoint: fn + '/create-checkout-session', statusUrl: fn + '/order-status', slotsUrl: fn + '/booking-slots' } : null;
   return { stripe, trackUrl: fn + '/track', anonKey: pc.backend.anonKey, turnstileSiteKey: stripe ? pc.turnstileSiteKey : '' };
+}
+
+/** What the checkout asks for service products: { [productId]: { booking, durationMinutes, timezone, intake, addOns } }. */
+export function serviceCheckout(store) {
+  const out = {};
+  for (const p of store.products || []) {
+    if (p.kind !== 'service' || !p.service || p.status !== 'active') continue;
+    const s = p.service;
+    out[p.id] = { booking: !!s.booking?.enabled, durationMinutes: s.durationMinutes || 60, timezone: s.booking?.timezone || 'UTC',
+      intake: (s.intake || []).map(q => ({ id: q.id, label: q.label, type: q.type, required: !!q.required, options: q.options || [] })),
+      addOns: (s.addOns || []).map(a => ({ id: a.id, name: a.name, price: a.price })) };
+  }
+  return out;
 }
 
 export function checkoutConfig(store, commerce) {
@@ -57,7 +70,7 @@ export function checkoutConfig(store, commerce) {
   const countries = codes.map(c => [c, countryName(c)]).sort((a, b) => a[1].localeCompare(b[1]));
   if (zones.some(z => z.countries.includes('*'))) countries.push(['*', 'Other country']);
   return { discounts, zones, taxes: { inclusive: !!taxes.inclusive, shippingTaxed: !!taxes.shippingTaxed, rates: taxes.rates || [] }, weights, collections,
-    webhook: String(st.backend?.orderWebhookUrl || '').trim(), countries, pay: payConfig(commerce) };
+    webhook: String(st.backend?.orderWebhookUrl || '').trim(), countries, pay: payConfig(commerce), services: serviceCheckout(store) };
 }
 
 export function commerceKit(applyDiscounts) {
@@ -123,7 +136,13 @@ export function commerceKit(applyDiscounts) {
     var c = input.customer || {}, codes = Array.isArray(input.codes) ? input.codes : [];
     return {
       storeId: storeId, checkoutId: clip(input.checkoutId, 64), currency: clip(input.currency, 3).toUpperCase(),
-      lines: lines.map(function (l) { return { productId: l.productId, variantId: l.variantId, quantity: l.quantity, price: l.price }; }),
+      lines: lines.map(function (l) {
+        var o = { productId: l.productId, variantId: l.variantId, quantity: l.quantity, price: l.price };
+        if (l.start) o.start = clip(l.start, 40);
+        if (Array.isArray(l.intake) && l.intake.length) o.intake = l.intake.slice(0, 50).map(function (a) { return { question: clip(a.question, 200), answer: clip(a.answer, 4000) }; });
+        if (Array.isArray(l.addOns) && l.addOns.length) o.addOns = l.addOns.slice(0, 50).map(function (a) { return clip(a, 80); });
+        return o;
+      }),
       codes: codes.map(function (x) { return clip(x, 40).toUpperCase(); }).filter(Boolean).slice(0, 10),
       country: clip(input.country, 2).toUpperCase(), region: clip(input.region, 100), rateId: input.rateId == null || input.rateId === '' ? null : clip(input.rateId, 80),
       customer: { name: clip(c.name, 200), email: clip(c.email, 200), phone: clip(c.phone, 50), address: clip(c.address, 500) }, note: clip(input.note, 1000),
@@ -265,9 +284,52 @@ export function payRuntime(K, CK, D, win, doc) {
       if (btn) { btn.innerHTML = LOCK + ' Continue to secure payment'; btn.setAttribute('data-zt-pay', ''); }
       var msg = doc.createElement('p'); msg.className = 'note warn'; msg.setAttribute('data-zt-pay-msg', ''); msg.setAttribute('role', 'alert'); msg.hidden = true;
       form.insertBefore(msg, btn || null);
+      var svc = doc.createElement('div'); svc.setAttribute('data-zt-services', ''); form.insertBefore(svc, msg); renderServices(svc);
       if (pay.turnstileSiteKey) { var ts = doc.createElement('div'); ts.className = 'zt-turnstile'; ts.setAttribute('data-zt-turnstile', ''); ts.setAttribute('data-sitekey', pay.turnstileSiteKey); ts.setAttribute('data-action', 'checkout'); form.insertBefore(ts, msg); renderTurnstile(ts); }
       if (ret.status === 'success') showSuccess(box);
     });
+  }
+  // services in the cart: booking time (free slots from the backend), intake questions, paid extras
+  function renderServices(el) {
+    var S = cfg.services || {}, ls = K.lines(K.normalize(get('localStorage', KEY, []), D), D).filter(function (l) { return S[l.pid]; });
+    if (!ls.length) { el.innerHTML = ''; return; }
+    el.innerHTML = ls.map(function (l) {
+      var s = S[l.pid], h = '<fieldset class="shipf zt-svc" data-zt-svc="' + esc(l.pid + '|' + l.vid) + '"><legend>' + esc(l.product.title) + '</legend>';
+      if (s.booking) h += '<label>Date<select data-zt-day><option value="">Loading times…</option></select></label><label>Time<select data-zt-slot required><option value="">Choose a date first</option></select></label><p class="note small">Times in ' + esc(s.timezone) + ' · ' + s.durationMinutes + ' min</p>';
+      s.intake.forEach(function (q) {
+        var req = q.required ? ' required' : '', lab = esc(q.label) + (q.required ? ' *' : ''), at = ' data-zt-q="' + esc(q.label) + '"' + req;
+        if (q.type === 'textarea') h += '<label>' + lab + '<textarea rows="3"' + at + '></textarea></label>';
+        else if (q.type === 'select') h += '<label>' + lab + '<select' + at + '><option value="">Choose…</option>' + q.options.map(function (o) { return '<option>' + esc(o) + '</option>'; }).join('') + '</select></label>';
+        else if (q.type === 'checkbox') h += '<label class="chk"><input type="checkbox"' + at + '> ' + lab + '</label>';
+        else h += '<label>' + lab + '<input type="' + (q.type === 'email' ? 'email' : q.type === 'url' ? 'url' : 'text') + '"' + at + '></label>';
+      });
+      if (s.addOns.length) h += '<div class="zt-addons" role="group" aria-label="Extras for ' + esc(l.product.title) + '">' + s.addOns.map(function (a) { return '<label class="chk"><input type="checkbox" data-zt-addon="' + esc(a.id) + '"> ' + esc(a.name) + ' <b>+' + esc(K.formatMoney(a.price, D.currency)) + '</b></label>'; }).join('') + '<p class="note small">Extras are added to the total on the payment page.</p></div>';
+      return h + '</fieldset>';
+    }).join('');
+    $$('[data-zt-svc]', el).forEach(function (fs) {
+      var pid = fs.getAttribute('data-zt-svc').split('|')[0], day = $('[data-zt-day]', fs), slot = $('[data-zt-slot]', fs);
+      if (!day) return;
+      if (D.preview) { day.innerHTML = '<option value="">Times are shown on the published store</option>'; return; }
+      win.fetch(pay.stripe.slotsUrl + '?store=' + encodeURIComponent(D.id) + '&product=' + encodeURIComponent(pid) + '&days=21', { headers: headers(false) })
+        .then(function (r) { return r.ok ? r.json() : { slots: [] }; }, function () { return { slots: [] }; })
+        .then(function (j) {
+          var by = {}, order = [], tz = j.timezone || 'UTC';
+          (j.slots || []).forEach(function (x) { if (!by[x.date]) { by[x.date] = []; order.push(x.date); } by[x.date].push(x); });
+          var fmt = function (iso, o) { try { o.timeZone = tz; return new Intl.DateTimeFormat(undefined, o).format(new Date(iso)); } catch (e) { return iso; } };
+          day.innerHTML = order.length ? '<option value="">Choose a date</option>' + order.map(function (d) { return '<option value="' + d + '">' + esc(fmt(by[d][0].start, { weekday: 'short', day: 'numeric', month: 'short' })) + '</option>'; }).join('') : '<option value="">No free times in the next 3 weeks</option>';
+          day.onchange = function () { slot.innerHTML = '<option value="">Choose a time</option>' + (by[day.value] || []).map(function (x) { return '<option value="' + esc(x.start) + '">' + esc(fmt(x.start, { hour: '2-digit', minute: '2-digit' })) + '</option>'; }).join(''); };
+        });
+    });
+  }
+  function serviceDetails(form, pid, vid) {
+    var fs = $$('[data-zt-svc]', form).filter(function (x) { return x.getAttribute('data-zt-svc') === pid + '|' + vid; })[0];
+    if (!fs) return null;
+    var slot = $('[data-zt-slot]', fs);
+    return {
+      start: slot ? slot.value : '',
+      intake: $$('[data-zt-q]', fs).map(function (q) { return { question: q.getAttribute('data-zt-q'), answer: q.type === 'checkbox' ? (q.checked ? 'Yes' : '') : q.value }; }).filter(function (a) { return a.answer; }),
+      addOns: $$('[data-zt-addon]', fs).filter(function (c) { return c.checked; }).map(function (c) { return c.getAttribute('data-zt-addon'); }),
+    };
   }
   function showSuccess(box) {
     $$('[data-checkout-form]', box).forEach(function (f) { f.hidden = true; });
@@ -325,6 +387,11 @@ export function payRuntime(K, CK, D, win, doc) {
     var a = get('localStorage', AKEY, {}) || {}, codes = get('localStorage', CKEY, []);
     var lines = ls.map(function (l) { return { productId: l.pid, variantId: l.vid, quantity: l.qty, price: K.fromCents(l.unitCents) }; });
     var sum = CK.totals(cfg, lines, { codes: Array.isArray(codes) ? codes : [], country: a.country || '', region: a.region || '', rateId: a.rateId }, Date.now());
+    for (var i = 0; i < lines.length; i++) {
+      var sd = serviceDetails(form, lines[i].productId, lines[i].variantId); if (!sd) continue;
+      if ((cfg.services[lines[i].productId] || {}).booking && !sd.start) return fail('Choose a date and time for “' + ls[i].product.title + '”.');
+      lines[i].start = sd.start || null; lines[i].intake = sd.intake; lines[i].addOns = sd.addOns;
+    }
     var token = '';
     if (ts && pay.turnstileSiteKey) { var ti = $('input[name="cf-turnstile-response"]', ts); token = ti ? ti.value : ''; if (!token) return fail('Please complete the security check above.'); }
     if (D.preview) return fail('Card payment opens Stripe on your published store; it is not available in this preview.');
@@ -376,6 +443,9 @@ export function catalogSnapshot(store, commerce, { imageUrl, siteUrl } = {}) {
       return {
         id: p.id, title: p.title, active: p.status === 'active', price: +p.price || 0, compareAt: p.compareAt ?? null, image: abs(p.images?.[0] || ''),
         kind: p.kind === 'service' || p.kind === 'digital' ? p.kind : 'physical', recurring: retainer ? { interval: 'month', intervalCount: 1 } : null,
+        ...(p.kind === 'service' && p.service ? { service: p.service } : {}),
+        // digital files the backend can serve: 'storage:<store id>/<file>' (Supabase Storage bucket digital-products) or an https URL
+        ...(p.kind === 'digital' && p.digital ? { digital: { file: /^(storage:|https:\/\/)/.test(p.digital.file || '') ? p.digital.file : '', fileName: p.digital.fileName || '', downloadLimit: p.digital.downloadLimit ?? null } } : {}),
         variants: p.variants.map(v => ({ id: v.id, title: (v.options || []).filter(Boolean).join(' / '), options: v.options || [], price: v.price ?? null, sku: v.sku || '', stock: v.stock ?? null })),
       };
     }),

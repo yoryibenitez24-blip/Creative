@@ -428,6 +428,57 @@ await step('interact mode follows links inside the preview; preview in new tab; 
   assert.match(await page.evaluate(() => navigator.clipboard.readText()), /Netlify/);
 });
 
+await step('motion: a premium template animates after scrolling; reduced motion and Edit mode show final states', async () => {
+  const { createStore } = await import(pathToFileURL(join(repo, 'src/store/templates.js')).href);
+  const { renderPage } = await import(pathToFileURL(join(repo, 'src/store/render.js')).href);
+  const s = createStore('noctis');
+  await writeFile(join(work, 'harness-premium.html'), renderPage(s, { page: 'home' }, { mode: 'preview', imageUrl: r => r }));
+  const shop = await ctx.newPage(); const errs = []; shop.on('pageerror', e => errs.push(e.message));
+  await shop.setViewportSize({ width: 1440, height: 900 });
+  await shop.goto(url.replace('harness.html', 'harness-premium.html'));
+  assert.ok(await shop.evaluate(() => document.documentElement.classList.contains('js-motion') && document.body.classList.contains('motion-expressive')));
+  // the hero headline is split into masked words that rise into place
+  await shop.waitForFunction(() => { const w = document.querySelectorAll('.mh-title .zm-wi'); return w.length >= 3 && [...w].every(x => !x.classList.contains('zm-pre') && !x.getAnimations().some(a => a.playState === 'running')); }, null, { timeout: 8000 });
+  assert.equal(await shop.locator('.mh-title').textContent(), 'Light, held still');
+  // product cards below the fold wait in their initial state, then reveal after scrolling
+  const card = shop.locator('[data-type="featured-products"] .pcard').first();
+  assert.ok(await card.evaluate(el => el.classList.contains('zm-pre') && getComputedStyle(el).opacity === '0'), 'card starts hidden by the engine');
+  await card.scrollIntoViewIfNeeded();
+  await shop.waitForFunction(() => { const el = document.querySelector('[data-type="featured-products"] .pcard'); return !el.classList.contains('zm-pre') && el.getAnimations().length > 0; }, null, { timeout: 5000 });
+  await shop.waitForFunction(() => { const el = document.querySelector('[data-type="featured-products"] .pcard'); return el.getAnimations().every(a => a.playState === 'finished') && getComputedStyle(el).opacity === '1'; }, null, { timeout: 5000 });
+  // count-up runs to the real number
+  const stat = shop.locator('[data-type="stats"] [data-count]').first();
+  await stat.scrollIntoViewIfNeeded();
+  await shop.waitForFunction(() => document.querySelector('[data-type="stats"] [data-count]').textContent === '140', null, { timeout: 6000 });
+  // Edit mode (the builder agent sets html.editing): every element shows its final state, headings get their original markup back
+  await shop.evaluate(() => window.scrollTo(0, 0));
+  await shop.evaluate(() => document.documentElement.classList.add('editing'));
+  await shop.waitForFunction(() => !document.querySelector('.zm-pre') && !document.querySelector('.zm-w'));
+  assert.equal(await shop.locator('[data-type="testimonials"] .quote').first().evaluate(el => getComputedStyle(el).opacity), '1');
+  // leaving Edit mode replays the choreography
+  await shop.evaluate(() => document.documentElement.classList.remove('editing'));
+  await shop.waitForFunction(() => document.querySelectorAll('.mh-title .zm-w').length >= 3);
+  // reduced motion: nothing is hidden, nothing is split
+  const calm = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
+  const rp = await calm.newPage(); await rp.goto(url.replace('harness.html', 'harness-premium.html'));
+  await rp.waitForTimeout(400);
+  assert.deepEqual(await rp.evaluate(() => [document.querySelectorAll('.zm-pre').length, document.querySelectorAll('.zm-w').length, document.documentElement.classList.contains('js-motion')]), [0, 0, false]);
+  await calm.close(); await shop.close();
+  assert.deepEqual(errs, []);
+  // in the builder: Theme → Motion → Expressive; Edit mode shows the final state, Interact mode plays the reveal
+  await page.getByRole('tab', { name: 'Design' }).click();
+  await page.getByRole('tab', { name: 'Theme' }).click();
+  await page.getByRole('group', { name: 'Motion' }).getByRole('button', { name: 'Expressive' }).click();
+  await page.waitForFunction(() => window.__store.theme.motion === 'expressive');
+  await page.locator('[aria-label="Page"]').selectOption('home');
+  await frame().locator('body.page-home.motion-expressive h1.hero-title').waitFor();
+  assert.ok(await previewEval(() => document.documentElement.classList.contains('editing') && !document.querySelector('.zm-pre') && !document.querySelector('.hero-title .zm-w')), 'Edit mode: final state, headline not split');
+  await page.getByRole('button', { name: 'Interact with the store' }).click();
+  await page.waitForFunction(() => { const d = document.querySelector('iframe[title="Store preview"]').contentDocument; return d && d.querySelectorAll('.hero-title .zm-w').length >= 2; }, null, { timeout: 5000 });
+  await page.getByRole('button', { name: 'Select sections' }).click();
+  await page.waitForFunction(() => { const d = document.querySelector('iframe[title="Store preview"]').contentDocument; return d && !d.querySelector('.zm-w') && !d.querySelector('.zm-pre'); });
+});
+
 await step('product photo studio button calls onOpenPhotoStudio; no page errors', async () => {
   await page.getByRole('button', { name: 'Product photo studio' }).first().click();
   assert.equal(await page.evaluate(() => window.__studio), 1);

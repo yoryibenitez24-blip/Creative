@@ -5,16 +5,17 @@
 //     products: [{ id, title, active, price, compareAt, image, kind, recurring, variants: [{ id, title, options, price, sku, stock }] }] }
 // Creates the store row on first use (owner = the signed-in user). Products missing from the snapshot are deactivated.
 // → { ok: true, products: n, deactivated: m }
-import { serve, admin, json, errorJson } from '../_shared/runtime.ts';
+import { serve, admin, json, errorJson, type StoreRow } from '../_shared/runtime.ts';
 import { readJson, normalizeOrigin } from '../_shared/http.ts';
 import { requireOwner, ensureStore } from '../_shared/owner.ts';
 import { normalizeRecurring } from '../_shared/cart.ts';
 import { normalizeCurrency } from '../_shared/money.ts';
+import { normalizeService, normalizeDigital } from '../_shared/services.js';
 
 interface Snapshot {
   store?: { id?: string; name?: string; currency?: string; siteUrl?: string; allowedOrigins?: string[] };
   config?: Record<string, unknown>; payments?: Record<string, unknown>; email?: Record<string, unknown>;
-  products?: { id?: unknown; title?: unknown; active?: unknown; price?: unknown; compareAt?: unknown; image?: unknown; kind?: unknown; recurring?: unknown; variants?: unknown }[];
+  products?: { id?: unknown; title?: unknown; active?: unknown; price?: unknown; compareAt?: unknown; image?: unknown; kind?: unknown; recurring?: unknown; variants?: unknown; service?: unknown; digital?: unknown }[];
 }
 const s = (v: unknown, n: number) => (typeof v === 'string' ? v.slice(0, n) : '');
 const money = (v: unknown): number | null => { const n = Number(v); return v == null || v === '' || !Number.isFinite(n) || n < 0 ? null : Math.round(n * 100) / 100; };
@@ -37,13 +38,14 @@ serve(['POST'], async (req, cors) => {
       return { id: s(o.id, 120), title: s(o.title, 200), options: Array.isArray(o.options) ? o.options.slice(0, 3).map(x => s(x, 100)) : [], price: money(o.price), sku: s(o.sku, 100), stock };
     }).filter(v => v.id);
     const kind = p.kind === 'service' || p.kind === 'digital' ? p.kind : 'physical';
-    rows.push({ store_id: storeId, id, title: s(p.title, 300), active: p.active !== false, price, compare_at: money(p.compareAt), image: /^https:\/\//.test(s(p.image, 1000)) ? s(p.image, 1000) : '', kind, recurring: normalizeRecurring(p.recurring), variants });
+    rows.push({ store_id: storeId, id, title: s(p.title, 300), active: p.active !== false, price, compare_at: money(p.compareAt), image: /^https:\/\//.test(s(p.image, 1000)) ? s(p.image, 1000) : '', kind, recurring: normalizeRecurring(p.recurring), variants,
+      service: kind === 'service' ? normalizeService(p.service) : null, digital: kind === 'digital' ? normalizeDigital(p.digital) : null });
   }
   const site = s(body.store.siteUrl, 500), origins = [...new Set([...(body.store.allowedOrigins || []), site].map(o => normalizeOrigin(String(o || ''))).filter(Boolean))].slice(0, 20);
   const fields = {
     name: s(body.store.name, 200), currency: normalizeCurrency(body.store.currency), site_url: /^https?:\/\//.test(site) ? site : '', allowed_origins: origins,
     checkout_config: body.config || {}, payments: body.payments || {}, email: body.email || {}, catalog_synced_at: new Date().toISOString(),
-    ...(['express', 'standard', 'custom', 'none'].includes(String(body.payments?.connectType)) && !auth.store?.stripe_account_id ? { connect_type: body.payments!.connectType as string } : {}),
+    ...(['express', 'standard', 'custom', 'none'].includes(String(body.payments?.connectType)) && !auth.store?.stripe_account_id ? { connect_type: body.payments!.connectType as StoreRow['connect_type'] } : {}),
   };
   if (auth.store) { const { error } = await db.from('stores').update(fields).eq('id', storeId); if (error) throw error; }
   else await ensureStore(storeId, auth.user.id, fields);
