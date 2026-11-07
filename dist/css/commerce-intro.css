@@ -1,0 +1,92 @@
+/* Zertake Commerce entrance animation (src/store/admin/Intro.jsx). ~2.5 s, then .caEnter staggers the home cards in. */
+.caIntro { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; cursor: pointer; overflow: hidden; color: #f4f1ea;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: radial-gradient(900px 560px at 50% 42%, #2a1a12 0%, #120d0b 55%, #0b0b0c 100%);
+  animation: caIntroOut .55s cubic-bezier(.6,0,.4,1) 1.95s forwards; }
+.caIntroGrid { position: absolute; inset: 0; width: 100%; height: 100%; }
+.caIntroGrid line { stroke: rgba(255,170,120,.10); stroke-width: 1; stroke-dasharray: 1400; stroke-dashoffset: 1400; animation: ciDraw .7s ease-out forwards; }
+.caIntroStage { position: relative; display: grid; justify-items: center; gap: 18px; width: min(860px, 92vw); animation: ciZoom .55s cubic-bezier(.6,0,.4,1) 1.95s forwards; }
+.caIntroArt { width: 100%; height: auto; overflow: visible; }
+.caIntroArt rect, .caIntroArt path, .caIntroArt g, .caIntroArt ellipse, .caIntroArt circle { transform-box: fill-box; transform-origin: center; }
+
+/* storefront assembles in the centre, then slides into the browser window on the left */
+.caIntroArt .ciStore { transform-box: view-box; transform-origin: 185px 230px; transform: translateX(195px) scale(1.15); animation: ciToWindow .55s cubic-bezier(.5,0,.2,1) 1.05s forwards; }
+.ciShadow { fill: rgba(0,0,0,.45); animation: ciFade .4s ease-out both; }
+.ciBase { fill: #3b302a; animation: ciRise .32s cubic-bezier(.2,.9,.3,1.2) .05s both; }
+.ciPillar { fill: #57473d; animation: ciDrop .34s cubic-bezier(.2,.9,.3,1.25) both; }
+.ciPillar.l { animation-delay: .14s; } .ciPillar.r { animation-delay: .2s; }
+.ciWall { fill: #2d2521; animation: ciScaleY .3s ease-out .28s both; transform-origin: bottom; }
+.ciDoor { fill: #ff8a4c; animation: ciScaleY .26s ease-out .44s both; transform-origin: bottom; }
+.ciWin { fill: #fff3e6; opacity: .92; animation: ciPop .26s cubic-bezier(.2,.9,.3,1.4) both; }
+.ciWin.a { animation-delay: .46s; } .ciWin.b { animation-delay: .52s; }
+.ciRoof { fill: #6b584c; animation: ciDrop .3s cubic-bezier(.2,.9,.3,1.25) .36s both; }
+.ciAwning .g { fill: url(#caIntroG); } .ciAwning .w { fill: #fff3e6; }
+.ciAwning path { animation: ciUnroll .2s ease-out both; transform-origin: top; }
+.ciAwning path:nth-child(1) { animation-delay: .54s; } .ciAwning path:nth-child(2) { animation-delay: .58s; } .ciAwning path:nth-child(3) { animation-delay: .62s; }
+.ciAwning path:nth-child(4) { animation-delay: .66s; } .ciAwning path:nth-child(5) { animation-delay: .7s; } .ciAwning path:nth-child(6) { animation-delay: .74s; }
+.ciSign { fill: #fff3e6; animation: ciPop .28s cubic-bezier(.2,.9,.3,1.5) .72s both; }
+.ciBag { animation: ciBag .42s cubic-bezier(.2,.9,.3,1.3) .78s both; }
+.ciCheck { stroke-dasharray: 40; stroke-dashoffset: 40; animation: ciDraw .22s ease-out 1.02s forwards; }
+
+/* browser window */
+.ciWindow { opacity: 0; animation: ciWinIn .45s cubic-bezier(.2,.9,.3,1.1) 1.05s forwards; }
+.ciWinFrame { fill: rgba(255,255,255,.04); stroke: rgba(255,200,160,.22); stroke-width: 1.5; }
+.ciWinBar { fill: rgba(255,255,255,.06); }
+.ciDot.a { fill: #ff6b57; } .ciDot.b { fill: #ffbf47; } .ciDot.c { fill: #5ccf8e; }
+.ciUrl { fill: rgba(255,255,255,.10); }
+
+/* dashboard panels pop in on the right */
+.ciPanel > rect:first-child { fill: rgba(255,255,255,.06); stroke: rgba(255,255,255,.10); stroke-width: 1; }
+.ciPanel.hot > rect:first-child { fill: url(#caIntroL); stroke: none; }
+.ciPanel { opacity: 0; animation: ciPanelIn .42s cubic-bezier(.2,.9,.3,1.2) forwards; }
+.ciPanel.p1 { animation-delay: 1.15s; } .ciPanel.p2 { animation-delay: 1.22s; } .ciPanel.p3 { animation-delay: 1.29s; }
+.ciPanel.p4 { animation-delay: 1.38s; } .ciPanel.p5 { animation-delay: 1.44s; } .ciPanel.p6 { animation-delay: 1.5s; }
+.ciTxt { fill: rgba(255,255,255,.22); } .ciNum { fill: rgba(255,255,255,.85); }
+.ciPanel.hot .ciTxt { fill: rgba(255,255,255,.55); } .ciPanel.hot .ciNum { fill: #fff; }
+.ciSpark { fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 120; stroke-dashoffset: 120; animation: ciDraw .5s ease-out 1.45s forwards; }
+.ciBar { fill: rgba(255,255,255,.14); transform-origin: bottom; animation: ciScaleY .35s cubic-bezier(.2,.9,.3,1.2) both; }
+.ciBar:nth-child(6), .ciBar:nth-child(7) { fill: #ff8a4c; }
+.ciLine { fill: none; stroke: #ffd9a8; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 260; stroke-dashoffset: 260; animation: ciDraw .6s ease-out 1.5s forwards; }
+.ciProd.a { fill: #b9e6c9; } .ciProd.b { fill: #ffd9a8; } .ciProd.c { fill: #cdb8ff; }
+
+.caIntroText { display: grid; justify-items: center; gap: 6px; animation: ciFadeUp .4s ease-out .55s both; }
+.caIntroText strong { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+.caIntroText span { color: rgba(244,241,234,.6); font-size: 13.5px; }
+.caIntroBar { display: block; width: 180px; height: 3px; border-radius: 2px; background: rgba(255,255,255,.1); overflow: hidden; margin-top: 6px; }
+.caIntroBar b { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #ffb36b, #ff5a36); transform-origin: left; animation: ciGrow 1.9s cubic-bezier(.4,0,.2,1) both; }
+.caIntroSkip { position: absolute; right: 20px; bottom: 20px; height: 32px; padding: 0 14px; border-radius: 16px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.06); color: #eee; cursor: pointer; font: inherit; font-size: 12px; backdrop-filter: blur(8px); }
+.caIntroSkip:hover { background: rgba(255,255,255,.12); }
+
+@keyframes ciRise { from { transform: translateY(40px); opacity: 0; } }
+@keyframes ciDrop { from { transform: translateY(-80px); opacity: 0; } }
+@keyframes ciScaleY { from { transform: scaleY(0); } }
+@keyframes ciPop { from { transform: scale(0); } }
+@keyframes ciUnroll { from { transform: scaleY(0); } }
+@keyframes ciBag { from { transform: translate(40px, -90px) rotate(18deg) scale(.6); opacity: 0; } }
+@keyframes ciDraw { to { stroke-dashoffset: 0; } }
+@keyframes ciFade { from { opacity: 0; } }
+@keyframes ciFadeUp { from { opacity: 0; transform: translateY(10px); } }
+@keyframes ciGrow { from { transform: scaleX(0); } }
+@keyframes ciToWindow { to { transform: translate(0, 18px) scale(.8); } }
+@keyframes ciWinIn { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes ciPanelIn { from { opacity: 0; transform: translateY(18px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes ciZoom { to { transform: scale(1.35); opacity: 0; filter: blur(4px); } }
+@keyframes caIntroOut { 0% { clip-path: circle(150% at 50% 50%); } 100% { clip-path: circle(0% at 50% 50%); visibility: hidden; } }
+
+/* reduced motion: a short cross-fade of the finished picture, no movement */
+.caIntro.calm { animation: ciFadeOut .3s ease-out .6s forwards; }
+.caIntro.calm *, .caIntro.calm .ciStore { animation: none !important; }
+.caIntro.calm .caIntroArt .ciStore { transform: translate(0, 18px) scale(.8); }
+.caIntro.calm .ciWindow, .caIntro.calm .ciPanel { opacity: 1; }
+.caIntro.calm .ciCheck, .caIntro.calm .ciSpark, .caIntro.calm .ciLine, .caIntro.calm .caIntroGrid line { stroke-dashoffset: 0; }
+@keyframes ciFadeOut { to { opacity: 0; visibility: hidden; } }
+
+/* after the intro: the admin's cards rise in one after another */
+.caEnter .caPage > * { animation: caRiseIn .5s cubic-bezier(.2,.9,.3,1) both; }
+.caEnter .caPage > *:nth-child(2) { animation-delay: .06s; } .caEnter .caPage > *:nth-child(3) { animation-delay: .12s; }
+.caEnter .caPage > *:nth-child(4) { animation-delay: .18s; } .caEnter .caPage > *:nth-child(5) { animation-delay: .24s; }
+.caEnter .caPage > *:nth-child(n+6) { animation-delay: .3s; }
+.caEnter .caNav, .caEnter .caSide { animation: caSlideIn .45s cubic-bezier(.2,.9,.3,1) both; }
+@keyframes caRiseIn { from { opacity: 0; transform: translateY(18px) scale(.985); } }
+@keyframes caSlideIn { from { opacity: 0; transform: translateX(-16px); } }
+@media (prefers-reduced-motion: reduce) { .caEnter .caPage > *, .caEnter .caNav, .caEnter .caSide { animation: none; } }

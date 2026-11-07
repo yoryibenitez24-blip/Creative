@@ -51,7 +51,7 @@ const NAV = [
 ];
 const SECTION_OF = { order: 'orders', 'order-new': 'orders', product: 'products', inventory: 'products', collections: 'products', collection: 'products', customer: 'customers', discount: 'discounts', pages: 'themes', navigation: 'themes', preferences: 'themes' };
 
-export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio, assetStore, commerce, onCommerceChange }) {
+export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio, assetStore, commerce, onCommerceChange, intro: playIntro }) {
   const [, bump] = useReducer(x => x + 1, 0);
   // latest documents (props are adopted when they change; our own commits are visible immediately)
   const S = useRef(null), K = useRef(null), seen = useRef({ store: undefined, commerce: undefined });
@@ -71,7 +71,11 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
   useEffect(() => { if (cur && com && (!commerce || commerce.kind !== 'commerce')) onCommerceChange && onCommerceChange(com, 'Set up commerce'); }, [cur && cur.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [route, setRoute] = useState({ page: 'home' });
-  const [intro, setIntro] = useState(() => shouldPlayIntro());
+  // intro: true → play the entrance animation now; false → never; undefined → first open in this browser session
+  const [intro, setIntro] = useState(() => playIntro === undefined ? shouldPlayIntro() : !!playIntro);
+  const [entering, setEntering] = useState(false);
+  const endIntro = useCallback(() => { setIntro(false); setEntering(true); setTimeout(() => setEntering(false), 1100); }, []);
+  const introEl = intro ? <Intro storeName={cur ? cur.name : ''} onDone={endIntro} /> : null;
   const [customizing, setCustomizing] = useState(false);
   const [toast, setToast] = useState('');
   const [navOpen, setNavOpen] = useState(false);
@@ -146,7 +150,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
   }, [customizing, intro]);
 
   // ---------- no store yet: pick a template first ----------
-  if (!cur) return <div className="caRoot caPicker stRoot"><Gallery onPick={id => commit(createStore(id), null, 'Create store')} onCancel={onExit} /></div>;
+  if (!cur) return <div className="caRoot caPicker stRoot"><Gallery onPick={id => commit(createStore(id), null, 'Create store')} onCancel={onExit} />{introEl}</div>;
   if (customizing) return <StoreBuilder store={cur} commerce={com} onChange={(s, label) => commit(s, null, label)} onExit={() => setCustomizing(false)} onOpenPhotoStudio={onOpenPhotoStudio} assetStore={assetStore} />;
 
   const ctx = { store: cur, commerce: com, commit, editStore, editCommerce, run, fmt, imageUrl, upload, resolver, notify, confirm, go, route, assetStore, onOpenPhotoStudio, customize: () => setCustomizing(true), viewStore };
@@ -179,7 +183,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
   })();
 
   return <AdminCtx.Provider value={ctx}>
-    <div className="caRoot">
+    <div className={'caRoot' + (entering ? ' caEnter' : '')}>
       <header className="caTop">
         <button type="button" className="caIconBtn caNavToggle" aria-label="Toggle navigation" aria-expanded={navOpen} onClick={() => setNavOpen(v => !v)}><Menu size={18} /></button>
         {onExit && <button type="button" className="caIconBtn" aria-label="Exit commerce" title="Exit commerce" onClick={onExit}><ArrowLeft size={17} /></button>}
@@ -223,7 +227,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
       </div>
       <div className="caToast" role="status" aria-live="polite">{toast && <span>{toast}</span>}</div>
       {confirmEl}
-      {intro && <Intro storeName={cur.name} onDone={() => setIntro(false)} />}
+      {introEl}
     </div>
   </AdminCtx.Provider>;
 }

@@ -400,3 +400,13 @@ test('commerce: exported store embeds discounts, shipping, tax and the order web
   const cfg = checkoutConfig(store, { discounts: commerce.discounts });
   assert.equal(cfg.discounts.length, 4); assert.deepEqual(cfg.zones, []); assert.equal(cfg.webhook, '');
 });
+
+test('template preview links: URL shape and parsing', async () => {
+  const { templatePreviewUrl, requestedTemplate } = await import('../src/store/templatePreview.js');
+  const { STORE_TEMPLATES } = await import('../src/store/templates.js');
+  const id = STORE_TEMPLATES[0].id;
+  const url = templatePreviewUrl(id, { origin: 'https://example.com', pathname: '/app/' });
+  assert.equal(url, 'https://example.com/app/?template=' + id);
+  assert.equal(requestedTemplate(new URL(url).search), id);
+  assert.equal(requestedTemplate('?x=1'), null);
+});
