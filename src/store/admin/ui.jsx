@@ -25,7 +25,8 @@ export function Card({ title, actions, children, className = '', pad = true, ...
 }
 export const Grid = ({ children, cols = 2, className = '' }) => <div className={`caGrid c${cols} ${className}`}>{children}</div>;
 export const Badge = ({ tone = 'neutral', children }) => <span className={'caBadge ' + tone}>{children}</span>;
-export const Btn = ({ kind = '', icon: Icon, children, className = '', ...p }) => <button type="button" className={`caBtn ${kind} ${className}`} {...p}>{Icon && <Icon size={14} aria-hidden="true" />}{children}</button>;
+const KIND = { primary: 'caPrimary', danger: 'caDanger', plain: 'caPlain' };
+export const Btn = ({ kind = '', icon: Icon, children, className = '', ...p }) => <button type="button" className={`caBtn ${KIND[kind] || ''} ${className}`} {...p}>{Icon && <Icon size={14} aria-hidden="true" />}{children}</button>;
 
 // ---------- fields (label → control via htmlFor; hints are linked with aria-describedby) ----------
 export function Field({ label, hint, children, wide }) {
@@ -132,7 +133,7 @@ const path = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' 
 export function Sparkline({ values, label, width = 120, height = 34 }) {
   const max = Math.max(1e-9, ...values), n = values.length;
   const pts = values.map((v, i) => [n < 2 ? width / 2 : i * width / (n - 1), height - 3 - (v / max) * (height - 6)]);
-  return <svg className="caSpark" viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label={label}>
+  return <svg className="caSpark" viewBox={`0 0 ${width} ${height}`} width={width} height={height} preserveAspectRatio="none" role="img" aria-label={label}>
     {n > 1 && <path d={path(pts) + ` L${width} ${height} L0 ${height} Z`} className="area" />}
     {n > 1 && <path d={path(pts)} className="line" />}
   </svg>;
@@ -202,10 +203,12 @@ export const pct = v => (Math.round(v * 1000) / 10).toFixed(1) + '%';
 export const FIN = { pending: ['Payment pending', 'warn'], paid: ['Paid', 'ok'], partially_refunded: ['Partially refunded', 'info'], refunded: ['Refunded', 'neutral'], voided: ['Voided', 'neutral'] };
 export const FUL = { unfulfilled: ['Unfulfilled', 'warn'], fulfilled: ['Fulfilled', 'ok'] };
 
-export function Thumb({ src, alt = '', size = 40 }) {
+export function Thumb({ src, fallback, alt = '', size = 40 }) {
   const { imageUrl } = useAdmin();
-  const u = src ? imageUrl(src) : '';
-  return <span className="caThumb" style={{ width: size, height: size }}>{u ? <img src={u} alt={alt} loading="lazy" /> : <svg viewBox="0 0 24 24" width={size * .45} height={size * .45} aria-hidden="true"><path d="M4 16l4-4 4 4 3-3 5 5M4 4h16v16H4z" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>}</span>;
+  const [failed, setFailed] = useState('');
+  const main = src ? imageUrl(src) : '', fb = fallback ? imageUrl(fallback) : '';
+  const u = failed === main ? fb : main || fb;
+  return <span className="caThumb" style={{ width: size, height: size }}>{u ? <img src={u} alt={alt} loading="lazy" onError={() => { if (failed !== main) setFailed(main); }} /> : <svg viewBox="0 0 24 24" width={size * .45} height={size * .45} aria-hidden="true"><path d="M4 16l4-4 4 4 3-3 5 5M4 4h16v16H4z" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>}</span>;
 }
 
 /** Download a text file. */

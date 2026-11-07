@@ -51,7 +51,7 @@ export function ProductsList() {
         <thead><tr><th className="sel"><input type="checkbox" aria-label="Select all products" checked={allOn} onChange={e => setSel(e.target.checked ? list.map(p => p.id) : [])} /></th><th colSpan="2">Product</th><th>Status</th><th>Inventory</th><th>Type</th><th>Vendor</th></tr></thead>
         <tbody>{list.map(p => { const m = productMeta(commerce, p.id), n = productStock(p); return <tr key={p.id} className="click" onClick={() => go({ page: 'product', id: p.id })}>
           <td className="sel" onClick={e => e.stopPropagation()}><input type="checkbox" aria-label={`Select ${p.title}`} checked={sel.includes(p.id)} onChange={e => setSel(e.target.checked ? [...sel, p.id] : sel.filter(x => x !== p.id))} /></td>
-          <td className="img"><Thumb src={p.images[0] || p.art} size={40} /></td>
+          <td className="img"><Thumb src={p.images[0] || p.art} fallback={p.art} size={40} /></td>
           <td><button type="button" className="caLink" onClick={e => { e.stopPropagation(); go({ page: 'product', id: p.id }); }}>{p.title}</button></td>
           <td><Badge tone={p.status === 'active' ? 'ok' : 'neutral'}>{p.status === 'active' ? 'Active' : 'Draft'}</Badge></td>
           <td className={n === 0 ? 'caBad' : ''}>{stockText(p)}</td><td>{m.productType || p.category || '—'}</td><td>{m.vendor || '—'}</td></tr>; })}</tbody></table>
@@ -67,6 +67,7 @@ export function ProductDetail({ id }) {
   const original = store.products.find(p => p.id === id);
   const init = () => {
     const p = original ? structuredClone(original) : newProduct({ title: '', status: 'active', variants: [{ options: [], stock: 0, sku: '' }] });
+    if (!original) p.slug = ''; // derive the handle (and generated SKUs) from the title
     const pm = structuredClone(productMeta(commerce, p.id));
     const manual = store.collections.filter(c => c.rule.type === 'manual' && !commerce.collectionRules[c.id] && c.rule.productIds.includes(p.id)).map(c => c.id);
     return { p, m: pm, cols: manual };
@@ -78,7 +79,7 @@ export function ProductDetail({ id }) {
   const set = fn => { setSt(s => { const n = structuredClone(s); fn(n); return n; }); setDirty(true); };
   const unit = commerce.settings.general.weightUnit, toUnit = g => g == null ? null : Math.round(g / WEIGHT_UNITS[unit] * 1000) / 1000, fromUnit = v => v == null ? null : Math.round(v * WEIGHT_UNITS[unit]);
   const single = p.options.length === 0, v0 = p.variants[0];
-  const setOptions = opts => set(s => { s.p.options = opts; s.p.variants = generateVariants({ ...s.p, options: opts.filter(o => o.name && o.values.length) }); });
+  const setOptions = opts => set(s => { s.p.options = opts; s.p.variants = generateVariants({ ...s.p, slug: s.p.slug || s.p.title, options: opts.filter(o => o.name && o.values.length) }); });
   const vm = vid => m.variants[vid] || { cost: null, weight: null, barcode: '', continueSelling: false };
   const setVm = (vid, k, val) => set(s => { s.m.variants[vid] = { ...vm(vid), ...(s.m.variants[vid] || {}), [k]: val }; });
   const cost = m.cost, profit = cost != null ? p.price - cost : null;
@@ -248,7 +249,7 @@ export function InventoryPage() {
       {rows.length ? <table className="caTable">
         <thead><tr><th colSpan="2">Product</th><th>SKU</th><th>Status</th><th>Adjust</th><th>Available</th></tr></thead>
         <tbody>{rows.map(r => { const lab = r.product.title + (r.variant.options.length ? ' ' + r.variant.options.join(' / ') : ''); return <tr key={r.variant.id}>
-          <td className="img"><Thumb src={r.product.images[0] || r.product.art} size={36} /></td>
+          <td className="img"><Thumb src={r.product.images[0] || r.product.art} fallback={r.product.art} size={36} /></td>
           <td><button type="button" className="caLink" onClick={() => go({ page: 'product', id: r.product.id })}>{r.product.title}</button>{r.variant.options.length > 0 && <small className="caMuted block">{r.variant.options.join(' / ')}</small>}</td>
           <td>{r.variant.sku || '—'}</td>
           <td>{!r.tracked ? <Badge>Not tracked</Badge> : r.out ? <Badge tone="bad">Out of stock</Badge> : r.low ? <Badge tone="warn">Low</Badge> : <Badge tone="ok">In stock</Badge>}{r.continueSelling && <Badge tone="info">Oversell</Badge>}</td>
@@ -336,10 +337,10 @@ export function CollectionDetail({ id }) {
           {st.kind === 'price' && <p className="caHint">Price collections are kept up to date whenever products are saved here in Commerce.</p>}
         </Card>
         <Card title={`Products (${automated ? preview.length : manualIds.length})`}>
-          {automated ? (preview.length ? <ul className="caPickList">{preview.map(p => <li key={p.id}><Thumb src={p.images[0] || p.art} size={32} /><span>{p.title}</span><span className="caMuted">{fmt(p.price)}</span></li>)}</ul> : <p className="caMuted">No active products match these conditions.</p>)
+          {automated ? (preview.length ? <ul className="caPickList">{preview.map(p => <li key={p.id}><Thumb src={p.images[0] || p.art} fallback={p.art} size={32} /><span>{p.title}</span><span className="caMuted">{fmt(p.price)}</span></li>)}</ul> : <p className="caMuted">No active products match these conditions.</p>)
             : <><input className="caInput" type="search" aria-label="Filter products to add" placeholder="Search products" value={q} onChange={e => setQ(e.target.value)} />
               <ul className="caPickList">{store.products.filter(p => p.title.toLowerCase().includes(q.trim().toLowerCase())).map(p => <li key={p.id}>
-                <label className="caCheck"><input type="checkbox" checked={manualIds.includes(p.id)} onChange={e => setC({ rule: { ...st.c.rule, productIds: e.target.checked ? [...manualIds, p.id] : manualIds.filter(x => x !== p.id) } })} /><Thumb src={p.images[0] || p.art} size={32} /><span>{p.title}{p.status === 'draft' && ' (draft)'}</span></label></li>)}</ul></>}
+                <label className="caCheck"><input type="checkbox" checked={manualIds.includes(p.id)} onChange={e => setC({ rule: { ...st.c.rule, productIds: e.target.checked ? [...manualIds, p.id] : manualIds.filter(x => x !== p.id) } })} /><Thumb src={p.images[0] || p.art} fallback={p.art} size={32} /><span>{p.title}{p.status === 'draft' && ' (draft)'}</span></label></li>)}</ul></>}
         </Card>
       </div>
       <div className="caColSide">

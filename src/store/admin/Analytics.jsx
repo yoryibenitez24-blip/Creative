@@ -47,7 +47,7 @@ export default function Analytics() {
         <Card title="Conversion funnel">
           <ol className="caFunnel" aria-label="Conversion funnel">{a.funnel.map((f, i) => <li key={f.key}>
             <div className="caFunnelBar" style={{ height: `${Math.max(4, (a.funnel[0].count ? f.count / a.funnel[0].count : 0) * 100)}%` }} />
-            <strong>{f.count}</strong><span>{f.label}</span><small>{i === 0 ? '100%' : a.funnel[0].count ? pct(f.rate) : '—'}</small></li>)}</ol>
+            <strong>{f.count}</strong><span>{f.label}</span><small>{!a.funnel[0].count ? '—' : i === 0 ? '100%' : pct(f.rate)}</small></li>)}</ol>
           <p className="caHint">Sessions come from “View store” visits. Orders created manually have no session, so they count in sales but not in the funnel.</p>
         </Card>
         <Card title="Top products by sales">{a.topProducts.length ? <BarList label="Top products by sales" items={a.topProducts.map(t => ({ key: t.productId || t.title, label: `${t.title} · ${t.quantity} sold`, value: t.sales }))} format={v => fmt(v)} /> : <p className="caMuted">No sales in this period.</p>}</Card>

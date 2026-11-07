@@ -83,7 +83,7 @@ export default function Home() {
       </div>
       <div className="caColSide">
         <Card title="Inventory alerts" actions={<Btn kind="plain" onClick={() => go('inventory')}>Inventory</Btn>}>
-          {low.length ? <ul className="caAlerts">{low.map(r => <li key={r.variant.id}><Thumb src={r.product.images[0] || r.product.art} size={32} />
+          {low.length ? <ul className="caAlerts">{low.map(r => <li key={r.variant.id}><Thumb src={r.product.images[0] || r.product.art} fallback={r.product.art} size={32} />
             <button type="button" className="caLink" onClick={() => go({ page: 'product', id: r.product.id })}>{r.product.title}{r.variant.options.length ? ' · ' + r.variant.options.join(' / ') : ''}</button>
             <Badge tone={r.out ? 'bad' : 'warn'}>{r.out ? 'Out of stock' : r.stock + ' left'}</Badge></li>)}</ul>
             : <p className="caMuted caRow"><Check size={14} /> No low-stock items (threshold {commerce.settings.general.lowStockThreshold}).</p>}

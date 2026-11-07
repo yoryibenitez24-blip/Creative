@@ -39,18 +39,20 @@ await step('custom size from Home', async () => {
   await page.getByLabel('Custom width').fill('640'); await page.getByLabel('Custom height').fill('480'); await page.getByRole('button', { name: 'Create', exact: true }).click();
   await page.waitForFunction(sel => document.querySelector(sel + ' .artboardLabel')?.textContent.includes('640 × 480'), APP);
 });
-await step('E-commerce opens the store builder; a template becomes the store; the photo studio opens inside', async () => {
+await step('E-commerce: template gallery → intro animation → Shopify-like admin; Customize opens the builder', async () => {
   await page.locator(APP).getByRole('navigation', { name: 'Sections' }).getByRole('button', { name: 'E-commerce' }).click();
-  const use = page.getByRole('button', { name: /^Use template / }).first(); await use.waitFor({ timeout: 20000 });
-  await page.waitForTimeout(1500); await page.screenshot({ path: join(evidence, 'store-gallery.png') });
+  await page.getByRole('button', { name: /^Use template / }).first().waitFor({ timeout: 20000 });
   await page.getByRole('button', { name: 'Use template Static Noise' }).click();
-  await page.getByRole('button', { name: 'Exit store builder' }).waitFor();
-  await page.waitForTimeout(1500); await page.screenshot({ path: join(evidence, 'store-builder.png') });
-  await page.getByRole('button', { name: /Product photo studio/ }).first().click();
-  await page.locator('.ecom').waitFor({ timeout: 15000 });
-  await page.locator('.ecom').getByRole('button', { name: /^Exit/ }).first().click();
-  await page.reload(); await page.getByRole('button', { name: 'Exit store builder' }).waitFor({ timeout: 20000 });
-  await page.getByRole('button', { name: 'Exit store builder' }).click(); await page.getByRole('main', { name: 'Zertake home' }).waitFor();
+  await page.waitForTimeout(400); await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Exit commerce' }).waitFor({ timeout: 20000 });
+  await page.waitForTimeout(800); await page.screenshot({ path: join(evidence, 'commerce-home.png') });
+  await page.getByRole('button', { name: 'Online Store', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Customize', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Exit store builder' }).waitFor({ timeout: 20000 });
+  await page.getByRole('button', { name: 'Exit store builder' }).click();
+  await page.reload(); await page.keyboard.press('Escape').catch(() => {});
+  await page.getByRole('button', { name: 'Exit commerce' }).waitFor({ timeout: 20000 });
+  await page.getByRole('button', { name: 'Exit commerce' }).click(); await page.getByRole('main', { name: 'Zertake home' }).waitFor();
 });
 await step('the Web & UI section opens the interface designer; it persists across a reload', async () => {
   await page.getByRole('main', { name: 'Zertake home' }).getByRole('button', { name: 'Open Web & UI' }).click();

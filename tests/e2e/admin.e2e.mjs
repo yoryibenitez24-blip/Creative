@@ -56,7 +56,7 @@ const page = await ctx.newPage();
 const errors = []; page.on('pageerror', e => errors.push(e.message));
 let n = 0;
 const step = async (name, fn) => { const t = Date.now(); await fn(); console.log(`ok ${++n} - ${name} (${Date.now() - t} ms)`); };
-const shot = name => page.screenshot({ path: join(evidence, `admin-${name}.jpg`), type: 'jpeg', quality: 80 });
+const shot = async name => { await page.evaluate(() => { const m = document.querySelector('.caMain'); if (m) m.scrollTop = 0; }); await page.waitForTimeout(150); return page.screenshot({ path: join(evidence, `admin-${name}.jpg`), type: 'jpeg', quality: 80 }); };
 const nav = name => page.getByRole('navigation', { name: 'Commerce' }).getByRole('button', { name, exact: true }).click();
 const main = page.getByRole('main', { name: 'Commerce content' });
 const commerce = () => page.evaluate(() => window.__commerce);
@@ -104,7 +104,7 @@ try {
     assert.ok(p, 'product written to store.products');
     assert.deepEqual(p.options, [{ name: 'Size', values: ['S', 'M'] }]);
     assert.deepEqual(p.variants.map(v => v.stock), [10, 5]);
-    assert.equal(p.variants[1].sku, 'HOOD-M');
+    assert.equal(p.variants[1].sku, 'HOOD-M'); assert.equal(p.variants[0].sku, 'TEST-HOODIE-S'); assert.equal(p.slug, 'test-hoodie');
     assert.equal(p.description, 'Soft fleece hoodie.\n\nMachine washable.');
     const c = await commerce();
     assert.equal(c.productMeta[p.id].cost, 20); assert.equal(c.productMeta[p.id].vendor, 'Acme Knits');
@@ -177,6 +177,43 @@ try {
     await main.getByText(/tracking 1Z999AA10123456784/).first().waitFor();
     const o = (await commerce()).orders.find(x => x.id === orderId);
     assert.equal(o.financialStatus, 'paid'); assert.equal(o.fulfillmentStatus, 'fulfilled'); assert.equal(o.fulfillments[0].carrier, 'UPS');
+    await shot('order');
+  });
+
+  await step('draft order → complete → cancel restocks; partial refund on #1001', async () => {
+    await nav('Orders');
+    await main.getByRole('button', { name: 'Create order' }).first().click();
+    const sel = main.getByLabel('Product to add');
+    await sel.selectOption(await sel.locator('option', { hasText: 'Test Hoodie — M ·' }).getAttribute('value'));
+    await main.getByRole('button', { name: 'Add', exact: true }).click();
+    await main.getByLabel('Existing customer').selectOption({ label: 'Ana Lima · ana@example.com' });
+    await main.getByRole('button', { name: 'Save as draft' }).click();
+    await main.getByRole('button', { name: /^Drafts/ }).click();
+    await main.getByRole('button', { name: 'D1' }).click();
+    await main.getByRole('heading', { name: 'Draft order D1' }).waitFor();
+    await main.getByLabel('Mark as paid').check();
+    await main.getByRole('button', { name: 'Complete order' }).click();
+    await main.getByRole('heading', { level: 1 }).filter({ hasText: '#1002' }).waitFor();
+    assert.equal((await store()).products.find(x => x.title === 'Test Hoodie').variants[1].stock, 4);
+    await main.getByRole('button', { name: 'Cancel order' }).click();
+    const dlg = page.getByRole('dialog', { name: 'Cancel #1002?' });
+    await dlg.getByLabel('Reason').selectOption('Items unavailable');
+    await dlg.getByRole('button', { name: 'Cancel order' }).click();
+    await main.getByText('Cancelled', { exact: true }).first().waitFor();
+    assert.equal((await store()).products.find(x => x.title === 'Test Hoodie').variants[1].stock, 5, 'restocked');
+    const o2 = (await commerce()).orders.find(x => x.name === '#1002');
+    assert.equal(o2.status, 'cancelled'); assert.equal(o2.financialStatus, 'refunded');
+    // partial refund without restock on #1001
+    await main.getByRole('textbox', { name: 'Filter orders' }).or(main.getByLabel('Back to orders')).first().click();
+    await main.getByRole('button', { name: '#1001' }).click();
+    await main.getByRole('button', { name: 'Refund', exact: true }).click();
+    const rd = page.getByRole('dialog', { name: 'Refund #1001' });
+    await rd.getByLabel('Refund amount').fill('4.99');
+    await rd.getByLabel('Restock items').uncheck();
+    await rd.getByRole('button', { name: /^Refund/ }).click();
+    await main.getByText('Partially refunded').first().waitFor();
+    const o1 = (await commerce()).orders.find(x => x.name === '#1001');
+    assert.equal(o1.refunds[0].amount, 4.99); assert.equal((await store()).products.find(x => x.title === 'Test Hoodie').variants[0].stock, 8);
   });
 
   await step('orders list, customer page and search', async () => {
@@ -195,13 +232,13 @@ try {
     const custIdx = (await opts.allTextContents()).findIndex(t => t.startsWith('Customer'));
     await opts.nth(custIdx).dispatchEvent('mousedown');
     await main.getByRole('heading', { name: 'Ana Lima', level: 1 }).waitFor();
-    await main.getByRole('group', { name: 'Amount spent' }).or(main.locator('.caKpi', { hasText: 'Amount spent' })).getByText('$104.99').waitFor();
+    await main.locator('.caKpi', { hasText: 'Amount spent' }).getByText('$100.00').waitFor();
   });
 
   await step('analytics shows the order', async () => {
     await nav('Analytics');
     await main.getByRole('group', { name: 'Orders', exact: true }).getByText('1', { exact: true }).waitFor();
-    await main.getByRole('group', { name: 'Total sales', exact: true }).getByText('$104.99').waitFor();
+    await main.getByRole('group', { name: 'Total sales', exact: true }).getByText('$100.00').waitFor();
     await main.getByRole('list', { name: 'Top products by sales' }).getByText(/Test Hoodie/).waitFor();
     await main.getByText('Connect a backend to collect live orders').waitFor();
     await main.getByLabel('Order webhook URL').fill('https://example.com/orders');
@@ -263,6 +300,14 @@ try {
     assert.equal(leaked, 1, '"/" is handled and stopped, "x" passes through');
     assert.deepEqual(errors, []);
   });
+  if (process.env.ADMIN_SHOTS) { // optional visual review of every page: ADMIN_SHOTS=<dir>
+    const pages = [['Orders'], ['Products'], ['Inventory', 'Products'], ['Collections', 'Products'], ['Customers'], ['Discounts'], ['Marketing'], ['Themes', 'Online Store'], ['Pages', 'Online Store'], ['Navigation', 'Online Store'], ['Preferences', 'Online Store']];
+    for (const [name, parent] of pages) { if (parent) await nav(parent); await nav(name); await page.waitForTimeout(300); await page.screenshot({ path: join(process.env.ADMIN_SHOTS, name + '.jpg'), type: 'jpeg', quality: 70, fullPage: false }); }
+    await nav('Orders'); await main.getByRole('button', { name: 'Create order' }).first().click(); await page.screenshot({ path: join(process.env.ADMIN_SHOTS, 'new-order.jpg'), type: 'jpeg', quality: 70 });
+    await page.getByRole('navigation', { name: 'Commerce' }).getByRole('button', { name: 'Settings' }).click();
+    for (const t of ['General', 'Payments', 'Shipping and delivery', 'Notifications', 'Policies', 'Domains']) { await main.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: t }).click(); await page.screenshot({ path: join(process.env.ADMIN_SHOTS, 'set-' + t.split(' ')[0] + '.jpg'), type: 'jpeg', quality: 70 }); }
+    await page.setViewportSize({ width: 820, height: 1100 }); await nav('Home').catch(() => {}); await page.screenshot({ path: join(process.env.ADMIN_SHOTS, 'tablet.jpg'), type: 'jpeg', quality: 70 });
+  }
   console.log('All admin e2e steps passed');
 } finally {
   await browser.close(); server.close(); await rm(work, { recursive: true, force: true });

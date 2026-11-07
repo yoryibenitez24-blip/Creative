@@ -68,12 +68,12 @@
 .caBtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 9px; border: 1px solid #34343a; background: #232327; color: var(--z-text); cursor: pointer; white-space: nowrap; font-size: 12.5px; font-weight: 500; text-decoration: none; }
 .caBtn:hover:not(:disabled) { background: #2c2c31; border-color: #44444c; }
 .caBtn:disabled { opacity: .4; cursor: default; }
-.caBtn.primary { background: #f2f2f5; color: #111; border-color: transparent; font-weight: 650; }
-.caBtn.primary:hover:not(:disabled) { background: #fff; }
-.caBtn.danger { color: #ffb4ab; border-color: #4b2a2a; background: #241a1b; }
-.caBtn.danger:hover:not(:disabled) { background: #3a2224; }
-.caBtn.plain { background: transparent; border-color: transparent; color: #c9c9d1; padding: 0 8px; }
-.caBtn.plain:hover:not(:disabled) { background: #232327; }
+
+
+
+
+
+
 .caIconBtn { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: #c9c9d1; cursor: pointer; flex: none; }
 .caIconBtn:hover:not(:disabled) { background: #26262b; color: #fff; }
 .caIconBtn:disabled { opacity: .3; cursor: default; }
@@ -392,3 +392,24 @@ select.caTagInput option { background: #222; }
   .caSearch { margin-left: 0; }
   .caBrand strong { display: none; }
 }
+
+/* resets against the app's global element rules (style.css styles header/footer/main/button globally) */
+:where(.caRoot) header, :where(.caRoot) footer { height: auto; display: block; padding: 0; gap: 0; border: 0; background: none; font-size: inherit; color: inherit; }
+:where(.caRoot) main { display: block; }
+:where(.caRoot) button { display: inline-block; justify-content: normal; gap: 0; }
+.caMain { display: block; }
+.caCardHead, .caModalHead, .caModalFoot, .caTop { display: flex; }
+.caLink:hover, .caStepTitle:hover, .caStepDone:hover { background: none; }
+.caSteps li.done .caStepDone:hover { background: #f2f2f5; }
+.caIconBtn:disabled:hover { background: transparent; }
+.caBtn:disabled:hover { background: #232327; }
+.caBtn.caPrimary { background: #f2f2f5; color: #111; border-color: transparent; font-weight: 650; }
+.caBtn.caPrimary:hover:not(:disabled), .caBtn.caPrimary:disabled:hover { background: #fff; color: #111; }
+.caBtn.caDanger { color: #ffb4ab; border-color: #4b2a2a; background: #241a1b; }
+.caBtn.caDanger:hover:not(:disabled), .caBtn.caDanger:disabled:hover { background: #3a2224; color: #ffb4ab; }
+.caBtn.caPlain { background: transparent; border-color: transparent; color: #c9c9d1; padding: 0 8px; }
+.caBtn.caPlain:hover:not(:disabled) { background: #232327; }
+.caNavItem, .caSetNav button { display: flex; justify-content: flex-start; }
+.caNavSub, .caNotifyList button, .caStepTitle { display: block; }
+.caStepDone { display: grid; }
+.caCheck input[type=checkbox], .caCheck input[type=radio], .caTable input[type=checkbox] { background: none; border: 0; }
