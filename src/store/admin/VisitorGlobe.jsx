@@ -1,4 +1,5 @@
-// "Visitors around the world" card for Analytics: a Canvas 2D globe (globe.js) next to a ranked "Top locations" list
+// "Visitors around the world" card for Analytics: a Canvas 2D globe (globe.js) above a ranked "Top locations" list
+// (the card is Analytics' sticky right-hand column)
 // that carries the same data for screen readers and keyboard users (focusing a row turns the globe to that marker).
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createGlobe } from './globe.js';
@@ -31,9 +32,9 @@ export default function VisitorGlobe({ locations, home, unlocated = 0, fmt = v =
     <header className="caGlobeHead">
       <div><h2>Visitors around the world</h2><p>{rangeLabel ? rangeLabel + ' · ' : ''}Approximate locations from each visitor’s time zone and shipping country</p></div>
       <div className="caGlobeStats">
-        <span><strong>{total}</strong> located session{total === 1 ? '' : 's'}</span>
-        <span><strong>{locations.length}</strong> countr{locations.length === 1 ? 'y' : 'ies'}</span>
-        <span><strong>{orders}</strong> order{orders === 1 ? '' : 's'}</span>
+        <span title="Sessions with a known location"><strong>{total}</strong>Located session{total === 1 ? '' : 's'}</span>
+        <span><strong>{locations.length}</strong>Countr{locations.length === 1 ? 'y' : 'ies'}</span>
+        <span><strong>{orders}</strong>Order{orders === 1 ? '' : 's'}</span>
       </div>
     </header>
     <div className="caGlobeBody">
@@ -49,7 +50,7 @@ export default function VisitorGlobe({ locations, home, unlocated = 0, fmt = v =
       <div className="caGlobeSide">
         <h3 id="caTopLoc">Top locations</h3>
         {locations.length ? <ol className="caGlobeList" aria-labelledby="caTopLoc">
-          {locations.slice(0, 8).map((l, i) => <li key={l.country}>
+          {locations.slice(0, 6).map((l, i) => <li key={l.country}>
             <button type="button" onFocus={() => focusRow(l)} onBlur={() => focusRow(null)} onMouseEnter={() => focusRow(l)} onMouseLeave={() => focusRow(null)}
               aria-label={`${i + 1}. ${l.name}: ${l.sessions} session${l.sessions === 1 ? '' : 's'}, ${l.orders} order${l.orders === 1 ? '' : 's'}, ${fmt(l.sales)} sales, ${total ? Math.round(l.sessions / total * 100) : 0}% of located sessions`}>
               <span className="caGlobeFlag" aria-hidden="true">{flagEmoji(l.country)}</span>

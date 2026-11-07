@@ -139,41 +139,125 @@ export function Sparkline({ values, label, width = 120, height = 34 }) {
   </svg>;
 }
 
-/** Area chart with axis labels and a hover readout. points: [{ label, value }]. */
-export function AreaChart({ points, format = v => String(v), label, height = 220, compare }) {
+/** Width of an element in CSS px (ResizeObserver), so charts draw at real size and text never scales with the card. */
+export function useWidth(ref, initial = 640) {
+  const [w, setW] = useState(initial);
+  useEffect(() => {
+    const el = ref.current; if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(([e]) => { const v = Math.round(e.contentRect.width); if (v > 0) setW(v); });
+    ro.observe(el); return () => ro.disconnect();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return w;
+}
+/** Clean axis: 0 … max in `n` equal round steps (1, 2, 2.5 or 5 × 10^k). */
+export function niceTicks(v, n = 4) {
+  if (!(v > 0)) return [0, 1, 2, 3, 4];
+  const raw = v / n, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+  const step = (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p;
+  const top = Math.ceil(v / step - 1e-9) * step;
+  return Array.from({ length: Math.round(top / step) + 1 }, (_, i) => +(i * step).toFixed(10));
+}
+/** "Show data table" disclosure: the table twin of a chart (every value readable without hovering). */
+export function DataTable({ caption, columns, rows }) {
+  return <details className="caDataTable">
+    <summary>Show data table</summary>
+    <div className="caDataScroll"><table className="caTable"><caption className="caVh">{caption}</caption>
+      <thead><tr>{columns.map((c, i) => <th key={i} scope="col" className={i ? 'n' : ''}>{c}</th>)}</tr></thead>
+      <tbody>{rows.map((r, i) => <tr key={i}>{r.map((c, j) => j ? <td key={j} className="n">{c}</td> : <th key={j} scope="row">{c}</th>)}</tr>)}</tbody>
+    </table></div>
+  </details>;
+}
+
+/**
+ * Area chart (one series, optionally with the previous period as a grey context line). Crosshair + one tooltip listing
+ * every series at that date, on hover and on keyboard focus (← → Home End). points: [{ label, short, value }].
+ */
+export function AreaChart({ points, format = v => String(v), label, height = 220, compare, seriesLabel = 'This period', compareLabel = 'Previous period' }) {
   const [hover, setHover] = useState(null);
-  const W = 640, H = height, L = 48, R = 12, T = 12, B = 26;
-  const max = niceMax(Math.max(0, ...points.map(p => p.value), ...(compare || []).map(p => p.value)));
+  const box = useRef(null);
+  const W = Math.max(240, useWidth(box)), H = height;
+  const fmtTick = v => format(v, true);
+  const cmp = compare && compare.length > 1 ? compare : null;
+  const ticks = niceTicks(Math.max(0, ...points.map(p => p.value), ...(cmp || []).map(p => p.value)));
+  const max = ticks[ticks.length - 1];
+  const L = Math.max(34, 12 + Math.max(...ticks.map(t => fmtTick(t).length)) * 6.4), R = 10, T = 10, B = 26;
   const n = points.length, x = i => L + (n < 2 ? (W - L - R) / 2 : i * (W - L - R) / (n - 1)), y = v => T + (H - T - B) * (1 - v / max);
   const pts = points.map((p, i) => [x(i), y(p.value)]);
-  const ticks = [0, .25, .5, .75, 1].map(f => max * f);
-  const every = Math.max(1, Math.ceil(n / 7));
-  return <div className="caChart">
-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} preserveAspectRatio="none" onMouseLeave={() => setHover(null)}
-      onMouseMove={e => { const r = e.currentTarget.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * W; const i = Math.round((px - L) / ((W - L - R) / Math.max(1, n - 1))); setHover(Math.max(0, Math.min(n - 1, i))); }}>
-      {ticks.map((t, i) => <g key={i}><line x1={L} x2={W - R} y1={y(t)} y2={y(t)} className="grid" /><text x={L - 6} y={y(t) + 4} textAnchor="end" className="tick">{format(t, true)}</text></g>)}
-      {points.map((p, i) => i % every === 0 && <text key={i} x={x(i)} y={H - 6} textAnchor="middle" className="tick">{p.short || p.label}</text>)}
-      {compare && compare.length > 1 && <path d={path(compare.map((p, i) => [x(i), y(p.value)]))} className="cmp" />}
-      {n > 1 && <path d={path(pts) + ` L${x(n - 1)} ${y(0)} L${x(0)} ${y(0)} Z`} className="area" />}
-      {n > 1 && <path d={path(pts)} className="line" />}
-      {hover != null && pts[hover] && <g><line x1={pts[hover][0]} x2={pts[hover][0]} y1={T} y2={H - B} className="cursor" /><circle cx={pts[hover][0]} cy={pts[hover][1]} r="4" className="dot" /></g>}
-    </svg>
-    {hover != null && points[hover] && <div className="caChartTip" style={{ left: `${(pts[hover][0] / W) * 100}%` }}><strong>{format(points[hover].value)}</strong><span>{points[hover].label}</span></div>}
+  const labelEvery = Math.max(1, Math.ceil(n / Math.max(2, Math.floor((W - L) / 84))));
+  const at = i => Math.max(0, Math.min(n - 1, i));
+  const move = e => { const r = e.currentTarget.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * W; setHover(at(Math.round((px - L) / ((W - L - R) / Math.max(1, n - 1))))); };
+  const key = e => {
+    const cur = hover ?? n - 1, j = { ArrowRight: cur + 1, ArrowLeft: cur - 1, Home: 0, End: n - 1 }[e.key];
+    if (j != null) { e.preventDefault(); setHover(at(j)); }
+    else if (e.key === 'Escape') setHover(null);
+  };
+  const h = hover != null && points[hover] ? hover : null, cv = h != null && cmp ? cmp[h] : null;
+  const edge = h == null ? '' : pts[h][0] < W * 0.18 ? ' left' : pts[h][0] > W * 0.82 ? ' right' : '';
+  const say = h == null ? '' : `${points[h].label}: ${format(points[h].value)}${cv ? `, ${compareLabel.toLowerCase()} ${format(cv.value)}` : ''}`;
+  return <div className="caChart" ref={box}>
+    {cmp && <div className="caLegend"><span><i className="cur" aria-hidden="true" />{seriesLabel}</span><span><i className="prev" aria-hidden="true" />{compareLabel}</span></div>}
+    <div className="caChartPlot">
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={label + ' (focus and use the arrow keys to read values)'} tabIndex={0}
+        onMouseLeave={() => setHover(null)} onMouseMove={move} onFocus={() => setHover(v => v ?? n - 1)} onBlur={() => setHover(null)} onKeyDown={key}>
+        {ticks.map((t, i) => <g key={i}><line x1={L} x2={W - R} y1={y(t)} y2={y(t)} className={i ? 'grid' : 'base'} /><text x={L - 8} y={y(t) + 3.5} textAnchor="end" className="tick">{fmtTick(t)}</text></g>)}
+        {points.map((p, i) => i % labelEvery === 0 && <text key={i} x={x(i)} y={H - 7} textAnchor={i === 0 && n > 1 ? 'start' : 'middle'} className="tick">{p.short || p.label}</text>)}
+        {n > 1 && <path d={path(pts) + ` L${x(n - 1)} ${y(0)} L${x(0)} ${y(0)} Z`} className="area" />}
+        {cmp && <path d={path(cmp.slice(0, n).map((p, i) => [x(i), y(p.value)]))} className="cmp" />}
+        {n > 1 && <path d={path(pts)} className="line" />}
+        {h != null && <line x1={pts[h][0]} x2={pts[h][0]} y1={T} y2={H - B} className="cursor" />}
+        {h != null && cv && <circle cx={pts[h][0]} cy={y(cv.value)} r="4" className="dot prev" />}
+        {n > 0 && <circle cx={pts[h ?? n - 1][0]} cy={pts[h ?? n - 1][1]} r="4.5" className="dot" />}
+      </svg>
+      {h != null && <div className={'caChartTip' + edge} style={{ left: pts[h][0] }} aria-hidden="true">
+        <span className="caTipHead">{points[h].label}</span>
+        <span className="caTipRow">{cmp && <i className="cur" />}<strong>{format(points[h].value)}</strong>{cmp && <small>{seriesLabel}</small>}</span>
+        {cv && <span className="caTipRow"><i className="prev" /><strong>{format(cv.value)}</strong><small>{compareLabel}</small></span>}
+      </div>}
+      <span className="caVh" aria-live="polite">{say}</span>
+    </div>
+    <DataTable caption={label} columns={['Date', seriesLabel, ...(cmp ? [compareLabel] : [])]}
+      rows={points.map((p, i) => [p.label, format(p.value), ...(cmp ? [cmp[i] ? format(cmp[i].value) : '—'] : [])])} />
   </div>;
 }
-function niceMax(v) {
-  if (v <= 0) return 1;
-  const p = Math.pow(10, Math.floor(Math.log10(v))), m = v / p;
-  return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p;
-}
+/** Ranked horizontal bars (one series, one hue); hovering or focusing a row shows its share of the total. */
 export function BarList({ items, format = v => v, label }) {
-  const max = Math.max(1e-9, ...items.map(i => i.value));
-  return <ul className="caBars" aria-label={label}>{items.map(i => <li key={i.key || i.label}>
+  const max = Math.max(1e-9, ...items.map(i => i.value)), total = items.reduce((s, i) => s + i.value, 0);
+  return <ul className="caBars" aria-label={label}>{items.map(i => <li key={i.key || i.label} className="caMark" tabIndex={0}>
     <div className="caBarLabel"><span>{i.label}</span><strong>{format(i.value)}</strong></div>
-    <div className="caBarTrack"><div className="caBarFill" style={{ width: `${(i.value / max) * 100}%` }} /></div>
+    <div className="caBarTrack">{i.value > 0 && <div className="caBarFill" style={{ width: `${(i.value / max) * 100}%` }} />}</div>
+    <span className="caMarkTip" aria-hidden="true"><strong>{total ? Math.round(i.value / total * 100) : 0}%</strong> of the total</span>
   </li>)}</ul>;
 }
 
+/**
+ * Card whose header is a compact pill tab bar (WAI-ARIA tabs: ← → Home End, roving tabindex). The chosen tab is remembered
+ * per card in localStorage. tabs: [{ key, label, count?, content, actions?, pad? }]; a single tab renders as a plain card.
+ * footActions puts the active tab's actions under its content (for narrow side-column cards).
+ */
+export function TabCard({ id, label, tabs, className = '', footActions }) {
+  const store = 'zertake.cardTab.' + id, uid = useId(), refs = useRef({});
+  const [sel, setSel] = useState(() => { try { return localStorage.getItem(store) || ''; } catch { return ''; } });
+  if (!tabs.length) return null;
+  const active = tabs.find(t => t.key === sel) || tabs[0], multi = tabs.length > 1;
+  const pick = (k, focus) => { setSel(k); try { localStorage.setItem(store, k); } catch { /* storage unavailable */ } if (focus) refs.current[k]?.focus(); };
+  const onKey = e => {
+    const i = tabs.indexOf(active), n = tabs.length, j = { ArrowRight: (i + 1) % n, ArrowLeft: (i - 1 + n) % n, Home: 0, End: n - 1 }[e.key];
+    if (j != null) { e.preventDefault(); pick(tabs[j].key, true); }
+  };
+  const tid = k => `${uid}-t-${k}`, pid = k => `${uid}-p-${k}`;
+  const acts = active.actions && <div className="caCardActions">{active.actions}</div>;
+  return <section className={'caCard caTabCard ' + className} aria-label={multi ? label : tabs[0].label}>
+    <header className="caCardHead">
+      {multi ? <><h2 className="caVh">{label}</h2>
+        <div role="tablist" aria-label={label} className="caTabList" onKeyDown={onKey}>{tabs.map(t => <button key={t.key} type="button" role="tab" id={tid(t.key)} aria-selected={t === active} aria-controls={pid(t.key)}
+          tabIndex={t === active ? 0 : -1} ref={el => { refs.current[t.key] = el; }} onClick={() => pick(t.key)}>{t.label}{t.count ? <span className="caTabCount"><span className="caVh">, </span>{t.count}</span> : null}</button>)}</div></>
+        : <h2>{tabs[0].label}</h2>}
+      {!footActions && acts}
+    </header>
+    {tabs.map(t => <div key={t.key} id={pid(t.key)} role={multi ? 'tabpanel' : undefined} aria-labelledby={multi ? tid(t.key) : undefined} tabIndex={multi ? 0 : undefined} hidden={t !== active}
+      className={'caTabPanel' + (t.pad === false ? '' : ' caCardBody')}>{t.content}{footActions && t === active && t.actions && <div className="caTabFoot">{t.actions}</div>}</div>)}
+  </section>;
+}
 /** A formatted number with its decimal part dimmed ("$1,842" + ".56"). Text content stays the formatted string. */
 export function BigNum({ value, className = '' }) {
   const m = /^(.*\d)([.,]\d{1,2})(\D*)$/.exec(String(value));

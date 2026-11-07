@@ -347,7 +347,7 @@ select.caInput option, select.caTagInput option { background: var(--ca-solid); c
 .caGlassValue .caDec { opacity: .55; }
 .caGlass small { color: rgba(255, 255, 255, .78); font-size: 12px; }
 .caMiniBars { position: relative; display: flex; align-items: flex-end; gap: 5px; height: 70px; margin-top: 12px; padding-top: 18px; }
-.caMiniBars span { position: relative; flex: 1; min-width: 4px; border-radius: 4px; background: rgba(255, 255, 255, .34); transition: height .4s; }
+.caMiniBars span { position: relative; flex: 1; min-width: 4px; border-radius: 4px 4px 0 0; background: rgba(255, 255, 255, .34); transition: height .4s; }
 .caMiniBars span.peak { background: #fff; }
 .caMiniBars em { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); padding: 3px 7px; border-radius: 8px; background: #1c1c1a; color: #fff; font-style: normal; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
 .caMiniBars em::after { content: ""; position: absolute; left: 50%; top: 100%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: #1c1c1a; }
@@ -360,7 +360,7 @@ select.caInput option, select.caTagInput option { background: var(--ca-solid); c
 .caKpiTop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
 .caKpiLabel { color: var(--ca-dim); font-size: 12.5px; font-weight: 550; }
 .caKpiIcon { width: 32px; height: 32px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--ca-surface-2); color: var(--ca-text-2); border: 1px solid var(--ca-line); }
-.caKpiValue { font-size: 26px; font-weight: 750; letter-spacing: -.03em; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+.caKpiValue { font-size: 26px; font-weight: 750; letter-spacing: -.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
 .caKpiValue.sm { font-size: 17px; }
 .caKpiChange { font-size: 11.5px; color: var(--ca-dim); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .caKpiChange b { display: inline-flex; align-items: center; gap: 2px; height: 20px; padding: 0 7px 0 5px; border-radius: 999px; font-size: 11px; }
@@ -403,45 +403,46 @@ select.caInput option, select.caTagInput option { background: var(--ca-solid); c
 /* total sales: number + stats, legend, chart with the previous period dashed, customer segments */
 .caSalesTop { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-top: -4px; }
 .caSalesNum { display: grid; gap: 4px; }
-.caSalesNum strong { font-size: 32px; font-weight: 750; letter-spacing: -.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.caSalesNum strong { font-size: 32px; font-weight: 750; letter-spacing: -.03em; line-height: 1.1; }
 .caSalesStats { display: flex; margin: 0; padding: 4px; gap: 4px; border-radius: 18px; background: var(--ca-surface-2); border: 1px solid var(--ca-line); }
 .caSalesStats > div { padding: 7px 14px; display: grid; gap: 1px; border-radius: 14px; }
 .caSalesStats > div + div { box-shadow: -1px 0 0 var(--ca-line); }
 .caSalesStats dt { font-size: 11.5px; color: var(--ca-dim); font-weight: 550; white-space: nowrap; }
 .caSalesStats dd { margin: 0; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.caLegend { display: flex; gap: 18px; font-size: 12px; color: var(--ca-dim); margin-bottom: -8px; }
+.caLegend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--ca-text-2); margin-bottom: 8px; }
 .caLegend span { display: inline-flex; align-items: center; gap: 7px; }
-.caLegend i { display: inline-block; width: 18px; height: 0; border-top: 2.5px solid var(--ca-chart); border-radius: 2px; }
-.caLegend i.prev { border-top: 2px dashed var(--ca-faint); }
-.caSegCard { display: grid; gap: 14px; padding: 16px 18px 18px; border-radius: 18px; background: var(--ca-surface-2); border: 1px solid var(--ca-line); }
+.caLegend i, .caChartTip i { display: inline-block; flex: none; width: 16px; height: 0; border-top: 2px solid var(--ca-chart); border-radius: 2px; }
+.caLegend i.prev, .caChartTip i.prev { border-top-color: var(--ca-deemph); }
+.caSegCard { display: grid; gap: 12px; padding: 16px 18px 16px; border-radius: 18px; background: var(--ca-surface-2); border: 1px solid var(--ca-line); }
 .caSegHead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12.5px; }
 .caSegHead strong { font-size: 14px; font-weight: 650; }
+/* thin segmented bar: 8px, fully rounded ends, 2px surface gaps between parts, no text on it */
+.caSplit { display: flex; gap: 2px; height: 8px; border-radius: 4px; background: var(--ca-surface-3); }
+.caSplitPart { position: relative; flex: 1 1 0; min-width: 4px; height: 100%; border-radius: 4px; transition: filter .15s; }
+.caSplitPart:hover { filter: brightness(1.12); }
+.s1 { --mark: var(--ca-s1); } .s2 { --mark: var(--ca-s2); } .s3 { --mark: var(--ca-s3); }
+.caSplitPart, .caSwatch { background: var(--mark); }
+.caSwatch { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 3px; margin-right: 7px; vertical-align: -1px; }
 .caSegs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-.caSeg2 { display: grid; gap: 4px; min-width: 0; }
-.caSeg2 > span { font-size: 12px; color: var(--ca-dim); font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.caSeg2 > strong { font-size: 22px; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.caSeg2 > i { display: block; height: 6px; border-radius: 3px; background: var(--ca-surface-3); overflow: hidden; margin-top: 2px; }
-.caSeg2 > i > b { display: block; height: 100%; min-width: 6px; border-radius: 3px; background: var(--ca-accent); transition: width .4s; }
-.caSeg2.b > i > b { background: var(--ca-accent-2); }
-.caSeg2.c > i > b { background: var(--ca-flame); }
+.caSeg2 { display: grid; gap: 2px; min-width: 0; }
+.caSeg2 > span { font-size: 12px; color: var(--ca-text-2); font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.caSeg2 > strong { font-size: 22px; font-weight: 750; letter-spacing: -.02em; }
+.caSeg2 > small { font-size: 11.5px; color: var(--ca-dim); }
 
 /* most active day + repeat customer rate, side by side */
-.caDashPair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: stretch; }
-.caDashPair > .caCard { display: flex; flex-direction: column; }
-.caDashPair > .caCard > .caCardBody { flex: 1; }
 .caCardSub { font-size: 12.5px; margin-top: -8px !important; }
-.caDayBars { display: flex; align-items: stretch; gap: 10px; height: 168px; padding-top: 24px; }
-.caDayBar { flex: 1; min-width: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 8px; justify-items: center; }
-.caDayTrack { position: relative; width: 100%; max-width: 36px; display: flex; flex-direction: column; justify-content: flex-end; border-radius: 999px; background: var(--ca-surface-2); }
-.caDayFill { position: relative; display: block; width: 100%; border-radius: 999px; background: var(--ca-surface-3); transition: height .4s; }
-.caDayBar.on .caDayFill { background: linear-gradient(180deg, var(--ca-accent-2), var(--ca-accent)); box-shadow: 0 10px 20px -10px var(--ca-accent); }
-.caDayFill em { position: absolute; bottom: calc(100% + 7px); left: 50%; transform: translateX(-50%); padding: 3px 8px; border-radius: 8px; background: var(--ca-ink); color: var(--ca-on-ink); font-style: normal; font-size: 11px; font-weight: 700; white-space: nowrap; }
-.caDayFill em::after { content: ""; position: absolute; left: 50%; top: 100%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: var(--ca-ink); }
+.caDayBars { list-style: none; margin: 0; padding: 26px 0 0; display: flex; align-items: stretch; gap: 4px; height: 176px; border-bottom: 0; }
+.caDayBar { position: relative; flex: 1; min-width: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 8px; justify-items: center; border-radius: 10px; outline-offset: 0; }
+.caDayTrack { position: relative; width: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; border-bottom: 1px solid var(--ca-line-2); }
+.caDayFill { position: relative; display: block; width: 100%; max-width: 24px; border-radius: 4px 4px 0 0; background: var(--ca-deemph); transition: height .4s, filter .15s; }
+.caDayBar:hover .caDayFill, .caDayBar:focus-visible .caDayFill { filter: brightness(1.08) saturate(1.2); }
+.caDayBar.on .caDayFill { background: var(--ca-chart); }
+.caDayFill em { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); font-style: normal; font-size: 12px; font-weight: 700; color: var(--ca-text); white-space: nowrap; }
 .caDayBar small { font-size: 11.5px; color: var(--ca-dim); font-weight: 550; }
 .caDayBar.on small { color: var(--ca-text); font-weight: 700; }
 .caRepeat { position: relative; width: min(220px, 100%); margin: -4px auto -16px; }
 .caTickGauge { display: block; width: 100%; height: auto; }
-.caTickGauge line { stroke: var(--ca-surface-3); stroke-width: 3.6; stroke-linecap: round; }
+.caTickGauge line { stroke: color-mix(in srgb, var(--ca-accent) 20%, transparent); stroke-width: 3.6; stroke-linecap: round; }
 .caTickGauge line.on { stroke: var(--ca-accent); }
 .caRepeatText { position: absolute; left: 0; right: 0; top: 40%; display: grid; justify-items: center; gap: 2px; transform: translateY(-30%); }
 .caRepeatText strong { font-size: 32px; font-weight: 750; letter-spacing: -.03em; line-height: 1; }
@@ -513,26 +514,66 @@ select.caInput option, select.caTagInput option { background: var(--ca-solid); c
 .caNotes .caIconBtn { position: absolute; top: 8px; right: 8px; }
 
 /* ---------- charts ---------- */
-.caChart { position: relative; }
-.caChart svg { display: block; width: 100%; height: auto; overflow: visible; }
-.caChart .grid { stroke: var(--ca-grid); stroke-width: 1; }
-.caChart .tick { fill: var(--ca-tick); font-size: 10.5px; }
-.caChart .line { fill: none; stroke: var(--ca-chart); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.caChart { position: relative; min-width: 0; }
+.caChartPlot { position: relative; }
+.caChart svg { display: block; max-width: 100%; overflow: visible; border-radius: 6px; }
+.caChart svg:focus-visible { outline-offset: 4px; }
+.caChart .grid { stroke: var(--ca-grid); stroke-width: 1; shape-rendering: crispEdges; }
+.caChart .base { stroke: var(--ca-line-2); stroke-width: 1; shape-rendering: crispEdges; }
+.caChart .tick { fill: var(--ca-tick); font-size: 11px; font-variant-numeric: tabular-nums; }
+.caChart .line { fill: none; stroke: var(--ca-chart); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .caChart .area { fill: var(--ca-chart-area); }
-.caChart .cmp { fill: none; stroke: var(--ca-faint); stroke-width: 1.5; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
-.caChart .cursor { stroke: var(--ca-line-2); stroke-dasharray: 3 3; }
-.caChart .dot { fill: var(--ca-chart); stroke: var(--ca-solid); stroke-width: 3; }
-.caChartTip { position: absolute; top: -6px; transform: translate(-50%, -100%); pointer-events: none; padding: 7px 11px; border-radius: 12px; background: var(--ca-tip); color: var(--ca-on-tip); display: grid; gap: 1px; font-size: 12px; white-space: nowrap; box-shadow: 0 12px 30px -12px rgba(0, 0, 0, .5); }
-.caChartTip::after { content: ""; position: absolute; left: 50%; top: 100%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: var(--ca-tip); }
-.caChartTip span { opacity: .65; }
-.caBars { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.caChart .cmp { fill: none; stroke: var(--ca-deemph); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.caChart .cursor { stroke: var(--ca-tick); stroke-width: 1; shape-rendering: crispEdges; }
+.caChart .dot { fill: var(--ca-chart); stroke: var(--ca-solid); stroke-width: 2; }
+.caChart .dot.prev { fill: var(--ca-deemph); }
+.caChartTip { position: absolute; top: 0; transform: translate(-50%, calc(-100% - 6px)); pointer-events: none; z-index: 3; padding: 8px 11px; border-radius: 12px; background: var(--ca-tip); color: var(--ca-on-tip); display: grid; gap: 3px; font-size: 12px; white-space: nowrap; box-shadow: 0 12px 30px -12px rgba(0, 0, 0, .45); }
+.caChartTip.left { transform: translate(-12px, calc(-100% - 6px)); } .caChartTip.right { transform: translate(calc(-100% + 12px), calc(-100% - 6px)); }
+.caChartTip .caTipHead { font-size: 11px; opacity: .65; }
+.caChartTip .caTipRow { display: flex; align-items: center; gap: 7px; }
+.caChartTip strong { font-size: 13px; font-weight: 700; }
+.caChartTip small { font-size: 11px; opacity: .65; }
+.caChartTip i { width: 12px; }
+.caRoot[data-theme="dark"] .caChartTip i.prev { border-top-color: #8d8a82; }
+/* table twin of every chart */
+.caDataTable { margin-top: 6px; font-size: 12px; }
+.caDataTable summary { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--ca-dim); font-weight: 550; border-radius: 6px; list-style: none; }
+.caDataTable summary::-webkit-details-marker { display: none; }
+.caDataTable summary::before { content: ""; width: 0; height: 0; border: 4px solid transparent; border-left: 5px solid currentColor; border-right: 0; transition: transform .15s; }
+.caDataTable[open] summary::before { transform: rotate(90deg); }
+.caDataTable summary:hover { color: var(--ca-text); }
+.caDataScroll { margin-top: 8px; max-height: 240px; overflow: auto; border-radius: 12px; border: 1px solid var(--ca-line); }
+.caDataScroll .caTable { margin: 0 !important; font-size: 12px; }
+.caDataScroll .caTable th, .caDataScroll .caTable td { padding: 6px 12px; }
+.caDataScroll .caTable thead th { position: sticky; top: 0; background: var(--ca-solid); z-index: 1; }
+.caDataScroll .n { text-align: right; font-variant-numeric: tabular-nums; }
+/* per-mark tooltip (bars, segments, funnel steps): on hover and on keyboard focus */
+.caMark { position: relative; }
+.caMark:focus-visible { outline: 2px solid var(--ca-focus); outline-offset: 2px; }
+.caMarkTip { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translate(-50%, 4px); z-index: 4; padding: 6px 10px; border-radius: 10px; background: var(--ca-tip); color: var(--ca-on-tip); font-size: 12px; font-weight: 500; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .12s, transform .12s; box-shadow: 0 10px 24px -10px rgba(0, 0, 0, .45); }
+.caMarkTip strong { font-weight: 700; }
+.caMark:hover > .caMarkTip, .caMark:focus-visible > .caMarkTip { opacity: 1; transform: translate(-50%, 0); }
+.caDayBar > .caMarkTip { bottom: auto; top: -4px; transform: translate(-50%, calc(-100% + 4px)); }
+.caDayBar:hover > .caMarkTip, .caDayBar:focus-visible > .caMarkTip { transform: translate(-50%, -100%); }
+.caDayBar:first-child > .caMarkTip { left: 0; transform: translate(0, calc(-100% + 4px)); }
+.caDayBar:last-child > .caMarkTip { left: auto; right: 0; transform: translate(0, calc(-100% + 4px)); }
+.caDayBar:first-child:hover > .caMarkTip, .caDayBar:first-child:focus-visible > .caMarkTip, .caDayBar:last-child:hover > .caMarkTip, .caDayBar:last-child:focus-visible > .caMarkTip { transform: translateY(-100%); }
+.caBars { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.caBars > li { padding: 6px 8px; margin: 0 -8px; border-radius: 10px; transition: background .15s; }
+.caBars > li:hover { background: var(--ca-hover); }
+.caBars > li > .caMarkTip { left: auto; right: 8px; bottom: auto; top: -26px; transform: translateY(4px); }
+.caBars > li:hover > .caMarkTip, .caBars > li:focus-visible > .caMarkTip { transform: none; }
 .caBarLabel { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; margin-bottom: 6px; }
 .caBarLabel span { color: var(--ca-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.caBarTrack { height: 8px; border-radius: 4px; background: var(--ca-surface-3); overflow: hidden; }
-.caBarFill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--ca-accent), var(--ca-accent-2)); min-width: 2px; }
-.caFunnel { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; height: 220px; align-items: end; }
-.caFunnel li { height: 100%; display: grid; grid-template-rows: 1fr auto auto auto; gap: 2px; align-items: end; text-align: center; }
-.caFunnelBar { align-self: end; width: 100%; border-radius: 14px 14px 6px 6px; background: linear-gradient(180deg, var(--ca-accent-2), var(--ca-accent)); min-height: 4px; }
+.caBarLabel strong { font-variant-numeric: tabular-nums; }
+.caBarTrack { height: 8px; }
+.caBarFill { height: 100%; border-radius: 0 4px 4px 0; background: var(--ca-chart); min-width: 2px; }
+.caFunnel { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; height: 220px; align-items: end; }
+.caFunnel li { height: 100%; display: grid; grid-template-rows: 1fr auto auto auto; gap: 2px; align-items: end; text-align: center; border-radius: 10px; padding-top: 4px; }
+.caFunnelCol { height: 100%; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid var(--ca-line-2); margin-bottom: 6px; }
+.caFunnelBar { width: 24px; border-radius: 4px 4px 0 0; background: var(--ca-chart); transition: filter .15s; }
+.caFunnel li:hover .caFunnelBar, .caFunnel li:focus-visible .caFunnelBar { filter: brightness(1.1) saturate(1.2); }
+.caFunnel li > .caMarkTip { bottom: auto; top: 0; }
 .caFunnel strong { font-size: 18px; } .caFunnel span { font-size: 12px; color: var(--ca-text-2); } .caFunnel small { color: var(--ca-dim); font-size: 11.5px; }
 .caRange { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .caRange .caInput { width: auto; }
@@ -668,10 +709,8 @@ select.caInput option, select.caTagInput option { background: var(--ca-solid); c
 
 /* ---------- responsive ---------- */
 @media (max-width: 1360px) { .caPage > .caKpis:has(> :nth-child(6)) { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 1320px) {
-  .caHome { grid-template-columns: minmax(0, 1fr) 320px; }
-  .caHome .caKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
+@media (max-width: 1320px) { .caHome { grid-template-columns: minmax(0, 1fr) 320px; } }
+@media (max-width: 1220px) { .caHome .caKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 1120px) {
   .caHome, .caCols { grid-template-columns: minmax(0, 1fr); }
   .caKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -719,7 +758,7 @@ select.caInput option, select.caTagInput option { background: var(--ca-solid); c
   .caForm.two, .caForm.three, .caForm.four, .caKpis, .caKpis.three { grid-template-columns: minmax(0, 1fr); }
   .caHero h1 { font-size: 32px; }
   .caORow { grid-template-columns: 40px minmax(0, 1fr) auto; } .caOTags { display: none; }
-  .caDashPair, .caSegs, .caHelpGrid { grid-template-columns: minmax(0, 1fr); }
+  .caSegs, .caHelpGrid { grid-template-columns: minmax(0, 1fr); }
   .caSalesStats { width: 100%; } .caSalesStats > div { flex: 1; }
 }
 
@@ -782,3 +821,50 @@ select.caInput option, select.caTagInput option { background: var(--ca-solid); c
 .caRoot:not(.caPicker) { background-attachment: fixed; }
 /* menus, popovers and modals get the same frosted look */
 .caSearchList, .caMenu, .caPopover, .caModal, .caDialog { backdrop-filter: blur(28px) saturate(160%); -webkit-backdrop-filter: blur(28px) saturate(160%); }
+
+/* ---- chart colour roles (dataviz method; validated with validate_palette.js against each mode's card surface).
+   Light (surface ≈ #f6f5f2, glass over #ebe8e2): s1 #3b8a5c (brand sage snapped up to the chroma floor) · s2 #6250d6 · s3 #eb6834 — every gate passes; s3 is 2.94:1, so
+   the split always ships visible names + numbers (relief rule). Dark (≈ #141418): s1 #c98500 · s2 #3987e5 · s3 #d55181.
+   s1 is also the single-series chart colour; --ca-deemph is the context grey of emphasis charts (previous period, other days). */
+.caRoot {
+  --ca-s1: #3b8a5c; --ca-s2: #6250d6; --ca-s3: #eb6834;
+  --ca-chart: var(--ca-s1); --ca-chart-area: rgba(59, 138, 92, .10);
+  --ca-deemph: #b4b0a6;
+  --ca-grid: rgba(60, 50, 30, .08); --ca-tick: #8a867c;
+}
+.caRoot[data-theme="dark"] {
+  --ca-s1: #c98500; --ca-s2: #3987e5; --ca-s3: #d55181;
+  --ca-chart: var(--ca-s1); --ca-chart-area: rgba(201, 133, 0, .12);
+  --ca-deemph: #6b6963;
+  --ca-grid: rgba(255, 255, 255, .07); --ca-tick: #8d8a82;
+}
+
+/* ---- tabbed cards: a compact pill segmented control is the card's title ---- */
+.caTabCard > .caCardHead { flex-wrap: wrap; row-gap: 8px; }
+.caTabList { display: inline-flex; flex: 0 1 auto; min-width: 0; margin-right: auto; gap: 2px; padding: 3px; border-radius: 999px; background: var(--ca-surface-2); border: 1px solid var(--ca-line); }
+.caTabList [role="tab"] { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 13px; border: 0; border-radius: 999px; background: transparent; color: var(--ca-dim); font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: background .15s, color .15s; }
+.caTabList [role="tab"]:hover { background: var(--ca-hover); color: var(--ca-text); }
+.caTabList [role="tab"][aria-selected="true"], .caTabList [role="tab"][aria-selected="true"]:hover { background: var(--ca-ink); color: var(--ca-on-ink); box-shadow: 0 6px 14px -8px rgba(0, 0, 0, .5); }
+.caTabList [role="tab"]:focus-visible { outline-offset: 1px; }
+.caTabCount { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; display: inline-grid; place-items: center; font-size: 10.5px; font-weight: 700; background: var(--ca-bad-bg); color: var(--ca-bad); }
+.caTabPanel[hidden] { display: none; }
+.caTabPanel:focus-visible { outline-offset: -4px; border-radius: var(--ca-r); }
+.caTabFoot { display: flex; justify-content: flex-end; margin: -4px -8px -8px 0; }
+.caColSide .caTabList [role="tab"] { padding: 0 11px; font-size: 12.5px; }
+.caBestCard .caTabPanel:not(.caCardBody) { padding-bottom: 8px; }
+.caBestCard .caTabPanel.caCardBody { padding-top: 16px; }
+.caRepeatPanel { display: flex; flex-direction: column; min-height: 100%; }
+.caActivityCard .caCardSub { margin-top: -4px; }
+
+/* ---- Analytics: two sections — the report on the left, the visitor globe as a sticky right-hand column ---- */
+.caAnaLayout { display: grid; grid-template-columns: minmax(0, 1fr) clamp(360px, 29vw, 430px); grid-template-areas: "kpis side" "main side"; gap: 18px; align-items: start; }
+.caAnaKpis { grid-area: kpis; }
+.caPage .caAnaKpis.caKpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.caAnaMain { grid-area: main; display: grid; gap: 18px; min-width: 0; align-content: start; }
+.caAnaSide { grid-area: side; position: sticky; top: 0; min-width: 0; max-height: calc(100dvh - 100px); display: flex; }
+.caAnaSide > .caGlobeCard { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+@media (max-width: 1100px) {
+  .caAnaLayout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "kpis" "side" "main"; }
+  .caAnaSide { position: static; max-height: none; }
+}
+@media (max-width: 640px) { .caPage .caAnaKpis.caKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

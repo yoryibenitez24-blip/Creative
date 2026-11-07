@@ -1,11 +1,12 @@
 // Commerce Home (bento dashboard): greeting hero with today's sales, period controls (preset, date range, "Add widget",
 // CSV export), KPI cards with change vs. the previous period, total sales with the previous period and customer segments,
-// most active weekday, repeat-customer gauge, best sellers and recent orders; on the side the automatic setup guide with
-// a progress gauge (src/store/admin/setup.js), inventory alerts, staff notes and tips. Widgets can be hidden/shown
-// (saved per device in localStorage). Numbers: src/store/admin/dashboard.js + analytics.js.
+// then one tabbed card "Best selling products | Recent orders"; on the side the automatic setup guide with a progress gauge
+// (src/store/admin/setup.js), a tabbed "Most active day | Repeat customers" card and a tabbed "Inventory alerts | Staff
+// notes | Tips" card. Widgets (= tabs) can be hidden/shown (saved per device in localStorage); hiding every tab of a card
+// removes the card. Numbers: src/store/admin/dashboard.js + analytics.js.
 import React, { useMemo, useState } from 'react';
 import { Check, ChevronRight, Package, Paintbrush, Truck, CreditCard, Globe, Rocket, TriangleAlert, Lightbulb, Trash2, X, ExternalLink, Plus, DollarSign, ShoppingBag, Receipt, MousePointerClick, ArrowUp, ArrowDown, Download, LayoutGrid, CalendarDays, Star } from 'lucide-react';
-import { useAdmin, Card, Badge, Btn, AreaChart, Empty, fmtDate, pct, FIN, FUL, Thumb, BigNum, Gauge, Modal, download } from './ui.jsx';
+import { useAdmin, Card, TabCard, DataTable, Badge, Btn, AreaChart, Empty, fmtDate, pct, FIN, FUL, Thumb, BigNum, Gauge, Modal, download } from './ui.jsx';
 import { aggregateAnalytics, presetRange } from './analytics.js';
 import { stockRows, productStock } from './inventory.js';
 import { customerName, cid } from './model.js';
@@ -108,7 +109,18 @@ export default function Home() {
   const salesPts = a.days.map(d => ({ label: fmtDate(d.date + 'T12:00:00'), short: fmtDay(d.date).replace(/, \d{4}$/, ''), value: d.sales }));
   const cmpPts = b.days.slice(-a.days.length).map(d => ({ value: d.sales }));
   const best = a.topProducts.slice(0, 5).map(t => ({ ...t, product: store.products.find(p => p.id === t.productId), before: b.topProducts.find(x => (x.productId || x.title) === (t.productId || t.title))?.sales || 0 }));
-  const segMax = Math.max(1, seg.new, seg.returning, seg.vip);
+  const lowCount = useMemo(() => stockRows(store, commerce).filter(x => x.low || x.out).length, [store, commerce]);
+  const bestTable = best.length ? <div className="caTableWrap"><table className="caTable" aria-label="Best selling products">
+          <thead><tr><th>SKU</th><th>Name</th><th className="n">Sold</th><th className="n">Revenue</th><th>{best.some(t => t.product?.rating) ? 'Rating' : 'Stock'}</th></tr></thead>
+          <tbody>{best.map(t => { const p = t.product, up = t.sales >= t.before, stock = p ? productStock(p) : null; return <tr key={t.productId || t.title} className={p ? 'click' : ''} onClick={() => p && go({ page: 'product', id: p.id })}>
+            <td className="caMono">{p?.variants?.[0]?.sku ? p.variants[0].sku.slice(0, 12) : '—'}</td>
+            <th scope="row"><span className="caProdCell"><Thumb src={p?.images?.[0] || p?.art} fallback={p?.art} size={34} /><span>{t.title}</span></span></th>
+            <td className="n">{num(t.quantity)}</td>
+            <td className="n"><span className={'caRev ' + (up ? 'up' : 'down')}>{up ? <ArrowUp size={12} aria-label="up" /> : <ArrowDown size={12} aria-label="down" />}<BigNum value={fmt(t.sales)} /></span></td>
+            <td>{best.some(x => x.product?.rating) ? (p?.rating ? <span className="caStars" aria-label={`${p.rating} out of 5`}>{[1, 2, 3, 4, 5].map(i => <Star key={i} size={12} className={i <= Math.round(p.rating) ? 'on' : ''} aria-hidden="true" />)}</span> : '—')
+              : stock == null ? <span className="caMuted">Not tracked</span> : <Badge tone={stock <= 0 ? 'bad' : stock <= commerce.settings.general.lowStockThreshold ? 'warn' : 'ok'}>{stock} in stock</Badge>}</td>
+          </tr>; })}</tbody></table></div>
+          : <Empty art="products" title="No sales in this period" action={<Btn kind="primary" icon={Plus} onClick={() => go({ page: 'order-new' })}>Create order</Btn>}>Products sold in the {periodLabel} are ranked here by revenue.</Empty>;
   const showSetup = show('setup') && !commerce.onboarding.dismissed && !setup.complete;
 
   return <div className="caPage caHome">
@@ -160,52 +172,14 @@ export default function Home() {
             {profit.costed && <div><dt>Gross profit</dt><dd><BigNum value={fmt(profit.profit)} /></dd></div>}
           </dl>
         </div>
-        <div className="caLegend" aria-hidden="true"><span><i className="cur" />This period</span><span><i className="prev" />Previous period</span></div>
-        <AreaChart label={`Sales, ${periodLabel}, with the previous period`} points={salesPts} compare={cmpPts} format={(v, axis) => fmt(v, axis)} height={190} />
-        <div className="caSegCard" role="group" aria-label="Customers">
-          <div className="caSegHead"><strong>Customers</strong><span className="caMuted">{num(seg.total)} ordered in this period</span></div>
-          <div className="caSegs">
-            {[['New', seg.new, 'a'], ['Returning', seg.returning, 'b'], ['VIP (3+ orders)', seg.vip, 'c']].map(([l, v, c]) => <div key={l} className={'caSeg2 ' + c}>
-              <span>{l}</span><strong>{num(v)}</strong><i><b style={{ width: `${(v / segMax) * 100}%` }} /></i></div>)}
-          </div>
-        </div>
+        <AreaChart label={`Sales, ${periodLabel}, with the previous period`} points={salesPts} compare={cmpPts} format={(v, axis) => fmt(v, axis)} height={200} />
+        <CustomerSplit seg={seg} />
       </Card>}
 
-      {(show('activeDay') || show('repeat')) && <div className="caDashPair">
-        {show('activeDay') && <Card title="Most active day" className="caDayCard">
-          <p className="caMuted caCardSub">{week.max < 0 ? 'No orders or visits in this period yet' : (week.metric === 'orders' ? 'Orders' : 'Visits') + ' by weekday · ' + periodLabel}</p>
-          <div className="caDayBars" role="img" aria-label={week.max >= 0 ? `Most ${week.metric} on ${WEEKDAYS[week.max]}: ${week.values[week.max]}` : 'No activity in this period'}>
-            {week.values.map((v, i) => { const mx = Math.max(1, ...week.values); return <div key={i} className={'caDayBar' + (i === week.max ? ' on' : '')}>
-              <span className="caDayTrack"><span className="caDayFill" style={{ height: `${Math.max(4, (v / mx) * 100)}%` }}>{i === week.max && <em>{num(v)}</em>}</span></span><small>{WEEKDAYS[i]}</small></div>; })}
-          </div>
-        </Card>}
-        {show('repeat') && <Card title="Repeat customer rate" className="caRepeatCard">
-          <div className="caRepeat">
-            <TickGauge value={rep.rate} />
-            <div className="caRepeatText"><strong>{pct(rep.rate)}</strong><span>{rep.repeat} of {rep.customers} customers</span></div>
-          </div>
-          <div className="caRepeatFoot">
-            <span className={rep.rate >= 0.3 ? 'caGood' : 'caMuted'}>{rep.customers === 0 ? 'No customers yet' : rep.rate >= 0.3 ? 'On track for the 30% target' : `${pct(0.3 - rep.rate)} below the 30% target`}</span>
-            <Btn kind="plain" onClick={() => go('customers')}>Details<ChevronRight size={14} /></Btn>
-          </div>
-        </Card>}
-      </div>}
-
-      {show('best') && <Card title="Best selling products" className="caBestCard" pad={false} actions={<Btn kind="plain" onClick={() => go('products')}>All products<ChevronRight size={14} /></Btn>}>
-        {best.length ? <div className="caTableWrap"><table className="caTable" aria-label="Best selling products">
-          <thead><tr><th>SKU</th><th>Name</th><th className="n">Sold</th><th className="n">Revenue</th><th>{best.some(t => t.product?.rating) ? 'Rating' : 'Stock'}</th></tr></thead>
-          <tbody>{best.map(t => { const p = t.product, up = t.sales >= t.before, stock = p ? productStock(p) : null; return <tr key={t.productId || t.title} className={p ? 'click' : ''} onClick={() => p && go({ page: 'product', id: p.id })}>
-            <td className="caMono">{p?.variants?.[0]?.sku ? p.variants[0].sku.slice(0, 12) : '—'}</td>
-            <th scope="row"><span className="caProdCell"><Thumb src={p?.images?.[0] || p?.art} fallback={p?.art} size={34} /><span>{t.title}</span></span></th>
-            <td className="n">{num(t.quantity)}</td>
-            <td className="n"><span className={'caRev ' + (up ? 'up' : 'down')}>{up ? <ArrowUp size={12} aria-label="up" /> : <ArrowDown size={12} aria-label="down" />}<BigNum value={fmt(t.sales)} /></span></td>
-            <td>{best.some(x => x.product?.rating) ? (p?.rating ? <span className="caStars" aria-label={`${p.rating} out of 5`}>{[1, 2, 3, 4, 5].map(i => <Star key={i} size={12} className={i <= Math.round(p.rating) ? 'on' : ''} aria-hidden="true" />)}</span> : '—')
-              : stock == null ? <span className="caMuted">Not tracked</span> : <Badge tone={stock <= 0 ? 'bad' : stock <= commerce.settings.general.lowStockThreshold ? 'warn' : 'ok'}>{stock} in stock</Badge>}</td>
-          </tr>; })}</tbody></table></div>
-          : <Empty art="products" title="No sales in this period" action={<Btn kind="primary" icon={Plus} onClick={() => go({ page: 'order-new' })}>Create order</Btn>}>Products sold in the {periodLabel} are ranked here by revenue.</Empty>}
-      </Card>}
-
-      {show('recent') && <RecentOrders />}
+      <TabCard id="home-sales" label="Products and orders" className="caBestCard" tabs={[
+        show('best') && { key: 'best', label: 'Best selling products', pad: false, actions: <Btn kind="plain" onClick={() => go('products')}>All products<ChevronRight size={14} /></Btn>, content: bestTable },
+        show('recent') && { key: 'recent', label: 'Recent orders', actions: <Btn kind="plain" onClick={() => go('orders')}>All orders<ChevronRight size={14} /></Btn>, content: <RecentOrders /> },
+      ].filter(Boolean)} />
     </div>
 
     <div className="caColSide">
@@ -225,15 +199,28 @@ export default function Home() {
           </div>
         </li>; })}</ol>
       </Card>}
-      {show('inventory') && <InventoryAlerts />}
-      {show('notes') && <StaffNotes />}
-      {show('tips') && <Card title="Tips" className="caTipsCard">
-        <ul className="caTips">
+      <TabCard id="home-activity" label="Customer activity" className="caActivityCard" tabs={[
+        show('activeDay') && { key: 'activeDay', label: 'Most active day', content: <WeekdayBars week={week} periodLabel={periodLabel} /> },
+        show('repeat') && { key: 'repeat', label: 'Repeat customers', content: <div className="caRepeatPanel">
+          <div className="caRepeat">
+            <TickGauge value={rep.rate} />
+            <div className="caRepeatText"><strong>{pct(rep.rate)}</strong><span>{rep.repeat} of {rep.customers} customers</span></div>
+          </div>
+          <div className="caRepeatFoot">
+            <span className={rep.rate >= 0.3 ? 'caGood' : 'caMuted'}>{rep.customers === 0 ? 'No customers yet' : rep.rate >= 0.3 ? 'On track for the 30% target' : `${pct(0.3 - rep.rate)} below the 30% target`}</span>
+            <Btn kind="plain" onClick={() => go('customers')}>Details<ChevronRight size={14} /></Btn>
+          </div>
+        </div> },
+      ].filter(Boolean)} />
+      <TabCard id="home-store" label="Store notes and alerts" className="caStoreCard" footActions tabs={[
+        show('inventory') && { key: 'inventory', label: 'Inventory', count: lowCount || null, actions: <Btn kind="plain" onClick={() => go('inventory')}>View inventory<ChevronRight size={14} /></Btn>, content: <InventoryAlerts /> },
+        show('notes') && { key: 'notes', label: 'Staff notes', content: <StaffNotes /> },
+        show('tips') && { key: 'tips', label: 'Tips', content: <ul className="caTips">
           <li><Lightbulb size={14} aria-hidden="true" /><span>Create a <button type="button" className="caLink" onClick={() => go({ page: 'discount', id: 'new' })}>welcome discount code</button> and share it on social media with a tracked link from <button type="button" className="caLink" onClick={() => go('marketing')}>Marketing</button>.</span></li>
           <li><Lightbulb size={14} aria-hidden="true" /><span>Add cost per item to your products to see margin and profit.</span></li>
           <li><Lightbulb size={14} aria-hidden="true" /><span>Use <strong>View store</strong> to shop your store like a customer: visits, carts and orders appear in Analytics.</span></li>
-        </ul>
-      </Card>}
+        </ul> },
+      ].filter(Boolean)} />
     </div>
 
     {picking && <Modal title="Dashboard widgets" onClose={() => setPicking(false)} footer={<Btn kind="primary" onClick={() => setPicking(false)}>Done</Btn>}>
@@ -243,42 +230,76 @@ export default function Home() {
   </div>;
 }
 
+/** Orders (or visits) per weekday: emphasis form — the busiest day in the accent, the rest in the context grey; every bar has a
+ *  hover/focus tooltip, and the data table carries all seven values. */
+function WeekdayBars({ week, periodLabel }) {
+  const mx = Math.max(1, ...week.values), unit = week.metric === 'orders' ? 'order' : 'visit';
+  const say = (v, i) => `${WEEKDAYS[i]}: ${num(v)} ${unit}${v === 1 ? '' : 's'}`;
+  return <>
+    <p className="caMuted caCardSub">{week.max < 0 ? 'No orders or visits in this period yet' : `${week.metric === 'orders' ? 'Orders' : 'Visits'} by weekday · ${periodLabel} · busiest: ${WEEKDAYS[week.max]}`}</p>
+    <ul className="caDayBars" aria-label={`${week.metric === 'orders' ? 'Orders' : 'Visits'} by weekday`}>
+      {week.values.map((v, i) => <li key={i} className={'caDayBar caMark' + (i === week.max ? ' on' : '')} tabIndex={0} aria-label={say(v, i)}>
+        <span className="caDayTrack"><span className="caDayFill" style={{ height: v > 0 ? `${Math.max(3, (v / mx) * 100)}%` : 0 }}>{i === week.max && <em aria-hidden="true">{num(v)}</em>}</span></span>
+        <small aria-hidden="true">{WEEKDAYS[i]}</small>
+        <span className="caMarkTip" aria-hidden="true"><strong>{num(v)}</strong> {unit}{v === 1 ? '' : 's'} on {WEEKDAYS[i]}</span>
+      </li>)}
+    </ul>
+    <DataTable caption={`${week.metric === 'orders' ? 'Orders' : 'Visits'} by weekday`} columns={['Day', week.metric === 'orders' ? 'Orders' : 'Visits']} rows={week.values.map((v, i) => [WEEKDAYS[i], num(v)])} />
+  </>;
+}
+
+/** Customers who ordered in the period, split New / Returning / VIP: a thin segmented bar (2px gaps, no text on it) above
+ *  the figures, with a colour swatch on each row as the legend. */
+function CustomerSplit({ seg }) {
+  const parts = [['New', seg.new, 's1'], ['Returning', seg.returning, 's2'], ['VIP (3+ orders)', seg.vip, 's3']];
+  const total = parts.reduce((t, p) => t + p[1], 0), share = v => total ? Math.round(v / total * 100) : 0;
+  return <div className="caSegCard" role="group" aria-label="Customers">
+    <div className="caSegHead"><strong>Customers</strong><span className="caMuted">{num(seg.total)} ordered in this period</span></div>
+    <div className="caSplit" role="img" aria-label={total ? 'Customers: ' + parts.map(([l, v]) => `${l} ${num(v)} (${share(v)}%)`).join(', ') : 'No customers in this period'}>
+      {total ? parts.filter(p => p[1] > 0).map(([l, v, c]) => <span key={l} className={'caSplitPart caMark ' + c} style={{ flexGrow: v }}>
+        <span className="caMarkTip" aria-hidden="true"><strong>{num(v)}</strong> {l} · {share(v)}%</span></span>) : null}
+    </div>
+    <div className="caSegs">
+      {parts.map(([l, v, c]) => <div key={l} className="caSeg2">
+        <span><i className={'caSwatch ' + c} aria-hidden="true" />{l}</span><strong>{num(v)}</strong><small>{share(v)}% of customers</small></div>)}
+    </div>
+  </div>;
+}
+
 function RecentOrders() {
   const { commerce, fmt, go } = useAdmin();
   const recent = commerce.orders.filter(o => !o.draft).slice().sort((x, y) => y.createdAt.localeCompare(x.createdAt)).slice(0, 6);
   const name = o => customerName(commerce.customers.find(c => c.id === o.customerId)) || o.email || 'Guest';
-  return <Card title="Recent orders" actions={<Btn kind="plain" onClick={() => go('orders')}>All orders<ChevronRight size={14} /></Btn>}>
-    {recent.length ? <ul className="caOrderList">{recent.map(o => <li key={o.id}>
+  return recent.length ? <ul className="caOrderList">{recent.map(o => <li key={o.id}>
       <button type="button" className="caORow" onClick={() => go({ page: 'order', id: o.id })}>
         <span className="caOAvatar" aria-hidden="true">{name(o).trim().charAt(0).toUpperCase() || '#'}</span>
         <span className="caOMain"><strong>{o.name}</strong><small>{name(o)} · {fmtDate(o.createdAt)}</small></span>
         <span className="caOTags"><Badge tone={FIN[o.financialStatus][1]}>{FIN[o.financialStatus][0]}</Badge>{o.status === 'cancelled' ? <Badge tone="bad">Cancelled</Badge> : <Badge tone={FUL[o.fulfillmentStatus][1]}>{FUL[o.fulfillmentStatus][0]}</Badge>}</span>
         <span className="caOTotal"><BigNum value={fmt(o.totals.total)} /></span>
       </button></li>)}</ul>
-      : <Empty art="orders" title="No orders yet" action={<Btn kind="primary" onClick={() => go({ page: 'order-new' })}>Create order</Btn>}>Orders placed in the store preview or created by you show up here.</Empty>}
-  </Card>;
+      : <Empty art="orders" title="No orders yet" action={<Btn kind="primary" onClick={() => go({ page: 'order-new' })}>Create order</Btn>}>Orders placed in the store preview or created by you show up here.</Empty>;
 }
 
 function InventoryAlerts() {
   const { store, commerce, go } = useAdmin();
-  const low = stockRows(store, commerce).filter(r => r.low || r.out).slice(0, 6);
-  return <Card title="Inventory alerts" actions={<Btn kind="plain" onClick={() => go('inventory')}>Inventory<ChevronRight size={14} /></Btn>}>
+  const low = stockRows(store, commerce).filter(r => r.low || r.out).slice(0, 5);
+  return <>
     {low.length ? <ul className="caAlerts">{low.map(r => <li key={r.variant.id}><Thumb src={r.product.images[0] || r.product.art} fallback={r.product.art} size={36} />
       <button type="button" className="caLink" onClick={() => go({ page: 'product', id: r.product.id })}>{r.product.title}{r.variant.options.length ? ' · ' + r.variant.options.join(' / ') : ''}</button>
       <Badge tone={r.out ? 'bad' : 'warn'}>{r.out ? 'Out of stock' : r.stock + ' left'}</Badge></li>)}</ul>
       : <p className="caMuted caRow"><Check size={14} /> No low-stock items (threshold {commerce.settings.general.lowStockThreshold}).</p>}
     {low.length > 0 && <p className="caHint"><TriangleAlert size={12} /> Items at or below {commerce.settings.general.lowStockThreshold} units.</p>}
-  </Card>;
+  </>;
 }
 
 function StaffNotes() {
   const { commerce, editCommerce, confirm } = useAdmin();
   const [text, setText] = useState('');
   const add = e => { e.preventDefault(); if (!text.trim()) return; editCommerce(d => { d.staffNotes.unshift({ id: cid('sn'), at: new Date().toISOString(), author: '', text: text.trim() }); }, 'Note added'); setText(''); };
-  return <Card title="Staff notes">
+  return <>
     <form className="caInline" onSubmit={add}><input className="caInput" aria-label="New staff note" placeholder="Write a note for your team…" value={text} onChange={e => setText(e.target.value)} /><Btn type="submit">Add</Btn></form>
     {commerce.staffNotes.length ? <ul className="caNotes">{commerce.staffNotes.slice(0, 8).map(n => <li key={n.id}><p>{n.text}</p><small>{fmtDate(n.at, true)}</small>
       <button type="button" className="caIconBtn sm" aria-label="Delete note" onClick={async () => { if (await confirm({ title: 'Delete note?', message: n.text, confirmLabel: 'Delete', danger: true })) editCommerce(d => { d.staffNotes = d.staffNotes.filter(x => x.id !== n.id); }, 'Note deleted'); }}><Trash2 size={13} /></button></li>)}</ul>
       : <p className="caMuted">Notes are kept with the store data.</p>}
-  </Card>;
+  </>;
 }
