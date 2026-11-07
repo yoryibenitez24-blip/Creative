@@ -271,8 +271,8 @@ try {
     await card.getByRole('status').waitFor(); // keyboard focus shows the same tooltip as hovering a marker
     const box = await globe.boundingBox();
     assert.ok(box.width > 200 && box.height > 200, 'the globe canvas has a real size');
-    const painted = await globe.evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 16) if (d[i] > 200 && d[i + 1] > 90 && d[i + 1] < 190 && d[i + 2] < 120) n++; return n; });
-    assert.ok(painted > 200, 'orange land dots are drawn');
+    const painted = await globe.evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 16) { const r = d[i], g = d[i + 1], b = d[i + 2]; if ((g > r + 25 && g > b + 15) || (r > 200 && g > 90 && g < 190 && b < 120)) n++; } return n; });
+    assert.ok(painted > 200, 'land dots in the theme colour (sage in light, amber in dark) are drawn');
     await page.mouse.move(5, 5);
     await card.scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
     await card.screenshot({ path: join(evidence, 'globe-light.jpg'), type: 'jpeg', quality: 85 });
