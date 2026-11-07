@@ -331,3 +331,72 @@ test('runtime: storeScript of every new template parses; free-shipping threshold
     assert.ok(js.includes('"freeShipping":' + s.checkout.freeShipping));
   }
 });
+
+// ---------- storefront ↔ commerce back office ----------
+import { checkoutConfig, commerceKit, commerceScript } from '../src/store/commerce.js';
+import { applyDiscounts } from '../src/store/admin/discounts.js';
+import { normalizeCommerce } from '../src/store/admin/model.js';
+import { computeOrderTotals } from '../src/store/admin/orders.js';
+
+function commerceFixture() {
+  const store = createStore('general');
+  const [a, b] = store.products;
+  const commerce = normalizeCommerce({
+    storeId: store.id,
+    settings: {
+      shipping: { zones: [{ name: 'US', countries: ['US'], rates: [{ id: 'std', name: 'Standard', type: 'free_over', price: 6, threshold: 100 }, { id: 'exp', name: 'Express', type: 'flat', price: 15 }] },
+        { name: 'World', countries: ['*'], rates: [{ id: 'w', name: 'Intl', type: 'weight', tiers: [{ upTo: 500, price: 10 }, { upTo: 5000, price: 25 }] }] }] },
+      taxes: { inclusive: false, shippingTaxed: true, rates: [{ country: 'US', rate: 5 }, { country: 'US', region: 'CA', rate: 8.25 }] },
+      backend: { orderWebhookUrl: 'https://hooks.example.com/orders' },
+    },
+    discounts: [{ id: 'd10', code: 'SAVE10', type: 'percentage', value: 10 }, { id: 'old', code: 'OLD', type: 'fixed', value: 5, endsAt: '2020-01-01T00:00:00Z' },
+      { id: 'big', code: 'BIG', type: 'fixed', value: 20, minimum: { kind: 'amount', value: 500 } }, { id: 'ship', code: 'FREESHIP', type: 'free_shipping' }],
+    productMeta: { [a.id]: { weight: 400 }, [b.id]: { weight: 900 } },
+  });
+  return { store, commerce, a, b };
+}
+
+test('commerce: storefront totals match the admin computeOrderTotals (discounts → shipping → tax)', () => {
+  const { store, commerce, a, b } = commerceFixture();
+  const cfg = checkoutConfig(store, commerce), CK = commerceKit(applyDiscounts);
+  assert.equal(cfg.webhook, 'https://hooks.example.com/orders');
+  assert.deepEqual(cfg.countries.map(c => c[0]), ['US', '*']);
+  const lines = [{ productId: a.id, variantId: a.variants[0].id, price: 29, quantity: 2 }, { productId: b.id, variantId: b.variants[0].id, price: 79, quantity: 1 }];
+  const now = '2026-11-07T12:00:00Z';
+  for (const input of [{ codes: ['SAVE10'], country: 'US', region: 'CA', rateId: 'exp' }, { codes: [], country: 'US', rateId: 'std' }, { codes: ['FREESHIP', 'SAVE10'], country: 'DE', rateId: 'w' }, { codes: ['BIG', 'OLD', 'NOPE'], country: 'US' }]) {
+    const mine = CK.totals(cfg, lines, input, now);
+    const admin = computeOrderTotals(store, commerce, { lines, codes: input.codes, shippingRateId: input.rateId || (mine.rates[0] || {}).id, shippingAddress: { country: input.country, province: input.region } }, now);
+    for (const k of ['subtotal', 'discountTotal', 'shipping', 'shippingDiscount', 'tax', 'total']) assert.equal(mine[k], admin[k], `${JSON.stringify(input)} ${k}`);
+    assert.deepEqual(mine.appliedCodes, admin.appliedCodes);
+  }
+  const t = CK.totals(cfg, lines, { codes: ['SAVE10', 'OLD', 'NOPE', 'BIG'], country: 'US', region: 'CA', rateId: 'exp' }, now);
+  assert.equal(t.discountTotal, 13.7); assert.equal(t.shipping, 15); assert.equal(t.tax, M2((137 - 13.7 + 15) * 0.0825)); assert.equal(t.total, M2(137 - 13.7 + 15 + t.tax));
+  const texts = t.messages.map(m => m.text).join(' | ');
+  assert.match(texts, /"OLD" has expired/); assert.match(texts, /"NOPE" is not a valid discount code/); assert.match(texts, /Add .* more to eligible items to use "BIG"/);
+  // the embedded (serialised) kit gives the same result
+  const embedded = new Function(commerceScript() + '\nreturn CK;')();
+  assert.deepEqual(embedded.totals(cfg, lines, { codes: ['SAVE10'], country: 'US', region: 'CA', rateId: 'exp' }, now), CK.totals(cfg, lines, { codes: ['SAVE10'], country: 'US', region: 'CA', rateId: 'exp' }, now));
+  // order text carries discounts, shipping, tax and total
+  const K = cartKit(), D = { name: 'Shop', currency: store.currency, checkout: {} };
+  const ls = [{ qty: 2, product: { title: 'Bottle' }, label: '', variant: { sku: '' }, totalCents: 5800 }];
+  const text = K.orderText(ls, D, { name: 'Ada' }, t);
+  assert.match(text, /Discount \(SAVE10\): −\$13\.70/); assert.match(text, /Shipping \(Express\): \$15\.00/); assert.match(text, /Tax 8\.25%/); assert.match(text, /Total: \$\d+\.\d\d/); assert.match(text, /Discount codes: SAVE10/);
+});
+const M2 = n => Math.round(n * 100) / 100;
+
+test('commerce: exported store embeds discounts, shipping, tax and the order webhook; markup has the code field', async () => {
+  const { store, commerce } = commerceFixture();
+  const files = readZip(await exportStoreZip(store, { commerce }));
+  const js = new TextDecoder().decode(files.find(f => f.name.endsWith('assets/store.js')).data);
+  assert.match(js, /"code":"SAVE10"/); assert.match(js, /hooks\.example\.com\/orders/); assert.match(js, /var CK = /);
+  new Function(js);
+  const checkout = new TextDecoder().decode(files.find(f => f.name.endsWith('/checkout.html')).data);
+  assert.match(checkout, /data-ship-fields/);
+  const idx = new TextDecoder().decode(files.find(f => f.name.endsWith('/index.html')).data);
+  assert.match(idx, /data-discount-box/); assert.match(idx, /data-summary/);
+  // without commerce nothing is embedded
+  assert.match(storeScript(store, imageUrl), /"commerce":null/);
+  // discounts-only source (StoreBuilder `discounts` prop)
+  const cfg = checkoutConfig(store, { discounts: commerce.discounts });
+  assert.equal(cfg.discounts.length, 4); assert.deepEqual(cfg.zones, []); assert.equal(cfg.webhook, '');
+});

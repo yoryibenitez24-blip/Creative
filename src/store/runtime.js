@@ -11,7 +11,7 @@
 // a part of the page in place, and window.__storeSetData(data) when products change. In the preview (D.preview)
 // internal links are reported to the parent window instead of navigating.
 
-export function storeRuntime(K, D, win, doc) {
+export function storeRuntime(K, D, win, doc, CK) {
   var root = doc.documentElement.getAttribute('data-root') || '';
   doc.documentElement.classList.add('js');
   var reduce = win.matchMedia && win.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -25,6 +25,62 @@ export function storeRuntime(K, D, win, doc) {
   function getJSON(key, dflt) { try { var v = JSON.parse(win.localStorage.getItem(key) || 'null'); return v == null ? (mem[key] || dflt) : v; } catch (e) { return mem[key] || dflt; } }
   function setJSON(key, v) { mem[key] = v; try { win.localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* storage blocked: memory only */ } }
   function load() { return K.normalize(getJSON(KEY, []), D); }
+  // ---------- commerce: discount codes, shipping & tax (D.commerce = checkoutConfig(); CK = commerce kit) ----------
+  var CKEY = 'zstore-codes:' + D.id, AKEY = 'zstore-ship:' + D.id, lastMsg = {}, forceBox = false;
+  function codes() { var v = getJSON(CKEY, []); return Array.isArray(v) ? v : []; }
+  function ship() { var v = getJSON(AKEY, {}); return v && typeof v === 'object' ? v : {}; }
+  function orderLines(ls) { return ls.map(function (l) { return { productId: l.pid, variantId: l.vid, title: l.product.title + (l.label ? ' (' + l.label + ')' : ''), sku: l.variant.sku, price: K.fromCents(l.unitCents), quantity: l.qty }; }); }
+  function summary(ls) {
+    if (!CK || !D.commerce || !ls.length) return null;
+    var a = ship();
+    return CK.totals(D.commerce, orderLines(ls), { codes: codes(), country: a.country || '', region: a.region || '', rateId: a.rateId }, Date.now());
+  }
+  function fm(n) { return K.formatMoney(n, D.currency); }
+  function summaryHtml(sum, t, where) {
+    if (!sum) return '<p class="subtotal"><span>Subtotal</span><strong data-cart-subtotal' + (where === 'checkout' ? ' data-checkout-total' : '') + '>' + money(t.subtotalCents) + '</strong></p>';
+    var rows = '<div class="sumrow"><span>Subtotal</span><span data-cart-subtotal>' + fm(sum.subtotal) + '</span></div>';
+    sum.applied.forEach(function (x) { if (x.type !== 'free_shipping' && x.amount > 0) rows += '<div class="sumrow save" data-discount-line><span>' + esc(x.code ? 'Discount · ' + x.code : x.title || 'Discount') + '</span><span>−' + fm(x.amount) + '</span></div>'; });
+    var freeShip = sum.applied.filter(function (x) { return x.type === 'free_shipping'; })[0];
+    if (sum.shippingRateId) rows += '<div class="sumrow"><span>Shipping · ' + esc(sum.shippingName) + '</span><span>' + (sum.originalShipping > 0 && sum.shippingDiscount > 0 ? '<s>' + fm(sum.originalShipping) + '</s> ' : '') + (sum.shipping > 0 ? fm(sum.shipping) : 'Free') + '</span></div>';
+    else rows += '<div class="sumrow muted"><span>Shipping</span><span>' + (freeShip ? 'Free' + (freeShip.code ? ' · ' + esc(freeShip.code) : '') : (D.commerce.zones || []).length ? 'Calculated at checkout' : '—') + '</span></div>';
+    if (sum.tax > 0) rows += '<div class="sumrow muted"><span>' + esc(sum.taxName || 'Tax') + ' ' + sum.taxRate + '%' + (sum.taxInclusive ? ' (included)' : '') + '</span><span>' + fm(sum.tax) + '</span></div>';
+    rows += '<div class="sumrow total"><span>Total</span><strong' + (where === 'checkout' ? ' data-checkout-total' : '') + ' data-order-total>' + fm(sum.total) + '</strong></div>';
+    return rows;
+  }
+  function discountBox(sum) {
+    if (!CK || !D.commerce || !(D.commerce.discounts || []).some(function (d) { return d.method !== 'automatic'; }) && !codes().length) return '';
+    var msgs = (sum ? sum.messages : []).concat(lastMsg.text ? [lastMsg] : []).filter(function (m, i, a) { return a.findIndex(function (x) { return x.text === m.text; }) === i; });
+    return '<form class="dcode" data-discount-form><label class="sr" for="dc-' + Math.random().toString(36).slice(2, 7) + '">Discount code</label><input name="code" placeholder="Discount code" aria-label="Discount code" autocomplete="off" autocapitalize="characters"><button type="submit" class="btn btn-ghost">Apply</button></form>' +
+      (codes().length ? '<ul class="dchips">' + codes().map(function (c) { return '<li>' + esc(c) + '<button type="button" data-code-remove="' + esc(c) + '" aria-label="Remove discount code ' + esc(c) + '">×</button></li>'; }).join('') + '</ul>' : '') +
+      msgs.map(function (m) { return '<p class="note ' + (m.level === 'error' ? 'warn' : '') + '" role="status" data-discount-msg>' + esc(m.text) + '</p>'; }).join('');
+  }
+  function applyCode(code) {
+    code = String(code || '').trim().toUpperCase(); if (!code) return;
+    var next = codes().filter(function (c) { return c !== code; }).concat([code]), ls = K.lines(load(), D), a = ship();
+    var r = CK.totals(D.commerce, orderLines(ls), { codes: next, country: a.country || '', region: a.region || '', rateId: a.rateId }, Date.now());
+    var bad = r.messages.filter(function (m) { return m.code === code && m.level === 'error' && /not a valid|not active|expired|usage limit|once per customer/.test(m.text); })[0];
+    lastMsg = bad ? { level: 'error', text: bad.text } : r.appliedCodes.indexOf(code) >= 0 ? { level: 'info', text: '“' + code + '” applied.' } : {};
+    if (!bad) setJSON(CKEY, next);
+    forceBox = true; render(); forceBox = false;
+  }
+  function shipFields() {
+    if (!CK || !D.commerce || !(D.commerce.zones || []).length) return '';
+    var a = ship(), sum = summary(K.lines(load(), D)), rates = sum ? sum.rates : [];
+    return '<fieldset class="shipf"><legend>Shipping</legend><label>Country<select name="country" data-ship-country><option value="">Choose…</option>' + D.commerce.countries.map(function (c) { return '<option value="' + esc(c[0]) + '"' + (a.country === c[0] ? ' selected' : '') + '>' + esc(c[1]) + '</option>'; }).join('') + '</select></label>' +
+      '<label>State / region<input name="region" data-ship-region value="' + esc(a.region || '') + '" autocomplete="address-level1"></label>' +
+      (a.country ? rates.length ? '<div class="rates" role="radiogroup" aria-label="Shipping method">' + rates.map(function (r) { return '<label class="rate"><input type="radio" name="rate" value="' + esc(r.id) + '"' + (sum.shippingRateId === r.id ? ' checked' : '') + ' data-ship-rate><span>' + esc(r.name) + '</span><b>' + (r.price > 0 ? fm(r.price) : 'Free') + '</b></label>'; }).join('') + '</div>' : '<p class="note warn">We do not ship to this country yet.</p>' : '') + '</fieldset>';
+  }
+  function postOrder(ls, fd, sum) {
+    var url = D.commerce && D.commerce.webhook; if (!url || !win.fetch) return;
+    var t = K.totals(ls), body = JSON.stringify({ type: 'order', storeId: D.id, createdAt: new Date().toISOString(), currency: D.currency.code, source: 'storefront',
+      customer: { name: fd.name || '', email: fd.email || '', phone: fd.phone || '', address: fd.address || '' }, lines: orderLines(ls), subtotal: K.fromCents(t.subtotalCents), note: fd.notes || '',
+      codes: sum ? sum.appliedCodes : [], discountTotal: sum ? sum.discountTotal : 0, shipping: sum ? sum.shipping : 0, shippingName: sum ? sum.shippingName : '', country: (ship().country || ''), tax: sum ? sum.tax : 0, total: sum ? sum.total : K.fromCents(t.subtotalCents) });
+    try {
+      win.fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body, keepalive: true }).catch(function () {
+        return win.fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: body, keepalive: true });
+      }).catch(function () { /* never block checkout */ });
+    } catch (e) { /* never block checkout */ }
+  }
   function save(c) { setJSON(KEY, c); render(); }
   function go(url, newTab) {
     if (!/^mailto:/i.test(url) && (D.preview || newTab)) {
@@ -48,7 +104,10 @@ export function storeRuntime(K, D, win, doc) {
       '</div><strong class="line-total" data-line-total>' + money(l.totalCents) + '</strong></li>';
   }
   function render() {
-    var ls = K.lines(load(), D), t = K.totals(ls);
+    var ls = K.lines(load(), D), t = K.totals(ls), sum = summary(ls);
+    $$('[data-summary]').forEach(function (el) { el.innerHTML = summaryHtml(sum, t, 'drawer'); });
+    $$('[data-discount-box]').forEach(function (el) { if (forceBox || !el.contains(doc.activeElement)) el.innerHTML = ls.length ? discountBox(sum) : ''; });
+    $$('[data-ship-fields]').forEach(function (el) { if (!el.contains(doc.activeElement) || doc.activeElement.type === 'radio') el.innerHTML = shipFields(); });
     $$('[data-cart-count]').forEach(function (el) { el.textContent = t.count; el.hidden = !t.count; });
     $$('[data-cart-subtotal]').forEach(function (el) { el.textContent = money(t.subtotalCents); });
     var empty = '<p class="empty">Your cart is empty.</p>';
@@ -62,11 +121,11 @@ export function storeRuntime(K, D, win, doc) {
       el.innerHTML = '<p>' + (left > 0 ? 'Add <b>' + money(left) + '</b> more for free shipping' : '<b>You have unlocked free shipping!</b>') + '</p><span class="ship-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '" aria-label="Progress to free shipping"><i style="width:' + pct + '%"></i></span>';
     });
     $$('[data-cart-page]').forEach(function (el) {
-      el.innerHTML = ls.length ? '<ul class="lines">' + ls.map(function (l) { return lineHtml(l, true); }).join('') + '</ul><div class="cart-sum"><p class="subtotal"><span>Subtotal</span><strong data-cart-subtotal>' + money(t.subtotalCents) + '</strong></p>' +
+      el.innerHTML = ls.length ? '<ul class="lines">' + ls.map(function (l) { return lineHtml(l, true); }).join('') + '</ul><div class="cart-sum"><div data-discount-box>' + discountBox(sum) + '</div><div class="summary">' + summaryHtml(sum, t, 'cart') + '</div>' +
         (D.checkout.shippingNote ? '<p class="note">' + esc(D.checkout.shippingNote) + '</p>' : '') + '<a class="btn btn-wide" href="' + root + 'checkout.html">Checkout</a></div>' : '<p class="empty">' + esc(el.getAttribute('data-empty-text') || 'Your cart is empty.') + '</p>';
     });
     $$('[data-checkout-lines]').forEach(function (el) {
-      el.innerHTML = ls.length ? '<ul class="lines">' + ls.map(function (l) { return lineHtml(l, false); }).join('') + '</ul><p class="subtotal"><span>Subtotal</span><strong data-checkout-total>' + money(t.subtotalCents) + '</strong></p>' : '<p class="empty">Your cart is empty. <a href="' + root + 'collections/all.html">Continue shopping</a></p>';
+      el.innerHTML = ls.length ? '<ul class="lines">' + ls.map(function (l) { return lineHtml(l, false); }).join('') + '</ul><div data-discount-box>' + discountBox(sum) + '</div><div class="summary">' + summaryHtml(sum, t, 'checkout') + '</div>' : '<p class="empty">Your cart is empty. <a href="' + root + 'collections/all.html">Continue shopping</a></p>';
     });
     $$('[data-pay-links]').forEach(function (el) {
       var plan = K.paymentPlan(ls);
@@ -137,6 +196,8 @@ export function storeRuntime(K, D, win, doc) {
     if (qa) { e.preventDefault(); e.stopPropagation(); var qp = K.product(D, qa.getAttribute('data-quick-add')), qv = qp && K.firstAvailable(qp); if (qv) { save(K.add(load(), D, qp.id, qv.id, 1)); openDrawer(); } return; }
     var wb = t.closest('[data-wish]');
     if (wb) { e.preventDefault(); e.stopPropagation(); var id = wb.getAttribute('data-wish'), w = wload(), i = w.indexOf(id); if (i >= 0) w.splice(i, 1); else w.push(id); wsave(w); return; }
+    var cr = t.closest('[data-code-remove]'); if (cr) { e.preventDefault(); var rc = cr.getAttribute('data-code-remove'); lastMsg = {}; setJSON(CKEY, codes().filter(function (c) { return c !== rc; })); forceBox = true; render(); forceBox = false; return; }
+    var pl = t.closest('[data-pay-links] a'); if (pl) { var pls = K.lines(load(), D); postOrder(pls, {}, summary(pls)); }
     var wr = t.closest('[data-wish-remove]'); if (wr) { wsave(wload().filter(function (x) { return x !== wr.getAttribute('data-wish-remove'); })); return; }
     var ba = t.closest('[data-bundle-add]');
     if (ba) {
@@ -156,6 +217,19 @@ export function storeRuntime(K, D, win, doc) {
     var t = e.target; if (!t.hasAttribute) return;
     if (t.hasAttribute('data-line-qty')) { var key = t.closest('[data-line]').getAttribute('data-line').split('|'); save(K.setQty(load(), D, key[0], key[1], +t.value)); }
     if (t.hasAttribute('data-bundle-item')) bundleTotal(t.closest('[data-bundle]'));
+  });
+  doc.addEventListener('submit', function (e) {
+    var f = e.target; if (!f.hasAttribute || !f.hasAttribute('data-discount-form')) return;
+    e.preventDefault(); e.stopPropagation();
+    var box = f.closest('[data-discount-box]'); applyCode(f.elements.code.value);
+    var again = box && $('input[name=code]', box); if (again) again.focus();
+  }, true);
+  doc.addEventListener('change', function (e) {
+    var t = e.target; if (!t.hasAttribute) return;
+    var a = ship();
+    if (t.hasAttribute('data-ship-country')) { a.country = t.value; a.rateId = null; setJSON(AKEY, a); render(); }
+    else if (t.hasAttribute('data-ship-region')) { a.region = t.value; setJSON(AKEY, a); render(); }
+    else if (t.hasAttribute('data-ship-rate')) { a.rateId = t.value; setJSON(AKEY, a); render(); }
   });
   doc.addEventListener('input', function (e) { if (e.target.hasAttribute && e.target.hasAttribute('data-search-input')) search(); });
   doc.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLayers(); });
@@ -279,11 +353,12 @@ export function storeRuntime(K, D, win, doc) {
         var ls = K.lines(load(), D);
         if (!ls.length) { result.hidden = false; result.innerHTML = '<p class="note warn">Your cart is empty.</p>'; return; }
         var fd = {}; ['name', 'phone', 'email', 'address', 'notes'].forEach(function (k) { var el = form.elements[k]; fd[k] = el ? el.value : ''; });
-        var text = K.orderText(ls, D, fd), url = mode === 'whatsapp' ? K.whatsappUrl(D.checkout.phone, text) : K.mailtoUrl(D.checkout.email, 'Order from ' + D.name + (fd.name ? ' — ' + fd.name : ''), text);
+        var sum = summary(ls), text = K.orderText(ls, D, fd, sum), url = mode === 'whatsapp' ? K.whatsappUrl(D.checkout.phone, text) : K.mailtoUrl(D.checkout.email, 'Order from ' + D.name + (fd.name ? ' — ' + fd.name : ''), text);
         result.hidden = false;
         result.innerHTML = '<p><strong>Almost done.</strong> ' + (mode === 'whatsapp' ? 'Send the prepared message in WhatsApp to place your order.' : 'Send the prepared email to place your order.') + '</p>' +
           '<a class="btn" data-order-link href="' + esc(url) + '"' + (mode === 'whatsapp' ? ' target="_blank" rel="noopener"' : '') + '>' + (mode === 'whatsapp' ? 'Open WhatsApp' : 'Open email') + '</a> <button type="button" class="link" data-clear-cart>Clear cart after ordering</button>';
         $('[data-clear-cart]', result).addEventListener('click', function () { save([]); result.innerHTML = '<p>Thank you! Your cart has been cleared.</p>'; });
+        postOrder(ls, fd, sum);
         go(url, mode === 'whatsapp');
       });
     });

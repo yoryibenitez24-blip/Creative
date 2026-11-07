@@ -7,6 +7,7 @@
 //   renderParts / composePage / diffParts    → part-wise rendering used by the builder to patch the live preview in place
 //       route = { page, productId?, collectionId? }
 //       opts  = { mode: 'export'|'preview', imageUrl(ref) → url (root-relative path or absolute URL),
+//                 commerce?: commerce document or { discounts } (discount codes, shipping, tax, order webhook in the cart),
 //                 editor?: bool (builder selection overlay), script?: false (static thumbnail, no runtime),
 //                 small?: bool (gallery thumbnails: small photo crops, no srcset) }
 //   storeCss(store)                          → assets/styles.css
@@ -19,6 +20,7 @@ import { cartKit } from './cart.js';
 import { storeRuntime } from './runtime.js';
 import { photoUrl, PHOTOS } from './photos.js';
 import { editorAgent } from './agent.js';
+import { checkoutConfig, commerceScript } from './commerce.js';
 
 export const ALL_COLLECTION = { id: 'all', title: 'All products', slug: 'all', description: '', image: null, rule: { type: 'all', value: '', productIds: [] } };
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -201,7 +203,7 @@ export function renderParts(store, route, opts) {
   const overFg = hero ? hero.settings.textColor || (hero.settings.layout === 'gradient' ? store.theme.colors.primaryText : '#ffffff') : '';
   const drawer = (attr, title, id, inner) => `<div class="drawer" ${attr} hidden><div class="drawer-scrim" data-drawer-close></div>
     <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="${id}"><div class="drawer-head"><h2 id="${id}">${title}</h2><button type="button" class="hicon x" data-drawer-close aria-label="Close ${title.toLowerCase()}">${icon('close')}</button></div>${inner}</aside></div>`;
-  const cart = ctx.checkoutEnabled ? drawer('data-drawer', 'Your cart', 'drawer-title', `<div class="ship-bar" data-ship-bar hidden></div><div class="drawer-lines" data-drawer-lines></div><div class="drawer-foot" data-drawer-foot hidden><p class="subtotal"><span>Subtotal</span><strong data-cart-subtotal></strong></p>
+  const cart = ctx.checkoutEnabled ? drawer('data-drawer', 'Your cart', 'drawer-title', `<div class="ship-bar" data-ship-bar hidden></div><div class="drawer-lines" data-drawer-lines></div><div class="drawer-foot" data-drawer-foot hidden><div data-discount-box></div><div class="summary" data-summary></div>
     <a class="btn btn-lg btn-wide" href="${ctx.link('checkout')}">Checkout</a><a class="link center" href="${ctx.link('cart')}">View cart</a></div>`) : '';
   const wish = drawer('data-wish-drawer', 'Wishlist', 'wish-title', '<div class="drawer-lines" data-wish-lines></div>');
   const search = `<div class="search" data-search hidden><div class="drawer-scrim" data-search-close></div><div class="search-panel" role="dialog" aria-modal="true" aria-label="Search products">
@@ -215,8 +217,8 @@ export function renderParts(store, route, opts) {
     ann: SECTIONS.announcement.render({}, ctx), header: renderSection(store.layout.header, ctx), footer: renderSection(store.layout.footer, ctx),
     overlays: cart + wish + search,
     sections: sections.map(s => ({ id: s.id, html: renderSection(s, ctx) })),
-    data: preview && opts.script !== false ? JSON.stringify(runtimeData(store, opts.imageUrl, true)) : '',
-    script: opts.script === false ? '' : preview ? storeScript(store, opts.imageUrl, { preview: true }) : '',
+    data: preview && opts.script !== false ? JSON.stringify(runtimeData(store, opts.imageUrl, true, opts.commerce)) : '',
+    script: opts.script === false ? '' : preview ? storeScript(store, opts.imageUrl, { preview: true, commerce: opts.commerce }) : '',
   };
 }
 
@@ -267,10 +269,10 @@ export function diffParts(a, b) {
 }
 
 /** Data the runtime needs on every page (only active products; image/url paths are site-root-relative). */
-export function runtimeData(store, imageUrl, preview = false) {
+export function runtimeData(store, imageUrl, preview = false, commerce = null) {
   const thumb = ref => !ref ? '' : isPhoto(ref) ? photoSrc(ref, 'thumb').src : imageUrl(ref);
   return {
-    id: store.id, name: store.name, currency: store.currency, preview,
+    id: store.id, name: store.name, currency: store.currency, preview, commerce: checkoutConfig(store, commerce),
     checkout: { mode: store.checkout.mode, phone: store.checkout.phone.replace(/\D/g, ''), email: store.checkout.email, shippingNote: store.checkout.shippingNote, freeShipping: store.checkout.freeShipping || 0 },
     products: activeProducts(store).map(p => ({
       id: p.id, title: p.title, url: 'products/' + p.slug + '.html', image: thumb(p.images[0] || p.art), fallback: p.art ? imageUrl(p.art) : '', category: p.category, price: p.price, compareAt: p.compareAt,
@@ -280,9 +282,9 @@ export function runtimeData(store, imageUrl, preview = false) {
   };
 }
 
-export function storeScript(store, imageUrl, { preview = false } = {}) {
-  const data = JSON.stringify(runtimeData(store, imageUrl, preview)).replace(/</g, '\\u003c').replace(/[\u2028\u2029]/g, '');
-  return `/* Storefront runtime — generated by Zertake Studio */\n(function () {\n'use strict';\nvar K = (${cartKit.toString()})();\nvar D = ${data};\n(${storeRuntime.toString()})(K, D, window, document);\n})();\n`;
+export function storeScript(store, imageUrl, { preview = false, commerce = null } = {}) {
+  const data = JSON.stringify(runtimeData(store, imageUrl, preview, commerce)).replace(/</g, '\\u003c').replace(/[\u2028\u2029]/g, '');
+  return `/* Storefront runtime — generated by Zertake Studio */\n(function () {\n'use strict';\nvar K = (${cartKit.toString()})();\n${commerceScript()}var D = ${data};\n(${storeRuntime.toString()})(K, D, window, document, CK);\n})();\n`;
 }
 
 export function storeCss(store) {
@@ -672,6 +674,14 @@ body.drawer-open{overflow:hidden}
 .pl-editorial .pgallery,.pl-stack .pgallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:8px}.pl-editorial .pslide,.pl-stack .pslide{flex:0 0 86%;scroll-snap-align:start}
 .bundle-in,.rv-grid{grid-template-columns:1fr}.bundle-sum{text-align:left}.rv-sum{position:static}.ugc-grid{grid-template-columns:1fr 1fr}.ugc-cell.u1,.ugc-cell.u3{margin-top:0}.recent-track{grid-auto-columns:42%}.vindex{top:auto;bottom:110px;transform:none}.wordmark-big{top:90px}
 }
+/* ---- commerce: discounts, totals, shipping ---- */
+.summary{display:grid;gap:6px;margin:14px 0}.summary .subtotal{margin:4px 0}
+.sumrow{display:flex;justify-content:space-between;gap:12px;font-size:15px}.sumrow.muted{color:var(--muted);font-size:14px}.sumrow.save{color:#15803d;font-weight:600}.sumrow.total{font-size:19px;padding-top:10px;margin-top:4px;border-top:1px solid var(--border)}.sumrow s{color:var(--muted);font-weight:400}
+.dcode{display:flex;gap:8px;margin-top:12px}.dcode input{flex:1;min-width:0;height:44px;padding:0 14px;border:1px solid var(--border);border-radius:var(--btn-r);background:var(--bg);text-transform:uppercase;letter-spacing:.04em}.dcode .btn{min-height:44px;padding:0 18px}
+.dchips{list-style:none;padding:0;margin:8px 0 0;display:flex;flex-wrap:wrap;gap:6px}.dchips li{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border-radius:999px;padding:4px 6px 4px 12px;font-size:13px;font-weight:600;letter-spacing:.04em}.dchips button{border:0;background:var(--bg);width:22px;height:22px;border-radius:50%;cursor:pointer}
+[data-discount-msg]{margin:8px 0 0}
+.shipf{border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin:0;display:grid;gap:12px}.shipf legend{font-weight:600;padding:0 6px}.shipf select{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--bg)}
+.rates{display:grid;gap:8px}.rate{display:flex!important;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;font-weight:500!important}.rate span{flex:1}.rate input{accent-color:var(--primary)}
 /* responsive */
 @media (max-width:1100px){.cols-4,.cols-5{grid-template-columns:repeat(3,1fr)}.ptrack{grid-auto-columns:calc((100% - 2 * var(--gap)) / 3)}.ft-grid{grid-template-columns:1fr 1fr}.bento-grid{grid-template-columns:repeat(2,1fr)}.n3 .t0,.n4 .t0,.n5 .t0{grid-row:span 1}.n4 .t3{grid-column:span 2}}
 @media (max-width:900px){

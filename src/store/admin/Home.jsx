@@ -30,7 +30,7 @@ export default function Home() {
   const exportZip = async () => {
     try {
       notify('Building the store…');
-      const zip = await exportStoreZip(store, { loadAsset: assetStore ? id => assetStore.get(id) : undefined });
+      const zip = await exportStoreZip(store, { loadAsset: assetStore ? id => assetStore.get(id) : undefined, commerce });
       const el = document.createElement('a'); el.href = URL.createObjectURL(new Blob([zip], { type: 'application/zip' })); el.download = slugify(store.name) + '-store.zip';
       document.body.appendChild(el); el.click(); el.remove(); setTimeout(() => URL.revokeObjectURL(el.href), 10000);
       editCommerce(d => { d.onboarding.steps.launch = true; }, 'Store exported');

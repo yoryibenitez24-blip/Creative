@@ -334,3 +334,11 @@ test('preview tracker is injected and its messages are validated', () => {
   const o = parseTrackerMessage({ zcEvent: { type: 'order_placed', sessionId: 's', lines: [{ pid: 'tee', vid: f.S.id, qty: 2 }, { bad: true }], customer: { name: 'Ana', email: 'a@x.co' } } }, f.store);
   assert.equal(o.order.lines.length, 1); assert.equal(o.order.lines[0].quantity, 2); assert.equal(o.order.customer.email, 'a@x.co');
 });
+
+test('preview tracker forwards discount codes and the chosen shipping address to the order', () => {
+  const html = trackedPreviewHtml('<html><body><iframe id="f"></iframe></body></html>', 'store_1');
+  assert.match(html, /zstore-codes:/); assert.match(html, /zstore-ship:/);
+  const f = fixture();
+  const o = parseTrackerMessage({ zcEvent: { type: 'order_placed', sessionId: 's', lines: [{ pid: 'tee', vid: f.S.id, qty: 1 }], codes: [' ten ', 7, ''], country: 'us', region: 'CA', rateId: 'std', customer: { name: 'Ana' } } }, f.store);
+  assert.deepEqual(o.order.codes, ['TEN']); assert.equal(o.order.country, 'US'); assert.equal(o.order.region, 'CA'); assert.equal(o.order.rateId, 'std');
+});

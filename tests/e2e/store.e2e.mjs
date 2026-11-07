@@ -24,12 +24,16 @@ import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import StoreBuilder from ${JSON.stringify(join(repo, 'src/store/StoreBuilder.jsx'))};
 import { AssetStore, memoryBackend } from ${JSON.stringify(join(repo, 'src/engine/assets.js'))};
+import { normalizeCommerce } from ${JSON.stringify(join(repo, 'src/store/admin/model.js'))};
+const commerce = normalizeCommerce({ discounts: [{ id: 'd10', code: 'SAVE10', type: 'percentage', value: 10 }, { id: 'old', code: 'OLD10', type: 'percentage', value: 10, endsAt: '2020-01-01T00:00:00Z' }],
+  settings: { shipping: { zones: [{ name: 'US', countries: ['US'], rates: [{ id: 'std', name: 'Standard', type: 'flat', price: 6 }] }] }, taxes: { inclusive: false, shippingTaxed: false, rates: [{ country: 'US', rate: 5 }] },
+    backend: { orderWebhookUrl: 'https://hooks.example.test/orders' } } });
 const assets = new AssetStore(memoryBackend());
 window.__changes = []; window.__studio = 0; window.__exit = 0;
 function App() {
   const [store, setStore] = useState(null);
   window.__store = store;
-  return <StoreBuilder store={store} assetStore={assets} onChange={(s, label) => { window.__changes.push(label); setStore(s); }}
+  return <StoreBuilder store={store} commerce={commerce} assetStore={assets} onChange={(s, label) => { window.__changes.push(label); setStore(s); }}
     onOpenPhotoStudio={() => { window.__studio++; }} onExit={() => { window.__exit++; }} />;
 }
 createRoot(document.getElementById('root')).render(<App />);
@@ -252,7 +256,7 @@ await step('export the store as a ZIP and unzip it', async () => {
   }
 });
 
-await step('shop the exported site from file://: wishlist, search, mobile menu, variants, cart total, WhatsApp checkout, size guide, sticky add-to-cart, bundle, buy now', async () => {
+await step('shop the exported site from file://: wishlist, search, mobile menu, variants, discount codes, shipping & tax, WhatsApp checkout + order webhook, size guide, sticky add-to-cart, bundle, buy now', async () => {
   const shop = await ctx.newPage();
   const errs = []; shop.on('pageerror', e => errs.push(e.message));
   await shop.goto(pathToFileURL(join(siteDir, 'products/test-tee.html')).href);
@@ -280,9 +284,26 @@ await step('shop the exported site from file://: wishlist, search, mobile menu, 
   await shop.locator('[data-drawer]').waitFor();
   assert.equal(await shop.locator('[data-drawer] [data-cart-subtotal]').textContent(), '$50.00');
   assert.equal(await shop.locator('[data-cart-count]').first().textContent(), '2');
+  // discount codes from the commerce document: invalid, expired, then a valid 10% code
+  const code = shop.locator('[data-drawer] [data-discount-box] input[name=code]');
+  await code.fill('nope'); await code.press('Enter');
+  await shop.locator('[data-drawer] [data-discount-msg]', { hasText: '"NOPE" is not a valid discount code.' }).waitFor();
+  await shop.locator('[data-drawer] [data-discount-box] input[name=code]').fill('old10'); await shop.locator('[data-drawer] [data-discount-box] input[name=code]').press('Enter');
+  await shop.locator('[data-drawer] [data-discount-msg]', { hasText: '"OLD10" has expired.' }).waitFor();
+  await shop.locator('[data-drawer] [data-discount-box] input[name=code]').fill('save10');
+  await shop.locator('[data-drawer] [data-discount-box]').getByRole('button', { name: 'Apply' }).click();
+  await shop.locator('[data-drawer] [data-discount-line]', { hasText: 'SAVE10' }).waitFor();
+  assert.match(await shop.locator('[data-drawer] [data-discount-line]').textContent(), /−\$5\.00/);
+  assert.equal(await shop.locator('[data-drawer] [data-order-total]').textContent(), '$45.00');
   await shop.getByRole('link', { name: 'Checkout' }).click();
   await shop.waitForURL(/checkout\.html$/);
-  assert.equal(await shop.locator('[data-checkout-total]').textContent(), '$50.00');
+  assert.equal(await shop.locator('[data-checkout-total]').textContent(), '$45.00', 'applied code persists across pages');
+  // shipping & tax from the commerce settings
+  await shop.getByLabel('Country').selectOption('US');
+  await shop.locator('[data-ship-rate]').first().waitFor();
+  assert.equal(await shop.locator('[data-checkout-total]').textContent(), '$53.25'); // 50 − 5 + 6 shipping + 5% tax on 45
+  const hooks = [];
+  await ctx.route(/hooks\.example\.test/, r => { const q = r.request(); if (q.method() === 'POST') hooks.push(q.postData()); r.fulfill({ status: q.method() === 'OPTIONS' ? 204 : 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'POST' }, body: '' }); });
   await shop.getByLabel('Full name').fill('Ada Shopper');
   await shop.getByLabel('Delivery address').fill('1 Test Street');
   const [popup] = await Promise.all([shop.waitForEvent('popup'), shop.getByRole('button', { name: 'Send order on WhatsApp' }).click()]);
@@ -291,6 +312,11 @@ await step('shop the exported site from file://: wishlist, search, mobile menu, 
   const text = wa.searchParams.get('text');
   assert.match(text, /2 × Test Tee \(M \/ Blue\) \[TEST-TEE-M-BLUE\] — \$50\.00/);
   assert.match(text, /Subtotal: \$50\.00 \(2 items\)/);
+  assert.match(text, /Discount \(SAVE10\): −\$5\.00/); assert.match(text, /Shipping \(Standard\): \$6\.00/); assert.match(text, /Tax 5%: \$2\.25/); assert.match(text, /Total: \$53\.25/);
+  await shop.waitForFunction(() => true); for (let i = 0; i < 50 && !hooks.length; i++) await shop.waitForTimeout(100);
+  assert.ok(hooks.length >= 1, 'order webhook POSTed');
+  const hook = JSON.parse(hooks[0]);
+  assert.equal(hook.type, 'order'); assert.deepEqual(hook.codes, ['SAVE10']); assert.equal(hook.total, 53.25); assert.equal(hook.lines[0].quantity, 2); assert.equal(hook.customer.name, 'Ada Shopper');
   assert.match(text, /Name: Ada Shopper/);
   const link = await shop.locator('[data-order-link]').getAttribute('href');
   assert.equal(link, popup.url());

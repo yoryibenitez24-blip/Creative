@@ -1,11 +1,11 @@
 // Static-site exporter for the store builder.
 //
-//   await buildSiteFiles(store, { loadAsset? }) → [{ name, data: Uint8Array }]
+//   await buildSiteFiles(store, { loadAsset?, commerce? }) → [{ name, data: Uint8Array }]   (commerce: see render.js opts)
 //       index.html, collections/<slug>.html (incl. all.html), products/<slug>.html, pages/about.html,
 //       pages/contact.html, cart.html, checkout.html, assets/styles.css, assets/store.js, images/*, README.txt
 //       loadAsset(id) → Promise<Blob> resolves 'asset:<id>' image refs (the app AssetStore's get()).
 //   await exportStoreZip(store, opts) → Uint8Array (store-only ZIP, src/ecom/zip.js)
-//   previewShellHtml(store, imageUrl) → one self-contained HTML page that shows every page of the store in an
+//   previewShellHtml(store, imageUrl, { commerce? }) → one self-contained HTML page that shows every page of the store in an
 //       iframe and follows its internal links (used by "Preview in new tab"; imageUrl must return absolute URLs)
 //   deployInstructions(store) → plain text
 //
@@ -49,13 +49,13 @@ export async function collectImages(store, loadAsset) {
   return { map, files };
 }
 
-export async function buildSiteFiles(store, { loadAsset } = {}) {
+export async function buildSiteFiles(store, { loadAsset, commerce } = {}) {
   const { map, files } = await collectImages(store, loadAsset);
   const imageUrl = ref => map.get(ref) || (/^https?:/.test(ref) ? ref : '');
   const out = [];
-  for (const pg of sitePages(store)) out.push({ name: pg.path, data: enc.encode(renderPage(store, pg.route, { mode: 'export', imageUrl })) });
+  for (const pg of sitePages(store)) out.push({ name: pg.path, data: enc.encode(renderPage(store, pg.route, { mode: 'export', imageUrl, commerce })) });
   out.push({ name: 'assets/styles.css', data: enc.encode(storeCss(store)) });
-  out.push({ name: 'assets/store.js', data: enc.encode(storeScript(store, imageUrl)) });
+  out.push({ name: 'assets/store.js', data: enc.encode(storeScript(store, imageUrl, { commerce })) });
   out.push(...files);
   out.push({ name: 'README.txt', data: enc.encode(deployInstructions(store)) });
   return out;
@@ -103,9 +103,9 @@ UPDATING
 }
 
 /** Self-contained preview: every page pre-rendered (preview mode) inside one shell that routes internal links. */
-export function previewShellHtml(store, imageUrl) {
+export function previewShellHtml(store, imageUrl, { commerce } = {}) {
   const pages = {};
-  for (const pg of sitePages(store)) pages[pg.path] = renderPage(store, pg.route, { mode: 'preview', imageUrl });
+  for (const pg of sitePages(store)) pages[pg.path] = renderPage(store, pg.route, { mode: 'preview', imageUrl, commerce });
   const json = JSON.stringify(pages).replace(/</g, '\\u003c').replace(/[\u2028\u2029]/g, '');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Preview – ${esc(store.name)}</title>
 <style>html,body{margin:0;height:100%;background:#111}iframe{border:0;width:100%;height:100%;display:block;background:#fff}</style></head>

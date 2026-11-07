@@ -36,7 +36,7 @@ export function discountStatus(d, now) {
   return 'active';
 }
 
-function toMs(v) {
+export function toMs(v) {
   if (v == null || v === '') return Date.now();
   if (typeof v === 'number') return v;
   var t = new Date(v).getTime();

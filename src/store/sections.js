@@ -541,7 +541,7 @@ export const SECTIONS = {
       const fields = mode === 'whatsapp' || mode === 'email' ? `<form class="form" data-checkout-form>
         <label>Full name<input name="name" required autocomplete="name"></label><label>Phone<input name="phone" type="tel" autocomplete="tel"></label>
         ${mode === 'email' ? '<label>Email<input name="email" type="email" required autocomplete="email"></label>' : ''}
-        <label>Delivery address<textarea name="address" rows="3" autocomplete="street-address"></textarea></label><label>Notes<textarea name="notes" rows="2"></textarea></label>
+        <label>Delivery address<textarea name="address" rows="3" autocomplete="street-address"></textarea></label><label>Notes<textarea name="notes" rows="2"></textarea></label><div data-ship-fields></div>
         <button class="btn btn-lg btn-wide" type="submit">${ctx.icon(mode === 'whatsapp' ? 'chat' : 'mail')}${mode === 'whatsapp' ? 'Send order on WhatsApp' : 'Send order by email'}</button></form>` : mode === 'paymentLinks' ? '<div data-pay-links></div>' : '';
       const missing = (mode === 'whatsapp' && !ck.phone) || (mode === 'email' && !ck.email);
       return wrap(sec, 'checkout', `<h1 class="sec-title"${ctx.ed('heading')}>${ctx.e(s.heading)}</h1><div class="co-grid" data-checkout data-mode="${mode}">

@@ -89,12 +89,13 @@ export function addEvents(commerce, events) {
  */
 export function trackedPreviewHtml(shellHtml, storeId) {
   const script = `<script>(function(){
-var op=window.opener;if(!op)return;var sid='pv_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8),KEY='zstore-cart:'+${JSON.stringify(String(storeId))},first=true,lastQty=null,ordered=false;
+var op=window.opener;if(!op)return;var SID=${JSON.stringify(String(storeId))},sid='pv_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8),KEY='zstore-cart:'+${JSON.stringify(String(storeId))},first=true,lastQty=null,ordered=false;
 function post(ev){ev.sessionId=sid;try{op.postMessage({zcEvent:ev},'*')}catch(e){}}
 function cart(){try{var c=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(c)?c:[]}catch(e){return[]}}
 function qty(c){var n=0;c.forEach(function(l){n+=+l.qty||0});return n}
 function checkCart(){var c=cart(),q=qty(c);if(lastQty!==null&&q>lastQty)post({type:'add_to_cart',quantity:q-lastQty,lines:c});lastQty=q}
-function order(form){if(ordered)return;var c=cart();if(!c.length)return;ordered=true;var fd={};if(form)['name','email','phone','address','notes'].forEach(function(k){var el=form.elements[k];fd[k]=el?el.value:''});post({type:'order_placed',lines:c,customer:fd})}
+function js(k,d){try{var v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v}catch(e){return d}}
+function order(form){if(ordered)return;var c=cart();if(!c.length)return;ordered=true;var fd={};if(form)['name','email','phone','address','notes'].forEach(function(k){var el=form.elements[k];fd[k]=el?el.value:''});var sh=js('zstore-ship:'+SID,{})||{};post({type:'order_placed',lines:c,customer:fd,codes:js('zstore-codes:'+SID,[]),country:sh.country||'',region:sh.region||'',rateId:sh.rateId||''})}
 lastQty=qty(cart());addEventListener('storage',function(e){if(e.key===KEY)checkCart()});setInterval(checkCart,1000);
 var f=document.getElementById('f');f.addEventListener('load',function(){var w=f.contentWindow,d=w&&w.document;if(!d)return;var p=d.documentElement.getAttribute('data-path')||location.hash.slice(1)||'index.html';
 if(first){post({type:'visit',path:p});first=false}post({type:'page_view',path:p});var m=/^products\\/(.+)\\.html$/.exec(p);if(m)post({type:'view_product',path:p,productSlug:m[1]});if(p==='checkout.html'){ordered=false;post({type:'checkout_started',path:p})}
@@ -116,7 +117,9 @@ export function parseTrackerMessage(data, store, now = Date.now()) {
   if (e.type === 'add_to_cart') return { events: [{ ...base, type: 'add_to_cart', quantity: Math.max(1, Math.round(+e.quantity || 1)) }] };
   if (e.type === 'order_placed' && lines.length) {
     const cu = e.customer && typeof e.customer === 'object' ? e.customer : {}, s = k => String(cu[k] || '').slice(0, 500);
-    return { events: [], order: { sessionId: base.sessionId, lines, customer: { name: s('name'), email: s('email'), phone: s('phone'), address: s('address'), notes: s('notes') } } };
+    const codes = (Array.isArray(e.codes) ? e.codes : []).filter(c => typeof c === 'string').map(c => c.trim().toUpperCase().slice(0, 40)).filter(Boolean).slice(0, 10);
+    const str = v => typeof v === 'string' ? v.slice(0, 60) : '';
+    return { events: [], order: { sessionId: base.sessionId, lines, codes, country: str(e.country).toUpperCase().slice(0, 2), region: str(e.region), rateId: str(e.rateId), customer: { name: s('name'), email: s('email'), phone: s('phone'), address: s('address'), notes: s('notes') } } };
   }
   return null;
 }

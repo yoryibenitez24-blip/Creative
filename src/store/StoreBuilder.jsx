@@ -21,6 +21,9 @@ export { createStore, STORE_TEMPLATES };
  *   onExit()          leave the builder (optional; shows a back button)
  *   onOpenPhotoStudio()     open the product-photo studio (optional; shows "Product photo studio" buttons)
  *   assetStore        AssetStore (src/engine/assets.js) for uploaded images; without it images are stored as data: URLs
+ *   commerce          optional commerce document (src/store/admin/model.js): its discounts, shipping zones, taxes and
+ *                     order webhook are embedded in the preview and the exported store (discount codes, totals, order POST)
+ *   discounts         optional Discount[] (src/store/admin/discounts.js) when no full commerce document is available
  *
  * Undo/redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl+Y) is kept inside the builder; handled shortcuts are stopped on window
  * (capture phase) so they do not reach the rest of the app; typing in inputs is ignored.
@@ -28,7 +31,8 @@ export { createStore, STORE_TEMPLATES };
 const DEVICES = { desktop: [1280, 'Desktop', Monitor], tablet: [820, 'Tablet', Tablet], mobile: [390, 'Mobile', Smartphone] };
 const COALESCE_MS = 900, HISTORY = 100;
 
-export default function StoreBuilder({ store, onChange, onExit, onOpenPhotoStudio, assetStore }) {
+export default function StoreBuilder({ store, onChange, onExit, onOpenPhotoStudio, assetStore, commerce, discounts }) {
+  const commerceSrc = useMemo(() => commerce || (Array.isArray(discounts) ? { discounts } : null), [commerce, discounts]);
   const doc = useMemo(() => store ? (store.kind === 'store' && store.version === STORE_VERSION && store.layout && store.pages ? store : normalizeStore(store)) : null, [store]);
   const [gallery, setGallery] = useState(!store);
   const [view, setView] = useState('design');            // design | products | collections | settings
@@ -104,7 +108,7 @@ export default function StoreBuilder({ store, onChange, onExit, onOpenPhotoStudi
   const frame = useRef(null);
   const live = useRef({ key: '', ready: false, shown: null, latest: null });
   const prRef = useRef(previewRoute); prRef.current = previewRoute;
-  const previewOpts = useMemo(() => ({ mode: 'preview', imageUrl, editor: true }), [imageUrl]);
+  const previewOpts = useMemo(() => ({ mode: 'preview', imageUrl, editor: true, commerce: commerceSrc }), [imageUrl, commerceSrc]);
   const routeKey = cur ? [previewRoute.page, previewRoute.productId || '', previewRoute.collectionId || '', cur.id, cur.templateId].join('|') : '';
   const flush = useCallback(() => {
     const L = live.current, w = frame.current?.contentWindow;
@@ -203,7 +207,7 @@ export default function StoreBuilder({ store, onChange, onExit, onOpenPhotoStudi
   const doExport = async () => {
     try {
       notify('Building the store…');
-      const zip = await exportStoreZip(cur, { loadAsset: assetStore ? id => assetStore.get(id) : undefined });
+      const zip = await exportStoreZip(cur, { loadAsset: assetStore ? id => assetStore.get(id) : undefined, commerce: commerceSrc });
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([zip], { type: 'application/zip' })); a.download = slugify(cur.name) + '-store.zip';
       document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
       notify('Store exported as a ZIP. Unzip it and open index.html, or upload the folder to Netlify / GitHub Pages.');
@@ -212,7 +216,7 @@ export default function StoreBuilder({ store, onChange, onExit, onOpenPhotoStudi
   const doPreviewTab = async () => {
     const w = window.open('', '_blank');
     await resolver.ready(imageRefs(cur));
-    const url = URL.createObjectURL(new Blob([previewShellHtml(cur, imageUrl)], { type: 'text/html' }));
+    const url = URL.createObjectURL(new Blob([previewShellHtml(cur, imageUrl, { commerce: commerceSrc })], { type: 'text/html' }));
     if (w) w.location.href = url; else notify('The browser blocked the preview tab — allow pop-ups for this site.');
   };
   const doDeploy = async () => {

@@ -98,7 +98,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
   const viewStore = useCallback(async () => {
     const w = window.open('', '_blank');
     await resolver.ready(imageRefs(S.current));
-    const html = trackedPreviewHtml(previewShellHtml(S.current, imageUrl), S.current.id);
+    const html = trackedPreviewHtml(previewShellHtml(S.current, imageUrl, { commerce: K.current }), S.current.id);
     const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
     if (w) { w.location.href = url; previewWin.current = w; } else notify('The browser blocked the preview tab — allow pop-ups for this site.');
   }, [resolver, imageUrl, notify]);
@@ -113,7 +113,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
         if (!lines.length) return;
         const [firstName, ...rest] = m.order.customer.name.trim().split(/\s+/);
         const ec = ensureCustomer(c, { email: m.order.customer.email, phone: m.order.customer.phone, firstName: firstName || '', lastName: rest.join(' ') }); c = ec.commerce;
-        const r = createOrder(S.current, c, { lines, customerId: ec.customer?.id || null, email: m.order.customer.email, phone: m.order.customer.phone, shippingAddress: { name: m.order.customer.name, address1: m.order.customer.address }, note: m.order.customer.notes, source: 'preview', sessionId: m.order.sessionId });
+        const r = createOrder(S.current, c, { lines, customerId: ec.customer?.id || null, email: m.order.customer.email, phone: m.order.customer.phone, shippingAddress: { name: m.order.customer.name, address1: m.order.customer.address, country: m.order.country || '', province: m.order.region || '' }, codes: m.order.codes || [], shippingRateId: m.order.rateId || undefined, note: m.order.customer.notes, source: 'preview', sessionId: m.order.sessionId });
         commit(r.store, r.commerce, 'Order ' + r.order.name + ' placed in the store preview');
         notify('New order ' + r.order.name + ' from the store preview');
       }
@@ -147,7 +147,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
 
   // ---------- no store yet: pick a template first ----------
   if (!cur) return <div className="caRoot caPicker stRoot"><Gallery onPick={id => commit(createStore(id), null, 'Create store')} onCancel={onExit} /></div>;
-  if (customizing) return <StoreBuilder store={cur} onChange={(s, label) => commit(s, null, label)} onExit={() => setCustomizing(false)} onOpenPhotoStudio={onOpenPhotoStudio} assetStore={assetStore} />;
+  if (customizing) return <StoreBuilder store={cur} commerce={com} onChange={(s, label) => commit(s, null, label)} onExit={() => setCustomizing(false)} onOpenPhotoStudio={onOpenPhotoStudio} assetStore={assetStore} />;
 
   const ctx = { store: cur, commerce: com, commit, editStore, editCommerce, run, fmt, imageUrl, upload, resolver, notify, confirm, go, route, assetStore, onOpenPhotoStudio, customize: () => setCustomizing(true), viewStore };
   const section = SECTION_OF[route.page] || route.page;

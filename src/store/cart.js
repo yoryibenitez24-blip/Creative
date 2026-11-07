@@ -63,12 +63,20 @@ export function cartKit() {
     return { count: count, subtotalCents: sub, subtotal: fromCents(sub) };
   }
   /** Plain-text order summary used by the WhatsApp and email checkouts. */
-  function orderText(ls, D, customer) {
+  /** sum (optional): commerce totals (see src/store/commerce.js) → discount, shipping, tax and total lines. */
+  function orderText(ls, D, customer, sum) {
     var c = customer || {}, cur = D.currency, t = totals(ls), out = ['New order — ' + D.name, ''];
     ls.forEach(function (l) {
       out.push(l.qty + ' × ' + l.product.title + (l.label ? ' (' + l.label + ')' : '') + (l.variant.sku ? ' [' + l.variant.sku + ']' : '') + ' — ' + formatMoney(fromCents(l.totalCents), cur));
     });
     out.push('', 'Subtotal: ' + formatMoney(t.subtotal, cur) + ' (' + t.count + (t.count === 1 ? ' item' : ' items') + ')');
+    if (sum) {
+      (sum.applied || []).forEach(function (a) { if (a.type !== 'free_shipping' && a.amount > 0) out.push('Discount' + (a.code ? ' (' + a.code + ')' : a.title ? ' (' + a.title + ')' : '') + ': −' + formatMoney(a.amount, cur)); });
+      if (sum.shippingRateId) out.push('Shipping' + (sum.shippingName ? ' (' + sum.shippingName + ')' : '') + ': ' + (sum.shipping > 0 ? formatMoney(sum.shipping, cur) : 'Free') + (sum.shippingDiscount > 0 ? ' (free-shipping discount)' : ''));
+      if (sum.tax > 0) out.push((sum.taxName || 'Tax') + ' ' + sum.taxRate + '%' + (sum.taxInclusive ? ' (included)' : '') + ': ' + formatMoney(sum.tax, cur));
+      out.push('Total: ' + formatMoney(sum.total, cur));
+      if (sum.appliedCodes && sum.appliedCodes.length) out.push('Discount codes: ' + sum.appliedCodes.join(', '));
+    }
     if (D.checkout && D.checkout.shippingNote) out.push('Shipping: ' + D.checkout.shippingNote);
     var info = [['Name', c.name], ['Phone', c.phone], ['Email', c.email], ['Address', c.address], ['Notes', c.notes]].filter(function (x) { return x[1] && String(x[1]).trim(); });
     if (info.length) { out.push(''); info.forEach(function (x) { out.push(x[0] + ': ' + String(x[1]).trim()); }); }
