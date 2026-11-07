@@ -1,6 +1,6 @@
 // Canvas 2D visitor globe (no WebGL, no dependencies): an orthographic sphere with a thin lat/long wireframe,
 // dot-matrix continents from the embedded land mask (landmask.js), glowing markers at visitor locations and raised
-// great-circle arcs from each location to the store. Auto-rotates slowly (not with prefers-reduced-motion), pauses on
+// great-circle arcs from each location to the store. Auto-rotates smoothly (not with prefers-reduced-motion), slows on
 // hover, drags with the pointer (with inertia), is devicePixelRatio aware, follows its box with a ResizeObserver and
 // stops its animation loop while off-screen, hidden or destroyed.
 //
@@ -53,18 +53,32 @@ export function landDots(step = 1.25) {
   return dots;
 }
 
+// Colours follow the admin theme (light: sage dots on a pale glass sphere with coral markers; dark: amber on graphite).
+// rgb triplets are combined with alphas at draw time.
+export const GLOBE_PALETTES = {
+  light: { body: ['#ffffff', '#eef1ec', '#dfe5dc'], glow: '91,125,100', grid: 'rgba(52,72,58,0.13)', rim: 'rgba(59,138,92,0.45)', dot: '59,138,92',
+    dotA: [0.10, 0.42, 0.62, 0.8, 0.95], arc: '240,83,58', arcA: 0.6, arcStrong: 'rgba(214,58,36,0.95)', comet: '240,83,58',
+    mark: '#f0533a', markFocus: '#ff8a6a', markLine: 'rgba(255,255,255,0.95)', markIcon: '#ffffff', halo: '240,83,58',
+    home: '#ffffff', homeLine: '#3b8a5c', homeIcon: '#3b8a5c', ring: 'rgba(59,138,92,0.95)' },
+  dark: { body: ['#25221d', '#16140f', '#0d0c0a'], glow: '242,176,72', grid: 'rgba(230,215,190,0.12)', rim: 'rgba(242,184,75,0.4)', dot: '242,176,72',
+    dotA: [0.07, 0.42, 0.64, 0.84, 1], arc: '242,176,72', arcA: 0.55, arcStrong: 'rgba(255,224,170,0.95)', comet: '255,226,175',
+    mark: '#f2a93b', markFocus: '#ffd08a', markLine: 'rgba(255,240,215,0.9)', markIcon: '#2a1a05', halo: '242,160,50',
+    home: '#fff6e6', homeLine: '#f2a93b', homeIcon: '#9a5b00', ring: 'rgba(255,246,230,0.95)' },
+};
+
 const reducedMotion = () => { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch { return false; } };
 
 export function createGlobe(canvas, opts = {}) {
   const ctx = canvas.getContext('2d');
   const calm = opts.reducedMotion ?? reducedMotion();
   const dots = landDots(opts.dotStep || 1.25);
+  let P = GLOBE_PALETTES[opts.theme === 'dark' ? 'dark' : 'light'];
   const st = {
     lon0: opts.lon0 ?? 10, lat0: opts.lat0 ?? 18, vLon: 0, vLat: 0, w: 0, h: 0, dpr: 1,
-    hover: false, drag: null, visible: true, raf: 0, last: 0, t0: performance.now(),
+    hover: false, spin: 0, drag: null, visible: true, raf: 0, last: 0, t0: performance.now(),
     locations: [], home: null, focus: null, target: null, hit: [], hoverLoc: null, dead: false,
   };
-  const AUTO = 5; // degrees per second
+  const AUTO = 6; // degrees per second (eases in/out; slower while the pointer is over the globe)
 
   function size() {
     const r = canvas.getBoundingClientRect();
@@ -91,21 +105,21 @@ export function createGlobe(canvas, opts = {}) {
 
     // atmosphere glow + sphere body
     const glow = ctx.createRadialGradient(cx, cy, R * 0.92, cx, cy, R * 1.28);
-    glow.addColorStop(0, 'rgba(255,122,44,0.30)'); glow.addColorStop(0.35, 'rgba(255,100,30,0.10)'); glow.addColorStop(1, 'rgba(255,90,20,0)');
+    glow.addColorStop(0, `rgba(${P.glow},0.30)`); glow.addColorStop(0.35, `rgba(${P.glow},0.10)`); glow.addColorStop(1, `rgba(${P.glow},0)`);
     ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, R * 1.28, 0, Math.PI * 2); ctx.fill();
     const body = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.1, cx, cy, R);
-    body.addColorStop(0, '#1d1714'); body.addColorStop(0.7, '#0f0c0b'); body.addColorStop(1, '#090808');
+    body.addColorStop(0, P.body[0]); body.addColorStop(0.7, P.body[1]); body.addColorStop(1, P.body[2]);
     ctx.fillStyle = body; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
 
     // graticule (front hemisphere only), every 15°
-    ctx.lineWidth = 0.7; ctx.strokeStyle = 'rgba(200,196,190,0.16)';
+    ctx.lineWidth = 0.7; ctx.strokeStyle = P.grid;
     ctx.beginPath();
     const seg = (pts) => { let on = false; for (const p of pts) { if (p.z > 0) { const [x, y] = S(p); if (on) ctx.lineTo(x, y); else { ctx.moveTo(x, y); on = true; } } else on = false; } };
     for (let lat = -75; lat <= 75; lat += 15) { const pts = []; for (let lon = -180; lon <= 180; lon += 3) pts.push(projLL(lat, lon)); seg(pts); }
     for (let lon = -180; lon < 180; lon += 15) { const pts = []; for (let lat = -90; lat <= 90; lat += 3) pts.push(projLL(lat, lon)); seg(pts); }
     ctx.stroke();
     // rim
-    ctx.strokeStyle = 'rgba(255,170,110,0.35)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = P.rim; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
 
     // land dots: far side very faint, near side brighter towards the centre (depth cue)
     const sl0 = Math.sin(st.lat0 * RAD), cl0 = Math.cos(st.lat0 * RAD), L0 = st.lon0 * RAD;
@@ -117,7 +131,7 @@ export function createGlobe(canvas, opts = {}) {
       const x = cx + cLat * Math.sin(dl) * R, y = cy - (cl0 * sLat - sl0 * cLat * cd) * R;
       buckets[z < -0.05 ? 0 : z < 0.25 ? 1 : z < 0.5 ? 2 : z < 0.75 ? 3 : 4].push(x, y);
     }
-    const styles = ['rgba(255,138,60,0.07)', 'rgba(255,128,48,0.45)', 'rgba(255,134,52,0.68)', 'rgba(255,142,58,0.86)', 'rgba(255,152,66,1)'];
+    const styles = P.dotA.map(a => `rgba(${P.dot},${a})`);
     for (let b = 0; b < 5; b++) {
       const arr = buckets[b]; if (!arr.length) continue;
       ctx.fillStyle = styles[b];
@@ -144,7 +158,7 @@ export function createGlobe(canvas, opts = {}) {
         }
         const strong = st.focus && st.focus === l.country;
         ctx.lineWidth = strong ? 2 : 1.3;
-        ctx.strokeStyle = strong ? 'rgba(255,196,140,0.95)' : 'rgba(255,140,60,0.55)';
+        ctx.strokeStyle = strong ? P.arcStrong : `rgba(${P.arc},${P.arcA})`;
         ctx.beginPath(); let on = false;
         for (const q of pts) { if (q.vis) { const [x, y] = S(q.p); if (on) ctx.lineTo(x, y); else { ctx.moveTo(x, y); on = true; } } else on = false; }
         ctx.stroke();
@@ -153,7 +167,7 @@ export function createGlobe(canvas, opts = {}) {
           const phase = ((t * 0.45 + (l.lat + l.lon) / 97) % 1 + 1) % 1, head = Math.floor(phase * N);
           for (let k = Math.max(0, head - 7); k <= head; k++) {
             const q = pts[k]; if (!q.vis) continue; const [x, y] = S(q.p), a = 1 - (head - k) / 8;
-            ctx.fillStyle = `rgba(255,214,170,${a.toFixed(3)})`; ctx.beginPath(); ctx.arc(x, y, 1.1 + a * 1.4, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = `rgba(${P.comet},${a.toFixed(3)})`; ctx.beginPath(); ctx.arc(x, y, 1.1 + a * 1.4, 0, Math.PI * 2); ctx.fill();
           }
         }
       }
@@ -165,20 +179,20 @@ export function createGlobe(canvas, opts = {}) {
       const p = projLL(lat, lon); if (p.z <= 0.02) return;
       const [x, y] = S(p), fade = Math.min(1, p.z * 3);
       const g = ctx.createRadialGradient(x, y, 0, x, y, rad * 2.6);
-      g.addColorStop(0, `rgba(255,140,50,${0.55 * fade})`); g.addColorStop(1, 'rgba(255,120,40,0)');
+      g.addColorStop(0, `rgba(${P.halo},${0.5 * fade})`); g.addColorStop(1, `rgba(${P.halo},0)`);
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rad * 2.6, 0, Math.PI * 2); ctx.fill();
       if (!calm) { // pulse ring
         const ph = ((t * 0.7 + (lat * 7 + lon) / 113) % 1 + 1) % 1;
-        ctx.strokeStyle = `rgba(255,170,100,${(0.7 * (1 - ph) * fade).toFixed(3)})`; ctx.lineWidth = 1.4;
+        ctx.strokeStyle = `rgba(${P.halo},${(0.7 * (1 - ph) * fade).toFixed(3)})`; ctx.lineWidth = 1.4;
         ctx.beginPath(); ctx.arc(x, y, rad * (1 + ph * 1.6), 0, Math.PI * 2); ctx.stroke();
       }
       const focused = key && st.focus === key;
-      ctx.fillStyle = kind === 'home' ? '#fff4ea' : focused ? '#ffb27a' : '#ff7a2f';
+      ctx.fillStyle = kind === 'home' ? P.home : focused ? P.markFocus : P.mark;
       ctx.globalAlpha = fade; ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.fill();
-      ctx.lineWidth = focused ? 2.5 : 1.5; ctx.strokeStyle = kind === 'home' ? '#ff7a2f' : 'rgba(255,230,210,0.9)'; ctx.stroke();
-      icon(ctx, kind, x, y, rad, kind === 'home' ? '#c2410c' : '#1a0f08');
+      ctx.lineWidth = focused ? 2.5 : 1.5; ctx.strokeStyle = kind === 'home' ? P.homeLine : P.markLine; ctx.stroke();
+      icon(ctx, kind, x, y, rad, kind === 'home' ? P.homeIcon : P.markIcon);
       ctx.globalAlpha = 1;
-      if (ring) { ctx.strokeStyle = 'rgba(255,244,234,0.95)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, rad + 4, 0, Math.PI * 2); ctx.stroke(); }
+      if (ring) { ctx.strokeStyle = P.ring; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, rad + 4, 0, Math.PI * 2); ctx.stroke(); }
       if (key) st.hit.push({ key, x, y, r: rad + 4 });
     };
     // the store's own marker; when a visitor location sits on it, that marker gets a white "home" ring instead
@@ -199,8 +213,14 @@ export function createGlobe(canvas, opts = {}) {
     } else if (!st.drag) {
       if (Math.abs(st.vLon) > 0.5 || Math.abs(st.vLat) > 0.5) {
         st.lon0 += st.vLon * dt; st.lat0 = clampLat(st.lat0 + st.vLat * dt);
-        const decay = Math.pow(0.04, dt); st.vLon *= decay; st.vLat *= decay; moving = true;
-      } else { st.vLon = st.vLat = 0; if (!calm && !st.hover && !st.focus) { st.lon0 += AUTO * dt; moving = true; } }
+        const decay = Math.pow(0.04, dt); st.vLon *= decay; st.vLat *= decay; st.spin = Math.max(-AUTO * 2, Math.min(AUTO * 2, st.vLon)); moving = true;
+      } else {
+        st.vLon = st.vLat = 0;
+        // smooth auto-rotation: the speed eases towards its target (full, slower on hover, stopped while a location is focused)
+        const goal = calm || st.focus ? 0 : st.hover ? AUTO * 0.35 : AUTO;
+        st.spin += (goal - st.spin) * (1 - Math.pow(0.15, dt));
+        if (Math.abs(st.spin) > 0.01) { st.lon0 += st.spin * dt; moving = true; } else st.spin = 0;
+      }
     }
     draw(now);
     if ((moving || !calm || st.drag) && st.visible) st.raf = requestAnimationFrame(frame);
@@ -213,7 +233,7 @@ export function createGlobe(canvas, opts = {}) {
   const onLeave = () => { st.hover = false; setHover(null); kick(); };
   const onDown = e => {
     if (e.button !== undefined && e.button !== 0) return;
-    const [x, y] = local(e); st.drag = { x, y, t: performance.now(), lon: st.lon0, lat: st.lat0 }; st.vLon = st.vLat = 0; st.target = null;
+    const [x, y] = local(e); st.drag = { x, y, t: performance.now(), lon: st.lon0, lat: st.lat0 }; st.vLon = st.vLat = 0; st.spin = 0; st.target = null;
     try { canvas.setPointerCapture(e.pointerId); } catch { /* ignore */ }
     canvas.classList.add('dragging'); kick();
   };
@@ -277,6 +297,7 @@ export function createGlobe(canvas, opts = {}) {
       draw(performance.now()); kick();
     },
     redraw() { size(); draw(performance.now()); },
+    setTheme(theme) { P = GLOBE_PALETTES[theme === 'dark' ? 'dark' : 'light']; draw(performance.now()); kick(); },
     destroy() {
       st.dead = true; if (st.raf) cancelAnimationFrame(st.raf);
       if (ro) ro.disconnect(); if (io) io.disconnect();

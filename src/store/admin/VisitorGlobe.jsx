@@ -13,9 +13,14 @@ export default function VisitorGlobe({ locations, home, unlocated = 0, fmt = v =
 
   useEffect(() => {
     if (!canvas.current) return undefined;
-    const g = createGlobe(canvas.current, { onHover: (loc, x, y, fromFocus) => setTip(loc ? { loc, x, y, fromFocus: !!fromFocus } : null) });
+    const root = canvas.current.closest('[data-theme]');
+    const theme = () => (root && root.getAttribute('data-theme')) || 'light';
+    const g = createGlobe(canvas.current, { theme: theme(), onHover: (loc, x, y, fromFocus) => setTip(loc ? { loc, x, y, fromFocus: !!fromFocus } : null) });
     globe.current = g;
-    return () => { g.destroy(); globe.current = null; };
+    // follow the admin's light/dark switch
+    const mo = root && typeof MutationObserver === 'function' ? new MutationObserver(() => g.setTheme(theme())) : null;
+    if (mo) mo.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => { if (mo) mo.disconnect(); g.destroy(); globe.current = null; };
   }, []);
   useEffect(() => { if (globe.current) globe.current.setData({ locations, home }); }, [locations, home]);
 
@@ -45,7 +50,6 @@ export default function VisitorGlobe({ locations, home, unlocated = 0, fmt = v =
           <strong><span aria-hidden="true">{flagEmoji(tip.loc.country)} </span>{tip.loc.city ? `${tip.loc.city}, ${tip.loc.name}` : tip.loc.name}</strong>
           <span>{tip.loc.sessions} session{tip.loc.sessions === 1 ? '' : 's'} · {tip.loc.orders} order{tip.loc.orders === 1 ? '' : 's'} · {fmt(tip.loc.sales)}</span>
         </div>}
-        <span className="caGlobeHint" aria-hidden="true">Drag to rotate</span>
       </div>
       <div className="caGlobeSide">
         <h3 id="caTopLoc">Top locations</h3>
