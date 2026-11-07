@@ -21,6 +21,7 @@ import { storeRuntime } from './runtime.js';
 import { photoUrl, PHOTOS } from './photos.js';
 import { editorAgent } from './agent.js';
 import { checkoutConfig, commerceScript } from './commerce.js';
+import { frameOf, productFrame, frameStyle, isDefaultFrame } from './frame.js';
 
 export const ALL_COLLECTION = { id: 'all', title: 'All products', slug: 'all', description: '', image: null, rule: { type: 'all', value: '', productIds: [] } };
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -74,8 +75,18 @@ const PHOTO_ALT = new Map(Object.values(PHOTOS).flatMap(g => Object.values(g).fl
 export const isPhoto = r => typeof r === 'string' && r.startsWith('unsplash:');
 /** [width, height|null] per use; the 2x candidate doubles both. */
 export const PHOTO_SIZES = { hero: [1800, null], wide: [1100, null], large: [1000, null], card: [640, null], square: [480, 480], thumb: [160, 200], avatar: [96, 96], logo: [400, null], panel: [320, null] };
-export function photoSrc(ref, size = 'card') {
-  const id = ref.slice(9), [w, h] = PHOTO_SIZES[size] || PHOTO_SIZES.card;
+/**
+ * Photo URLs for a use. Fixed-height sizes (square, thumb, avatar) are cropped server-side at the centre; a framed image
+ * (custom focal point / zoom / fit) is requested uncropped instead (width only, a little larger), so the CSS
+ * object-position + scale positions it exactly the same way in the builder preview and in the exported site.
+ */
+export function photoSrc(ref, size = 'card', frame = null) {
+  const id = ref.slice(9);
+  let [w, h] = PHOTO_SIZES[size] || PHOTO_SIZES.card;
+  if (frame && !isDefaultFrame(frame)) {
+    if (h) { w = Math.round(Math.max(w, h) * 1.5); h = null; }
+    if (frame.fit !== 'contain' && frame.zoom >= 150 && w < 1200) w = Math.round(w * 1.5);
+  }
   return { src: photoUrl(id, w, h), srcset: `${photoUrl(id, w, h)} 1x, ${photoUrl(id, w * 2, h ? h * 2 : null)} 2x`, alt: PHOTO_ALT.get(id) || '' };
 }
 
@@ -107,19 +118,30 @@ const isSwatch = name => /colou?r|shade|metal|finish|fabric/i.test(name);
 const colorOf = v => { const k = String(v).trim().toLowerCase(); if (COLOR_NAMES[k]) return COLOR_NAMES[k]; let h = 0; for (const ch of k) h = (h * 31 + ch.charCodeAt(0)) % 360; return `hsl(${h} 45% 55%)`; };
 
 function makeCtx(store, route, opts) {
+  const editor = !!opts.editor;
   const path = pagePath(store, route), root = path.includes('/') ? '../' : '';
   const mode = store.checkout.mode, checkoutEnabled = mode !== 'none';
   const plain = ref => { if (!ref) return ''; const u = opts.imageUrl(ref) || ''; return /^(data:|blob:|https?:|\/)/.test(u) ? esc(u) : esc(root + u); };
   const img = (ref, size = 'card') => !ref ? '' : isPhoto(ref) ? esc(photoSrc(ref, size).src) : plain(ref);
   /** <img> with srcset for photos and an offline fallback to procedural art. */
-  const pic = (ref, { size = 'card', alt, cls = '', eager = false, fallback } = {}) => {
+  /**
+   * <img> for an image ref. frame = { x, y, zoom, fit } (src/store/frame.js) → inline object-position / object-fit / scale;
+   * fr = the frame's key, marked as data-fr in the editor so the builder can patch just the image's style and src
+   * ('image', 'slides.0.image', 'p:<productId>:<index>', 'c:<collectionId>').
+   */
+  const pic = (ref, { size = 'card', alt, cls = '', eager = false, fallback, frame, fr } = {}) => {
     if (!ref) return '';
     const fb = fallback || store.fallbackArt;
-    const a = ` class="${cls}" alt="${esc(alt ?? (isPhoto(ref) ? photoSrc(ref, size).alt : ''))}"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async"`;
+    const fst = frameStyle(frame, { zoom: !['avatar', 'thumb'].includes(size) });
+    const a = `${fst ? ` style="${fst}"` : ''}${editor && fr ? ` data-fr="${esc(fr)}"` : ''} class="${[cls, fst.includes('scale:') ? 'fz' : ''].filter(Boolean).join(' ')}" alt="${esc(alt ?? (isPhoto(ref) ? photoSrc(ref, size).alt : ''))}"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async"`;
     if (!isPhoto(ref)) return `<img src="${plain(ref)}"${a}>`;
-    const p = photoSrc(ref, opts.small ? 'panel' : size);
+    const p = photoSrc(ref, opts.small ? 'panel' : size, frame);
     return `<img src="${esc(p.src)}"${opts.small ? '' : ` srcset="${esc(p.srcset)}"`}${a}${fb ? ` onerror="this.onerror=null;this.removeAttribute('srcset');this.src='${plain(fb)}'"` : ''}>`;
   };
+  /** pic() options for image field `key` of a settings object / list item at settings path `path` ('' = top level). */
+  const framed = (owner, key = 'image', path = '') => ({ frame: frameOf(owner, key), fr: (path ? path + '.' : '') + key });
+  /** pic() options for image `i` of product `p`. */
+  const pframe = (p, i = 0) => ({ frame: productFrame(p, i), fr: 'p:' + p.id + ':' + i });
   const rel = p => root + p;
   const findCol = id => id === 'all' ? ALL_COLLECTION : store.collections.find(c => c.id === id);
   const collectionHref = c => rel('collections/' + c.slug + '.html');
@@ -156,12 +178,11 @@ function makeCtx(store, route, opts) {
     const swatches = sw ? `<span class="swatches-mini" aria-label="${sw.values.length} ${esc(sw.name.toLowerCase())}s">${sw.values.slice(0, 5).map(v => `<i title="${esc(v)}" style="background:${colorOf(v)}"></i>`).join('')}${sw.values.length > 5 ? `<small>+${sw.values.length - 5}</small>` : ''}</span>` : '';
     const badge = sold ? '<span class="badge sold">Sold out</span>' : sale ? `<span class="badge sale">−${Math.round((1 - lo / p.compareAt) * 100)}%</span>` : p.tags.includes('new') ? '<span class="badge">New</span>' : '';
     return `<article class="pcard" data-card data-price="${lo}" data-category="${esc(p.category)}" data-title="${esc(p.title)}" data-index="${index}">
-      <div class="pcard-media"><a class="pcard-img" href="${href}" tabindex="-1" aria-hidden="true">${p.images[0] ? pic(p.images[0], { size: 'card', alt: '', fallback: p.art }) : p.art ? pic(p.art, { alt: '' }) : ''}${p.images[1] ? pic(p.images[1], { size: 'card', alt: '', cls: 'alt', fallback: p.art }) : ''}</a>
+      <div class="pcard-media"><a class="pcard-img" href="${href}" tabindex="-1" aria-hidden="true">${p.images[0] ? pic(p.images[0], { size: 'card', alt: '', fallback: p.art, ...pframe(p, 0) }) : p.art ? pic(p.art, { alt: '' }) : ''}${p.images[1] ? pic(p.images[1], { size: 'card', alt: '', cls: 'alt', fallback: p.art, ...pframe(p, 1) }) : ''}</a>
       ${badge}<button type="button" class="wish" data-wish="${p.id}" aria-pressed="false" aria-label="Save ${esc(p.title)} to wishlist">${icon('heart')}</button>${q}</div>
       <div class="pcard-body"><h3><a href="${href}">${esc(p.title)}</a></h3><p class="price">${lo !== hi ? '<span class="from">From</span> ' : ''}${money(lo)}${sale ? ` <s>${money(p.compareAt)}</s>` : ''}</p>
       ${p.rating || swatches ? `<div class="pcard-meta">${p.rating ? stars(p.rating, p.reviews) : ''}${swatches}</div>` : ''}</div></article>`;
   };
-  const editor = !!opts.editor;
   const ed = key => editor && key ? ` data-edit="${esc(key)}"` : '';
   const blk = path => editor ? ` data-block="${esc(path)}"` : '';
   const btn = (label, target, cls = '', key) => `<a class="btn ${cls}" href="${link(target)}"${ed(key)}>${esc(label)}</a>`;
@@ -173,7 +194,7 @@ function makeCtx(store, route, opts) {
   const collection = route.page === 'collection' ? findCol(route.collectionId) || ALL_COLLECTION : null;
   const first = (store.pages[route.page] || []).find(s => !s.hidden);
   const overlayHeader = !!(store.layout.header.settings.transparent && first && first.type === 'hero' && ['image', 'carousel', 'gradient'].includes(first.settings.layout));
-  return { store, page: route.page, path, root, e: esc, t: paras, img, pic, link, money, products, card, stars, btn, icon, isCurrent, allCollections, orderedCollections, collectionImage, collectionHref, productHref, editor, ed, blk, people: PEOPLE,
+  return { store, page: route.page, path, root, e: esc, t: paras, img, pic, framed, pframe, link, money, products, card, stars, btn, icon, isCurrent, allCollections, orderedCollections, collectionImage, collectionHref, productHref, editor, ed, blk, people: PEOPLE,
     collectionProducts: c => collectionProducts(store, c), product, collection, checkoutEnabled, overlayHeader, firstSectionId: first?.id, isSwatch, colorOf };
 }
 
@@ -260,22 +281,49 @@ export function diffParts(a, b) {
   const patch = {}; let any = false;
   for (const k of ['css', 'title', 'bodyClass', 'bodyStyle', 'ann', 'header', 'footer', 'overlays', 'data']) if (a[k] !== b[k]) { patch[k] = b[k]; any = true; }
   const old = new Map(a.sections.map(s => [s.id, s.html]));
-  const changed = {};
-  for (const s of b.sections) if (old.get(s.id) !== s.html) { changed[s.id] = s.html; any = true; }
+  const changed = {}, frames = {};
+  for (const s of b.sections) if (old.get(s.id) !== s.html) {
+    changed[s.id] = s.html; any = true;
+    const f = old.has(s.id) ? frameDiff(old.get(s.id), s.html) : null;
+    if (f) frames[s.id] = f;
+  }
   if (Object.keys(changed).length) patch.sections = changed;
+  if (Object.keys(frames).length) patch.frames = frames;
   const ao = a.sections.map(s => s.id).join(','), bo = b.sections.map(s => s.id).join(',');
   if (ao !== bo) { patch.order = b.sections.map(s => s.id); any = true; }
   return any ? patch : null;
 }
 
+// Framed images carry data-fr in the editor. When a section changed only in the src/srcset/style/class of those images
+// (an alignment, zoom or fit edit), the patch also lists just those attributes, so the preview agent can update the
+// existing <img> elements in place (no new elements, no image reload, no flicker) instead of replacing the section.
+const FR_IMG = /<img\b[^>]*\bdata-fr="[^"]*"[^>]*>/g, FR_ATTR = / (src|srcset|style|class|onerror)="([^"]*)"/g;
+const UNESC = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'" };
+const frAttrs = tag => { const o = { src: null, srcset: null, style: null, class: null, onerror: null }; tag.replace(FR_ATTR, (m, k, v) => { o[k] = v.replace(/&(amp|lt|gt|quot|#39);/g, e => UNESC[e]); return m; }); return o; };
+/** { n: framed image count, set: [[index, { src, srcset, style, class, onerror } (null = remove; src only when it changed)]] } or null. */
+export function frameDiff(a, b) {
+  const ta = a.match(FR_IMG) || [], tb = b.match(FR_IMG) || [];
+  if (!tb.length || ta.length !== tb.length) return null;
+  const strip = h => h.replace(FR_IMG, t => t.replace(FR_ATTR, ''));
+  if (strip(a) !== strip(b)) return null;
+  const set = [];
+  tb.forEach((t, i) => {
+    if (t === ta[i]) return;
+    const x = frAttrs(ta[i]), y = frAttrs(t);
+    if (x.src === y.src && x.srcset === y.srcset) { delete y.src; delete y.srcset; delete y.onerror; }
+    set.push([i, y]);
+  });
+  return { n: tb.length, set };
+}
+
 /** Data the runtime needs on every page (only active products; image/url paths are site-root-relative). */
 export function runtimeData(store, imageUrl, preview = false, commerce = null) {
-  const thumb = ref => !ref ? '' : isPhoto(ref) ? photoSrc(ref, 'thumb').src : imageUrl(ref);
+  const thumb = (ref, frame) => !ref ? '' : isPhoto(ref) ? photoSrc(ref, 'thumb', frame).src : imageUrl(ref);
   return {
     id: store.id, name: store.name, currency: store.currency, preview, commerce: checkoutConfig(store, commerce),
     checkout: { mode: store.checkout.mode, phone: store.checkout.phone.replace(/\D/g, ''), email: store.checkout.email, shippingNote: store.checkout.shippingNote, freeShipping: store.checkout.freeShipping || 0 },
     products: activeProducts(store).map(p => ({
-      id: p.id, title: p.title, url: 'products/' + p.slug + '.html', image: thumb(p.images[0] || p.art), fallback: p.art ? imageUrl(p.art) : '', category: p.category, price: p.price, compareAt: p.compareAt,
+      id: p.id, title: p.title, url: 'products/' + p.slug + '.html', image: thumb(p.images[0] || p.art, p.images[0] ? productFrame(p, 0) : null), ...(p.images[0] && frameStyle(productFrame(p, 0), { zoom: false }) ? { imageStyle: frameStyle(productFrame(p, 0), { zoom: false }) } : {}), fallback: p.art ? imageUrl(p.art) : '', category: p.category, price: p.price, compareAt: p.compareAt,
       options: p.options.map(o => o.name), paymentLink: store.checkout.paymentLinks[p.id] || '',
       variants: p.variants.map(v => ({ id: v.id, options: v.options, price: v.price, sku: v.sku, stock: v.stock })),
     })),
@@ -309,6 +357,7 @@ const BASE_CSS = `*,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 var(--font-b);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden}
 img{max-width:100%;display:block}
+:has(>img.fz){overflow:hidden}
 a{color:inherit;text-decoration-thickness:1px;text-underline-offset:3px}
 h1,h2,h3{font-family:var(--font-h);font-weight:var(--hw);text-transform:var(--hcase);line-height:1.04;margin:0 0 .45em;letter-spacing:var(--track);text-wrap:balance}
 p{margin:0 0 1em}

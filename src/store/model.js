@@ -27,7 +27,8 @@
 //                rating: 0..5|null, reviews: int (shown as stars on cards), art: 'gen:…'|null (offline fallback image),
 //                video: url|'' (optional gallery video), materials: text (materials & care accordion),
 //                reviewsList: [{ id, name, rating 1..5, title, text, date 'YYYY-MM-DD', photo: ImageRef|null, sample: bool }] }],
-//   collections: [{ id, title, slug, description, image, rule: { type: 'all'|'manual'|'category'|'tag', value, productIds } }],
+//                imageFrames: [{ x, y, zoom, fit }] (one per image: focal point %, zoom 100..200 %, 'cover'|'contain' — src/store/frame.js) }],
+//   collections: [{ id, title, slug, description, image, imagePos: { x, y }, imageFit, imageZoom, rule: { type: 'all'|'manual'|'category'|'tag', value, productIds } }],
 //   navigation: { main: [{ id, label, target: LinkTarget }], footer: [...] },
 //   social: { instagram, facebook, tiktok, youtube, x, pinterest },   // full URLs, '' = hidden
 //   contact: { email, phone, address, hours },
@@ -37,12 +38,15 @@
 // }
 //
 // Section   = { id, type, hidden?: bool, settings: {...} } — types and settings: src/store/sections.js
+//             every image field `<key>` (also inside list items) has a frame next to it: <key>Pos { x, y }, <key>Fit, <key>Zoom
+//             (filled with centred defaults by normalizeStore, so documents saved before framing existed keep working)
 // ImageRef  = 'asset:sha256-…' (blob in the app AssetStore) | 'unsplash:<id>' (curated photo from src/store/photos.js, hot-linked)
 //             | 'gen:…' (procedural art, src/store/art.js) | 'data:…' | 'https://…'
 // LinkTarget= 'home' | 'collection:<id>' | 'collection:all' | 'product:<id>' | 'page:about' | 'page:contact' | 'cart' | 'checkout'
 //             | 'url:<absolute url, mailto: or tel:>' | '#<anchor>'
 
 import { SECTIONS, PRODUCT_BLOCKS, productBlocks } from './sections.js';
+import { normalizeFrameFields, productFrames } from './frame.js';
 
 export const STORE_VERSION = 1;
 export const PAGE_KEYS = ['home', 'collection', 'product', 'about', 'contact', 'cart', 'checkout'];
@@ -125,6 +129,7 @@ export function normalizeProduct(p) {
     reviewsList: (Array.isArray(p.reviewsList) ? p.reviewsList : []).map(r => ({ id: str(r.id) || uid('r'), name: str(r.name, 'Customer') || 'Customer', rating: Math.round(num(r.rating, 5, 1, 5)), title: str(r.title), text: str(r.text),
       date: /^\d{4}-\d{2}-\d{2}$/.test(r.date || '') ? r.date : '', photo: typeof r.photo === 'string' && r.photo ? r.photo : null, sample: !!r.sample })),
   };
+  out.imageFrames = productFrames({ images: out.images, imageFrames: p.imageFrames });
   const given = (Array.isArray(p.variants) ? p.variants : []).map(v => ({
     id: str(v.id) || uid('v'), options: (v.options || []).map(x => str(x)), price: v.price == null || v.price === '' ? null : num(v.price, null, 0),
     sku: str(v.sku), stock: v.stock == null || v.stock === '' ? null : Math.round(num(v.stock, 0, 0)),
@@ -150,7 +155,17 @@ function normalizeSection(s, page) {
   if (s.type === 'product-main') settings.blocks = Array.isArray(settings.blocks) && settings.blocks.length
     ? settings.blocks.filter(b => b && PRODUCT_BLOCKS[b.type]).map(b => ({ ...clone(PRODUCT_BLOCKS[b.type].defaults), ...b, on: b.on !== false }))
     : productBlocks();
+  normalizeFrames(def.fields, settings);
   return { id: str(s.id) || uid('s'), type: s.type, hidden: REQUIRED[page] === s.type ? false : !!s.hidden, settings };
+}
+
+/** Fill / clamp the frame fields of every image field of a schema (top level and inside list items). */
+function normalizeFrames(fields, settings) {
+  for (const f of fields || []) {
+    if (f.type === 'image') normalizeFrameFields(settings, f.key);
+    else if (f.type === 'list' && Array.isArray(settings[f.key]) && (f.item || []).some(x => x.type === 'image'))
+      settings[f.key] = settings[f.key].map(it => { if (!it || typeof it !== 'object') return it; const c = { ...it }; normalizeFrames(f.item, c); return c; });
+  }
 }
 
 export function normalizeLink(t) {
@@ -200,7 +215,7 @@ export function normalizeStore(input) {
   const ids = new Set(); for (const p of out.products) { if (ids.has(p.id)) p.id = uid('p'); ids.add(p.id); }
   out.collections = (Array.isArray(s.collections) ? s.collections : []).map(col => ({
     id: str(col.id) || uid('c'), title: str(col.title, 'Collection') || 'Collection', slug: slugify(col.slug || col.title), description: str(col.description),
-    image: typeof col.image === 'string' && col.image ? col.image : null,
+    image: typeof col.image === 'string' && col.image ? col.image : null, ...normalizeFrameFields({ imagePos: col.imagePos, imageFit: col.imageFit, imageZoom: col.imageZoom }),
     rule: { type: pick(col.rule?.type, ['all', 'manual', 'category', 'tag'], 'all'), value: str(col.rule?.value), productIds: (col.rule?.productIds || []).filter(id => ids.has(id)) },
   }));
   uniqueSlugs(out.collections); for (const col of out.collections) if (col.slug === 'all') col.slug = 'all-' + col.id.slice(-4);

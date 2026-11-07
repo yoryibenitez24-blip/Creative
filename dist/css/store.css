@@ -170,3 +170,43 @@ a.stBtn { text-decoration: none; }
 .stTplThumbLink .stTplThumb iframe { pointer-events: none; }
 .stTplPeek { position: absolute; left: 50%; bottom: 12px; transform: translate(-50%, 6px); display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 15px; background: rgba(17,17,19,.82); color: #fff; font-size: 12px; font-weight: 600; opacity: 0; transition: opacity .15s, transform .15s; backdrop-filter: blur(6px); pointer-events: none; }
 .stTpl:hover .stTplPeek { opacity: 1; transform: translate(-50%, 0); }
+
+/* image position (focal point, 3×3 alignment, zoom, fit) — FrameControl in src/store/fields.jsx */
+.stFrameCtl { display: grid; gap: 8px; padding: 8px; border-radius: 10px; background: #1c1c20; border: 1px solid var(--z-line); }
+.stFrameHead { display: flex; align-items: center; gap: 8px; }
+.stFrameRead { margin-left: auto; white-space: nowrap; color: var(--z-faint, #8a8a94); font-size: 11px; font-variant-numeric: tabular-nums; }
+.stFrameReset { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 7px; border-radius: 6px; border: 1px solid var(--z-line); background: transparent; color: var(--z-dim); font-size: 11px; cursor: pointer; }
+.stFrameReset:hover:not(:disabled) { background: var(--z-field); color: var(--z-text); } .stFrameReset:disabled { opacity: .4; cursor: default; }
+.stFrameRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
+.stFocusWell { display: grid; place-items: center; min-height: 92px; padding: 6px; border-radius: 8px; overflow: hidden;
+  background: #121215 repeating-conic-gradient(#1a1a1e 0 25%, #121215 0 50%) 0 0 / 12px 12px; }
+.stFocus { position: relative; display: inline-block; max-width: 100%; line-height: 0; cursor: crosshair; touch-action: none; border-radius: 4px; outline: none; }
+.stFocus:focus-visible { box-shadow: 0 0 0 2px #8ab4ff; }
+.stFocus img { display: block; max-width: 100%; max-height: 112px; width: auto; height: auto; border-radius: 4px; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+.stFocusV, .stFocusH { position: absolute; pointer-events: none; background: rgba(255,255,255,.55); box-shadow: 0 0 0 .5px rgba(0,0,0,.35); }
+.stFocusV { top: 0; bottom: 0; width: 1px; transform: translateX(-.5px); } .stFocusH { left: 0; right: 0; height: 1px; transform: translateY(-.5px); }
+.stFocusDot { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 2px solid #fff; background: rgba(59,130,246,.85);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.5); pointer-events: none; transition: left .08s, top .08s; }
+.stFocus:active .stFocusDot { transition: none; transform: scale(1.15); }
+.stAlignGrid { display: grid; grid-template-columns: repeat(3, 22px); grid-auto-rows: 22px; gap: 3px; padding: 5px; align-self: center; border-radius: 8px; background: var(--z-field); }
+.stAlignGrid button { display: grid; place-items: center; padding: 0; border: 0; border-radius: 5px; background: transparent; cursor: pointer; }
+.stAlignGrid button:hover { background: var(--z-field-hover, #3a3a42); }
+.stAlignGrid button i { width: 5px; height: 5px; border-radius: 50%; background: #6b6b75; transition: width .12s, height .12s, background .12s; }
+.stAlignGrid button:hover i { background: #b8b8c2; }
+.stAlignGrid button.on i { width: 9px; height: 9px; background: #f2f2f5; box-shadow: 0 0 0 3px rgba(242,242,245,.18); }
+.stAlignGrid button:focus-visible { outline: 2px solid #8ab4ff; outline-offset: 0; }
+.stFrameZoom.off { opacity: .4; pointer-events: none; }
+.stFrameFit button { font-size: 11px; }
+.stImgGrid li.sel { outline: 2px solid #f2f2f5; outline-offset: -2px; }
+.stImgGrid li.sel img { opacity: .92; }
+.stImgPick { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; cursor: pointer; overflow: hidden; }
+.stImgPick img { width: 100%; height: 100%; object-fit: cover; }
+/* commerce admin: per-image alignment grid on product media (src/store/admin/Products.jsx) */
+.caAlign { position: absolute; left: 6px; bottom: 6px; display: grid; grid-template-columns: repeat(3, 12px); grid-auto-rows: 12px; gap: 1px; padding: 2px; border-radius: 6px; background: rgba(20, 20, 20, .62); backdrop-filter: blur(4px); }
+.caAlign button { display: grid; place-items: center; padding: 0; border: 0; border-radius: 4px; background: transparent; cursor: pointer; }
+.caAlign button:hover { background: rgba(255, 255, 255, .2); }
+.caAlign button i { width: 4px; height: 4px; border-radius: 50%; background: rgba(255, 255, 255, .55); }
+.caAlign button.on i { width: 7px; height: 7px; background: #fff; }
+.caAlign button:focus-visible { outline: 2px solid #8ab4ff; }
+.stFocus { min-width: 48px; min-height: 40px; }
+.stFocusStandIn { display: grid; place-items: center; width: 150px; height: 100px; max-width: 100%; border-radius: 4px; background: linear-gradient(135deg, #2a2a30, #1d1d22); color: var(--z-faint, #8a8a94); font-size: 10.5px; line-height: 1.2; }

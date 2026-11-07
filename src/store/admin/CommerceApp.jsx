@@ -34,6 +34,10 @@ import Settings from './Settings.jsx';
  *   assetStore               AssetStore for uploaded images (optional; without it images become data: URLs)
  *   commerce                 commerce document (src/store/admin/model.js) or null → a default one is created and reported
  *   onCommerceChange(commerce, label)  next full commerce document after every back-office edit
+ *   route, onRoute(route)    optional controlled routing (both or neither): route = { page, id?, tab? } as below, plus
+ *                            page 'editor' for the store builder (Online Store › Customize). Without them the app keeps
+ *                            its own route state (starts at Home).
+ *   storeSwitcher            optional node shown in place of the store name in the header (multi-store hosts)
  *
  * Actions that touch both documents (e.g. "Mark as paid" decrements stock) call onChange and onCommerceChange with
  * the same label, store first. The app keeps the latest documents itself, so consecutive edits compose even when the
@@ -54,7 +58,7 @@ const THEME_KEY = 'zertake.commerceTheme';
 const loadTheme = () => { try { return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'; } catch { return 'light'; } };
 const SECTION_OF = { order: 'orders', 'order-new': 'orders', product: 'products', inventory: 'products', collections: 'products', collection: 'products', customer: 'customers', discount: 'discounts', pages: 'themes', navigation: 'themes', preferences: 'themes' };
 
-export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio, assetStore, commerce, onCommerceChange, intro: playIntro, sectionBar }) {
+export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio, assetStore, commerce, onCommerceChange, intro: playIntro, sectionBar, route: routeProp, onRoute, storeSwitcher }) {
   const [, bump] = useReducer(x => x + 1, 0);
   // latest documents (props are adopted when they change; our own commits are visible immediately)
   const S = useRef(null), K = useRef(null), seen = useRef({ store: undefined, commerce: undefined });
@@ -73,13 +77,18 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
   // report a freshly created commerce document once
   useEffect(() => { if (cur && com && (!commerce || commerce.kind !== 'commerce')) onCommerceChange && onCommerceChange(com, 'Set up commerce'); }, [cur && cur.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [route, setRoute] = useState({ page: 'home' });
+  const [routeState, setRoute] = useState({ page: 'home' });
+  const controlled = routeProp !== undefined && !!onRoute;
+  const route = controlled ? (routeProp || { page: 'home' }) : routeState;
+  const onRouteRef = useRef(onRoute); onRouteRef.current = controlled ? onRoute : null;
   // intro: true → play the entrance animation now; false → never; undefined → first open in this browser session
   const [intro, setIntro] = useState(() => playIntro === undefined ? shouldPlayIntro() : !!playIntro);
   const [entering, setEntering] = useState(false);
   const endIntro = useCallback(() => { setIntro(false); setEntering(true); setTimeout(() => setEntering(false), 1100); }, []);
   const introEl = intro ? <Intro storeName={cur ? cur.name : ''} onDone={endIntro} /> : null;
-  const [customizing, setCustomizing] = useState(false);
+  const [customizingState, setCustomizingState] = useState(false);
+  const customizing = controlled ? route.page === 'editor' : customizingState;
+  const setCustomizing = useCallback(on => { if (onRouteRef.current) onRouteRef.current(on ? { page: 'editor' } : { page: 'themes' }); else setCustomizingState(on); }, []);
   const [toast, setToast] = useState('');
   const [navOpen, setNavOpen] = useState(false);
   const [theme, setTheme] = useState(loadTheme);
@@ -92,7 +101,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
   const upload = useCallback(file => uploadImage(file, assetStore), [assetStore]);
   const fmt = useMoney(cur);
   const main = useRef(null);
-  const go = useCallback(r => { setRoute(typeof r === 'string' ? { page: r } : r); setNavOpen(false); if (main.current) main.current.scrollTop = 0; }, []);
+  const go = useCallback(r => { const next = typeof r === 'string' ? { page: r } : r; if (onRouteRef.current) onRouteRef.current(next); else setRoute(next); setNavOpen(false); if (main.current) main.current.scrollTop = 0; }, []);
 
   const editStore = useCallback((fn, label) => { const d = structuredClone(S.current); fn(d); commit(normalizeStore(d), null, label); }, [commit]);
   const editCommerce = useCallback((fn, label) => { const d = structuredClone(K.current); fn(d); commit(null, normalizeCommerce(d), label); }, [commit]);
@@ -197,7 +206,7 @@ export default function CommerceApp({ store, onChange, onExit, onOpenPhotoStudio
     <div className={'caRoot caShell' + (entering ? ' caEnter' : '')} data-theme={theme}>
       <header className="caTop">
         <button type="button" className="caIconBtn caRound caNavToggle" aria-label="Toggle navigation" aria-expanded={navOpen} onClick={() => setNavOpen(v => !v)}><Menu size={18} /></button>
-        <div className="caBrand"><span className="caBrandEyebrow">Zertake Commerce · {sectionLabel}</span><strong>{cur.name}</strong></div>
+        <div className="caBrand"><span className="caBrandEyebrow">Zertake Commerce · {sectionLabel}</span>{storeSwitcher || <strong>{cur.name}</strong>}</div>
         {sectionBar && <div className="caSections">{sectionBar}</div>}
         <div className="caSearch" role="search">
           <input ref={searchRef} type="search" aria-label="Search orders, products and customers" placeholder="Search orders, products, customers" value={q}

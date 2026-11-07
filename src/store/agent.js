@@ -4,13 +4,16 @@
 // It talks to the builder with postMessage:
 //   → host: { storeReady } { storeSelect: sid } { storeEdit: { sid, key, value } } { storeMove: { sid, before } }
 //           { storeMoveBlock: { sid, list, from, to } } { storeAction: { sid, action } } { storeKey: 'undo'|'redo' }
+//           { storeFrame: { sid, key, x, y } } (alignment picked on the floating 3×3 grid over a framed image, key = its data-fr)
 //   ← host: { storeMode: 'edit'|'interact', storeHighlight: sid, scroll } { storeLabels: { type: label } }
-//           { storePatch: { css, title, bodyClass, bodyStyle, ann, header, footer, overlays, data, sections: { id: html }, order: [ids] } }
+//           { storePatch: { css, title, bodyClass, bodyStyle, ann, header, footer, overlays, data, sections: { id: html }, order: [ids],
+//                           frames: { id: { n, set: [[index, attrs]] } } } }   frames: image-only changes, applied to the existing <img>s
 // Patches replace only the changed parts (between <!--zp:key--> comment markers), so the document, scroll position,
 // focus and running carousels survive every edit.
 
 export function editorAgent(win, doc) {
-  var mode = 'edit', selected = null, labels = {}, editing = null, drag = null, hoverSec = null, hoverBlock = null, deferred = {};
+  var mode = 'edit', selected = null, labels = {}, editing = null, drag = null, hoverSec = null, hoverBlock = null, deferred = {}, hoverImg = null;
+  var PRESETS = [[0, 0, 'Top left'], [50, 0, 'Top'], [100, 0, 'Top right'], [0, 50, 'Left'], [50, 50, 'Center'], [100, 50, 'Right'], [0, 100, 'Bottom left'], [50, 100, 'Bottom'], [100, 100, 'Bottom right']];
   var post = function (m) { win.parent.postMessage(m, '*'); };
   doc.documentElement.classList.add('editing');
   var css = doc.createElement('style');
@@ -25,7 +28,12 @@ export function editorAgent(win, doc) {
     '.zed-line{position:absolute;pointer-events:none;background:#3b82f6;display:none;border-radius:3px;box-shadow:0 0 0 3px rgba(59,130,246,.25)}' +
     '.zed-dragging{opacity:.35!important}[data-edit]:hover{outline:1px dashed rgba(59,130,246,.6);outline-offset:3px;cursor:text}' +
     '[contenteditable]{outline:2px solid #3b82f6!important;outline-offset:4px;cursor:text;-webkit-user-modify:read-write-plaintext-only}' +
-    'html.editing [data-reveal]{opacity:1!important;transform:none!important}';
+    'html.editing [data-reveal]{opacity:1!important;transform:none!important}' +
+    '.zed-fr{position:absolute;pointer-events:auto;display:none;align-items:center;gap:8px;padding:6px 8px 6px 10px;background:rgba(17,17,20,.92);color:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);backdrop-filter:blur(6px)}' +
+    '.zed-fr span{font-size:11px;opacity:.75;white-space:nowrap}.zed-fr .g{display:grid;grid-template-columns:repeat(3,16px);grid-auto-rows:16px;gap:2px;padding:3px;border-radius:6px;background:rgba(255,255,255,.08)}' +
+    '.zed-fr button{all:unset;cursor:pointer;display:grid;place-items:center;border-radius:4px}.zed-fr button:hover{background:rgba(255,255,255,.18)}' +
+    '.zed-fr button i{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.55)}.zed-fr button.on i{width:8px;height:8px;background:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.35)}' +
+    '.zed-box.img{border:1.5px solid rgba(250,204,21,.95);border-radius:2px}';
   doc.head.appendChild(css);
 
   var ui = doc.createElement('div'); ui.className = 'zed-ui'; ui.setAttribute('aria-hidden', 'true');
@@ -33,10 +41,12 @@ export function editorAgent(win, doc) {
     '<div class="zed-tag"><button type="button" class="grab" data-zact="drag" title="Drag to move">⠿</button><span></span>' +
     '<button type="button" data-zact="up" title="Move up">↑</button><button type="button" data-zact="down" title="Move down">↓</button>' +
     '<button type="button" data-zact="duplicate" title="Duplicate">⧉</button><button type="button" data-zact="hide" title="Hide">◌</button><button type="button" data-zact="delete" title="Delete">✕</button></div>' +
-    '<button type="button" class="zed-bh" data-zact="block" title="Drag to reorder">⠿</button>';
+    '<button type="button" class="zed-bh" data-zact="block" title="Drag to reorder">⠿</button>' +
+    '<div class="zed-box img"></div><div class="zed-fr" role="group" aria-label="Image position"><span>Image position</span><div class="g">' +
+    PRESETS.map(function (p) { return '<button type="button" data-zfr="' + p[0] + ',' + p[1] + '" title="Align ' + p[2].toLowerCase() + '" aria-label="Align image ' + p[2].toLowerCase() + '"><i></i></button>'; }).join('') + '</div></div>';
   doc.documentElement.appendChild(ui);
   var q = function (s) { return ui.querySelector(s); };
-  var hovBox = q('.zed-box.hov'), selBox = q('.zed-box.sel'), blkBox = q('.zed-box.blk'), line = q('.zed-line'), tag = q('.zed-tag'), bh = q('.zed-bh');
+  var hovBox = q('.zed-box.hov'), selBox = q('.zed-box.sel'), blkBox = q('.zed-box.blk'), line = q('.zed-line'), tag = q('.zed-tag'), bh = q('.zed-bh'), imgBox = q('.zed-box.img'), frBar = q('.zed-fr');
 
   function rect(el) { var r = el.getBoundingClientRect(); return { x: r.left + win.scrollX, y: r.top + win.scrollY, w: r.width, h: r.height, r: r }; }
   function place(box, el) { if (!el || !el.isConnected) { box.style.display = 'none'; return; } var r = rect(el); box.style.cssText = 'display:block;left:' + r.x + 'px;top:' + r.y + 'px;width:' + r.w + 'px;height:' + r.h + 'px'; }
@@ -58,7 +68,37 @@ export function editorAgent(win, doc) {
       place(blkBox, hoverBlock); var b = rect(hoverBlock);
       bh.style.display = 'grid'; bh.style.left = (b.x + 6) + 'px'; bh.style.top = (b.y + 6) + 'px';
     } else if (!drag) { blkBox.style.display = 'none'; bh.style.display = 'none'; }
+    placeFrameBar();
   }
+  // ---------- floating alignment grid over a framed image of the selected section ----------
+  function framePos(img) {
+    var m = /(-?[\d.]+)%\s+(-?[\d.]+)%/.exec(img.style.objectPosition || '');
+    return m ? [+m[1], +m[2]] : [50, 50];
+  }
+  function placeFrameBar() {
+    var img = hoverImg;
+    if (mode !== 'edit' || drag || editing || !img || !img.isConnected || !secOf(img) || secOf(img).getAttribute('data-sid') !== selected) { frBar.style.display = 'none'; imgBox.style.display = 'none'; return; }
+    var r = img.getBoundingClientRect(), s = secOf(img).getBoundingClientRect();
+    var L = Math.max(r.left, s.left, 0), T = Math.max(r.top, s.top, 0), R = Math.min(r.right, s.right, win.innerWidth), B = Math.min(r.bottom, s.bottom, win.innerHeight);
+    if (R - L < 24 || B - T < 24) { frBar.style.display = 'none'; imgBox.style.display = 'none'; return; }
+    imgBox.style.cssText = 'display:block;left:' + (L + win.scrollX) + 'px;top:' + (T + win.scrollY) + 'px;width:' + (R - L) + 'px;height:' + (B - T) + 'px';
+    frBar.style.display = 'flex';
+    var w = frBar.offsetWidth, h = frBar.offsetHeight;
+    frBar.style.left = (Math.max(L + 6, R - w - 10) + win.scrollX) + 'px'; frBar.style.top = (Math.max(T + 6, B - h - 10) + win.scrollY) + 'px';
+    var pos = framePos(img);
+    [].forEach.call(frBar.querySelectorAll('button[data-zfr]'), function (b) { var v = b.getAttribute('data-zfr').split(','); var on = +v[0] === pos[0] && +v[1] === pos[1]; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+  }
+  function framedAt(x, y) {
+    if (!selected || !doc.elementsFromPoint) return null;
+    var list = doc.elementsFromPoint(x, y);
+    for (var i = 0; i < list.length; i++) { var el = list[i]; if (el.tagName === 'IMG' && el.hasAttribute('data-fr')) { var s = secOf(el); return s && s.getAttribute('data-sid') === selected ? el : null; } }
+    return null;
+  }
+  frBar.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-zfr]'); if (!b || !hoverImg) return;
+    var v = b.getAttribute('data-zfr').split(','), s = secOf(hoverImg);
+    post({ storeFrame: { sid: s.getAttribute('data-sid'), key: hoverImg.getAttribute('data-fr'), x: +v[0], y: +v[1] } });
+  });
   var raf = 0; function soon() { if (!raf) raf = win.requestAnimationFrame(function () { raf = 0; refresh(); }); }
   win.addEventListener('scroll', soon, { passive: true }); win.addEventListener('resize', soon);
 
@@ -68,8 +108,10 @@ export function editorAgent(win, doc) {
     if (ui.contains(e.target)) return;
     var s = secOf(e.target), b = e.target.closest ? e.target.closest('[data-block]') : null;
     if (s !== hoverSec || b !== hoverBlock) { hoverSec = s; hoverBlock = b && s && s.contains(b) ? b : null; soon(); }
+    var im = framedAt(e.clientX, e.clientY);
+    if (im !== hoverImg) { hoverImg = im; soon(); }
   });
-  doc.addEventListener('mouseleave', function () { if (!drag) { hoverSec = null; hoverBlock = null; soon(); } });
+  doc.addEventListener('mouseleave', function () { if (!drag) { hoverSec = null; hoverBlock = null; hoverImg = null; soon(); } });
   win.addEventListener('click', function (e) {
     if (mode !== 'edit') return;
     if (ui.contains(e.target)) return; // toolbar buttons handle their own clicks
@@ -190,6 +232,17 @@ export function editorAgent(win, doc) {
     nodes.forEach(function (x) { if (x.nodeType === 1 && win.__storeHydrate) win.__storeHydrate(x); });
   }
   function rangeNodes(r) { var out = [], n = r.s; while (n) { out.push(n); if (n === r.e) break; n = n.nextSibling; } return out; }
+  // image-only change: set the new attributes on the existing <img>s (same elements, no reload); false → replace the section
+  function patchFrames(r, f) {
+    var imgs = [];
+    rangeNodes(r).forEach(function (n) { if (n.nodeType !== 1) return; if (n.matches('img[data-fr]')) imgs.push(n); [].push.apply(imgs, n.querySelectorAll('img[data-fr]')); });
+    if (imgs.length !== f.n) return false;
+    f.set.forEach(function (e) {
+      var img = imgs[e[0]], a = e[1];
+      ['onerror', 'srcset', 'src', 'style', 'class'].forEach(function (k) { if (!(k in a)) return; if (a[k] == null) img.removeAttribute(k); else if (img.getAttribute(k) !== a[k]) img.setAttribute(k, a[k]); });
+    });
+    return true;
+  }
   function applyPatch(p) {
     var map = markers(), main = doc.getElementById('main');
     if (p.css != null) { var st = doc.querySelector('style[data-store-css]'); if (st) st.textContent = p.css; }
@@ -209,11 +262,13 @@ export function editorAgent(win, doc) {
     Object.keys(secs).forEach(function (id) {
       var r = map['s:' + id]; if (!r) return;
       if (editing && editing.sid === id) { deferred[id] = secs[id]; return; }
+      if (p.frames && p.frames[id] && patchFrames(r, p.frames[id])) return;
       fill(r, secs[id]);
     });
     if (p.data && win.__storeSetData) win.__storeSetData(JSON.parse(p.data));
     if (hoverSec && !hoverSec.isConnected) hoverSec = bySid(hoverSec.getAttribute('data-sid'));
     if (hoverBlock && !hoverBlock.isConnected) hoverBlock = null;
+    if (hoverImg && !hoverImg.isConnected) hoverImg = null;
     soon();
   }
 
@@ -221,7 +276,7 @@ export function editorAgent(win, doc) {
     if (e.source !== win.parent) return;
     var d = e.data || {};
     if (d.storeLabels) labels = d.storeLabels;
-    if (d.storeMode) { mode = d.storeMode; if (mode !== 'edit') { finish(true); hoverSec = null; hoverBlock = null; } doc.documentElement.classList.toggle('editing', mode === 'edit'); }
+    if (d.storeMode) { mode = d.storeMode; if (mode !== 'edit') { finish(true); hoverSec = null; hoverBlock = null; hoverImg = null; } doc.documentElement.classList.toggle('editing', mode === 'edit'); }
     if ('storeHighlight' in d) { selected = d.storeHighlight || null; var s = bySid(selected); if (s && d.scroll) s.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
     if (d.storePatch) applyPatch(d.storePatch);
     soon();

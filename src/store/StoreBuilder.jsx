@@ -5,6 +5,7 @@ import { createStore, STORE_TEMPLATES } from './templates.js';
 import { renderParts, composePage, diffParts, resolveHref, routeForPath, ALL_COLLECTION } from './render.js';
 import { SECTIONS } from './sections.js';
 import { uid } from './model.js';
+import { frameOf, framePatch, productFrames, normFrame } from './frame.js';
 import { exportStoreZip, deployInstructions, previewShellHtml } from './exporter.js';
 import { createImageResolver, uploadImage } from './images.js';
 import Gallery from './Gallery.jsx';
@@ -145,6 +146,14 @@ export default function StoreBuilder({ store, onChange, onExit, onOpenPhotoStudi
     }
     edit(d => { const sec = settingsTarget(d, sid); if (!sec) return; const [o, k] = walk(sec.settings, key, false); if (o && typeof o === 'object') o[k] = value; }, 'Edit text');
   }, [edit]);
+  // alignment picked on the canvas (floating 3×3 grid over a framed image); key = the image's data-fr
+  const canvasFrame = useCallback(({ sid, key, x, y }) => edit(d => {
+    const m = /^p:(.+):(\d+)$/.exec(key), c = /^c:(.+)$/.exec(key);
+    if (m) { const p = d.products.find(q => q.id === m[1]); if (!p || !p.images[+m[2]]) return; const fr = productFrames(p); fr[+m[2]] = normFrame({ ...fr[+m[2]], x, y }); p.imageFrames = fr; return; }
+    if (c) { const col = d.collections.find(q => q.id === c[1]); if (col) Object.assign(col, framePatch('image', { ...frameOf(col), x, y })); return; }
+    const sec = settingsTarget(d, sid); if (!sec) return;
+    const [o, k] = walk(sec.settings, key, false); if (o && typeof o === 'object') Object.assign(o, framePatch(k, { ...frameOf(o, k), x, y }));
+  }, 'Image position'), [edit]);
   const moveSection = useCallback((sid, before) => edit(d => {
     const l = d.pages[prRef.current.page], i = l.findIndex(x => x.id === sid); if (i < 0) return;
     const [x] = l.splice(i, 1); const j = before ? l.findIndex(y => y.id === before) : -1; l.splice(j < 0 ? l.length : j, 0, x);
@@ -181,6 +190,7 @@ export default function StoreBuilder({ store, onChange, onExit, onOpenPhotoStudi
       } else if (d.storeSelect) {
         setSelected(d.storeSelect); if (view !== 'design') setView('design'); setDesignTab('sections');
       } else if (d.storeEdit) canvasEdit(d.storeEdit);
+      else if (d.storeFrame) canvasFrame(d.storeFrame);
       else if (d.storeMove) moveSection(d.storeMove.sid, d.storeMove.before);
       else if (d.storeMoveBlock) moveBlock(d.storeMoveBlock);
       else if (d.storeAction) sectionAction(d.storeAction);
@@ -190,7 +200,7 @@ export default function StoreBuilder({ store, onChange, onExit, onOpenPhotoStudi
       }
     };
     window.addEventListener('message', onMsg); return () => window.removeEventListener('message', onMsg);
-  }, [interact, selected, view, undo, redo, flush, canvasEdit, moveSection, moveBlock, sectionAction]);
+  }, [interact, selected, view, undo, redo, flush, canvasEdit, canvasFrame, moveSection, moveBlock, sectionAction]);
   useEffect(() => { frame.current?.contentWindow?.postMessage({ storeMode: interact ? 'interact' : 'edit', storeHighlight: interact ? null : selected, scroll: true }, '*'); }, [selected, interact]);
 
   // fit the device width into the preview area

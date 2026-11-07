@@ -235,6 +235,67 @@ await step('drag sections and blocks on the canvas; toolbar actions; undo', asyn
   await page.getByRole('button', { name: 'Desktop preview' }).click();
 });
 
+await step('image position: inspector 3×3 grid, focal-point drag, zoom and the canvas alignment grid patch the hero image in place', async () => {
+  await page.getByRole('button', { name: 'Tablet preview' }).click();   // scale 1: canvas coordinates match the page
+  await page.waitForFunction(() => document.querySelector('iframe[title="Store preview"]').style.transform === 'scale(1)');
+  const fr = await (await page.locator('iframe[title="Store preview"]').elementHandle()).contentFrame();
+  const heroImg = 'section[data-type="hero"] .hero-media img';
+  await fr.evaluate(sel => { window.__frameMark = 'same-document'; window.__heroImg = document.querySelector(sel); }, heroImg);
+  const same = () => fr.evaluate(sel => window.__frameMark === 'same-document' && document.querySelector(sel) === window.__heroImg, heroImg);
+  const pos = () => fr.evaluate(sel => getComputedStyle(document.querySelector(sel)).objectPosition, heroImg);
+  const stored = () => page.evaluate(() => { const s = window.__store.pages.home.find(x => x.type === 'hero').settings; return { ...s.imagePos, zoom: s.imageZoom, fit: s.imageFit }; });
+  assert.equal(await pos(), '50% 50%');
+  await page.getByRole('tab', { name: 'Design' }).click(); await page.getByRole('tab', { name: 'Sections' }).click();
+  await page.locator('.stSecList li').filter({ hasText: /^Hero/ }).getByRole('button').first().click();
+  // 3×3 grid: "top"
+  await page.getByRole('button', { name: 'Align image top', exact: true }).click();
+  await page.waitForFunction(() => window.__store.pages.home.find(x => x.type === 'hero').settings.imagePos.y === 0);
+  await fr.waitForFunction(sel => getComputedStyle(document.querySelector(sel)).objectPosition === '50% 0%', heroImg);
+  assert.equal(await page.getByRole('button', { name: 'Align image top', exact: true }).getAttribute('aria-pressed'), 'true');
+  assert.ok(await same(), 'alignment must patch the existing <img>, not reload the preview or replace the section');
+  // fine focal point: drag the crosshair on the inspector thumbnail
+  const focus = page.getByRole('slider', { name: 'Image focal point' }), fb = await focus.boundingBox();
+  await page.mouse.move(fb.x + fb.width * 0.5, fb.y + fb.height * 0.1); await page.mouse.down();
+  await page.mouse.move(fb.x + fb.width * 0.25, fb.y + fb.height * 0.75, { steps: 6 }); await page.mouse.up();
+  await page.waitForFunction(() => { const p = window.__store.pages.home.find(x => x.type === 'hero').settings.imagePos; return Math.abs(p.x - 25) <= 3 && Math.abs(p.y - 75) <= 3; });
+  const s1 = await stored();
+  await fr.waitForFunction(([sel, x, y]) => getComputedStyle(document.querySelector(sel)).objectPosition === `${x}% ${y}%`, [heroImg, s1.x, s1.y]);
+  // keyboard nudge on the focal point
+  await focus.press('ArrowRight');
+  await page.waitForFunction(x => window.__store.pages.home.find(s => s.type === 'hero').settings.imagePos.x === x + 2, s1.x);
+  // zoom slider (keyboard): scale around the focal point
+  const zoom = page.getByRole('slider', { name: 'Image zoom' });
+  await zoom.focus(); for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowRight');
+  await page.waitForFunction(() => window.__store.pages.home.find(s => s.type === 'hero').settings.imageZoom === 120);
+  await fr.waitForFunction(sel => getComputedStyle(document.querySelector(sel)).scale === '1.2', heroImg);
+  await page.keyboard.press('Home');
+  await page.waitForFunction(() => window.__store.pages.home.find(s => s.type === 'hero').settings.imageZoom === 100);
+  // fit: contain, then back to cover
+  await page.getByRole('button', { name: 'Fit (contain)' }).click();
+  await fr.waitForFunction(sel => getComputedStyle(document.querySelector(sel)).objectFit === 'contain', heroImg);
+  await page.getByRole('button', { name: 'Fill (cover)' }).click();
+  await fr.waitForFunction(sel => getComputedStyle(document.querySelector(sel)).objectFit === 'cover', heroImg);
+  // the canvas: hovering the selected section's image shows a floating 3×3 grid; pick "bottom right", then "top"
+  await fr.locator('section[data-type="hero"]').hover({ position: { x: 120, y: 260 } });
+  const bar = fr.locator('.zed-fr'); await bar.waitFor({ state: 'visible' });   // inside the agent's aria-hidden overlay: located by CSS
+  await bar.locator('button[aria-label="Align image bottom right"]').click();
+  await page.waitForFunction(() => { const p = window.__store.pages.home.find(x => x.type === 'hero').settings.imagePos; return p.x === 100 && p.y === 100; });
+  await fr.waitForFunction(sel => getComputedStyle(document.querySelector(sel)).objectPosition === '100% 100%', heroImg);
+  assert.equal(await bar.locator('button[aria-label="Align image bottom right"]').getAttribute('aria-pressed'), 'true');
+  await bar.locator('button[aria-label="Align image top"]').click();
+  await fr.waitForFunction(sel => getComputedStyle(document.querySelector(sel)).objectPosition === '50% 0%', heroImg);
+  assert.deepEqual(await stored(), { x: 50, y: 0, zoom: 100, fit: 'cover' });
+  assert.ok(await same(), 'every image-position edit patched the same <img> in the same document');
+  // undo goes back through the edits; redo restores "top" (kept for the export check)
+  await page.locator('.stStage').click({ position: { x: 5, y: 5 } });
+  await page.keyboard.press('Control+z');
+  await fr.waitForFunction(sel => getComputedStyle(document.querySelector(sel)).objectPosition === '100% 100%', heroImg);
+  await page.keyboard.press('Control+Shift+z');
+  await fr.waitForFunction(sel => getComputedStyle(document.querySelector(sel)).objectPosition === '50% 0%', heroImg);
+  assert.ok(await same());
+  await page.getByRole('button', { name: 'Desktop preview' }).click();
+});
+
 let siteDir;
 await step('export the store as a ZIP and unzip it', async () => {
   const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export store' }).click()]);
@@ -249,6 +310,7 @@ await step('export the store as a ZIP and unzip it', async () => {
   siteDir = join(siteDir, root);
   const html = (await readFile(join(siteDir, 'index.html'), 'utf8'));
   assert.match(html, /Summer essentials are here/);
+  assert.match(html.match(/<section[^>]*data-type="hero"[\s\S]*?(<img[^>]*>)/)[1], /style="object-position:50% 0%"/, 'exported hero keeps the image position');
   // every relative link/src in every page resolves to an exported file
   for (const name of names.filter(n => n.endsWith('.html'))) {
     const body = files.find(f => f.name === name).data.toString();

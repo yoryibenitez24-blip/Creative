@@ -410,3 +410,81 @@ test('template preview links: URL shape and parsing', async () => {
   assert.equal(requestedTemplate(new URL(url).search), id);
   assert.equal(requestedTemplate('?x=1'), null);
 });
+
+test('image framing: normalization fills defaults for old documents and clamps bad values', async () => {
+  const { frameOf, frameStyle, moveProductImage, removeProductImage, productFrames } = await import('../src/store/frame.js');
+  // a document saved before framing existed: no frame fields anywhere
+  const s = normalizeStore({
+    pages: { home: [{ type: 'hero', settings: { layout: 'carousel', image: 'unsplash:1441986300917-64674bd600d8', slides: [{ image: 'unsplash:1489987707025-afc232f7ea0f', heading: 'A' }] } },
+      { type: 'testimonials', settings: { items: [{ quote: 'Q', name: 'N', avatar: 'unsplash:1506794778202-cad84cf45f1d' }] } }] },
+    products: [{ id: 'p1', title: 'Tee', images: ['unsplash:1521572163474-6864f9cf17ab', 'unsplash:1556821840-3a63f95609a7'] }],
+    collections: [{ id: 'c1', title: 'Tops', image: 'unsplash:1523381210434-271e8be1f52b' }],
+  });
+  const hero = s.pages.home[0].settings;
+  assert.deepEqual([hero.imagePos, hero.imageFit, hero.imageZoom], [{ x: 50, y: 50 }, 'cover', 100]);
+  assert.deepEqual([hero.slides[0].imagePos, hero.slides[0].imageFit, hero.slides[0].imageZoom], [{ x: 50, y: 50 }, 'cover', 100]);
+  assert.equal(hero.slides[0].heading, 'A');
+  assert.deepEqual(s.pages.home[1].settings.items[0].avatarPos, { x: 50, y: 50 });
+  assert.deepEqual(s.products[0].imageFrames, [{ x: 50, y: 50, zoom: 100, fit: 'cover' }, { x: 50, y: 50, zoom: 100, fit: 'cover' }]);
+  assert.deepEqual([s.collections[0].imagePos, s.collections[0].imageFit, s.collections[0].imageZoom], [{ x: 50, y: 50 }, 'cover', 100]);
+  assert.deepEqual(normalizeStore(s), s, 'normalization is idempotent');
+  for (const t of STORE_TEMPLATES) { const st = createStore(t.id); for (const p of st.products) assert.equal(p.imageFrames.length, p.images.length, t.id); }
+
+  // bad values are clamped; frames follow their images
+  const bad = normalizeStore({ pages: { home: [{ type: 'hero', settings: { imagePos: { x: 150, y: 'abc' }, imageFit: 'stretch', imageZoom: 20 } }] },
+    products: [{ id: 'p', title: 'P', images: ['a', 'b', 'c'], imageFrames: [{ x: 0, y: 0 }, null] }] });
+  assert.deepEqual(frameOf(bad.pages.home[0].settings), { x: 100, y: 50, zoom: 100, fit: 'cover' });
+  assert.deepEqual(bad.products[0].imageFrames.map(f => [f.x, f.y]), [[0, 0], [50, 50], [50, 50]]);
+  const p = structuredClone(bad.products[0]); p.imageFrames[2] = { x: 100, y: 100, zoom: 150, fit: 'cover' };
+  moveProductImage(p, 2, 0); assert.deepEqual(p.images, ['c', 'a', 'b']); assert.deepEqual([p.imageFrames[0].x, p.imageFrames[1].x], [100, 0]);
+  removeProductImage(p, 0); assert.deepEqual(p.images, ['a', 'b']); assert.deepEqual(productFrames(p).map(f => f.x), [0, 50]);
+  assert.equal(frameStyle({ x: 50, y: 50, zoom: 100, fit: 'cover' }), '');
+  assert.equal(frameStyle({ x: 30, y: 0, zoom: 150, fit: 'cover' }), 'object-position:30% 0%;scale:1.5;transform-origin:30% 0%');
+  assert.equal(frameStyle({ x: 30, y: 0, zoom: 150, fit: 'contain' }), 'object-position:30% 0%;object-fit:contain');
+  assert.equal(frameStyle({ x: 30, y: 0, zoom: 150, fit: 'cover' }, { zoom: false }), 'object-position:30% 0%');
+});
+
+test('image framing: preview and export render object-position; Unsplash crops stay correct; alignment edits patch only the image', () => {
+  const s = createStore('everyday-goods'), home = s.pages.home;
+  const hero = home.find(x => x.type === 'hero');
+  hero.settings.layout = 'image'; hero.settings.image = 'unsplash:1441986300917-64674bd600d8';
+  const before = normalizeStore(s);
+  hero.settings.imagePos = { x: 50, y: 0 }; hero.settings.imageZoom = 140;
+  const p0 = s.products.find(p => p.status === 'active' && p.images[0]); p0.imageFrames = [{ x: 0, y: 100, zoom: 100, fit: 'cover' }];
+  const after = normalizeStore(s);
+  for (const mode of ['export', 'preview']) {
+    const html = renderPage(after, { page: 'home' }, { mode, imageUrl });
+    const img = html.match(/<section[^>]*data-type="hero"[\s\S]*?(<img[^>]*>)/)[1];
+    assert.match(img, /style="object-position:50% 0%;scale:1\.4;transform-origin:50% 0%"/, mode);
+    assert.match(img, /class="fz"/, mode);
+    assert.match(html, /style="object-position:0% 100%"/, mode + ': product card image');
+    assert.equal(/data-fr=/.test(html), false, 'data-fr only in the editor');
+  }
+  const prod = renderPage(after, { page: 'product', productId: p0.id }, { mode: 'export', imageUrl });
+  assert.match(prod.match(/<div class="pslide" data-slide="0">(<img[^>]*>)/)[1], /object-position:0% 100%/);
+  assert.match(storeCss(after), /:has\(>img\.fz\)\{overflow:hidden\}/);
+  // default frames add nothing to the markup
+  assert.equal(/object-position/.test(renderPage(before, { page: 'home' }, { mode: 'export', imageUrl }).replace(/<style[\s\S]*?<\/style>/, '')), false);
+
+  // fixed-size (server-cropped) photos are requested uncropped when framed, so CSS positioning applies to the whole photo
+  assert.match(photoSrc('unsplash:abc', 'square').src, /&w=480&h=480/);
+  const framed = photoSrc('unsplash:abc', 'square', { x: 0, y: 0, zoom: 100, fit: 'cover' }).src;
+  assert.doesNotMatch(framed, /&h=/); assert.match(framed, /&w=720/);
+  assert.equal(photoSrc('unsplash:abc', 'hero', { x: 0, y: 0, zoom: 100, fit: 'cover' }).src, photoSrc('unsplash:abc', 'hero').src, 'width-only sizes keep their URL');
+
+  // live preview: an alignment change is an image-only patch of that section
+  const opts = { mode: 'preview', imageUrl, editor: true };
+  const a = renderParts(before, { page: 'home' }, opts);
+  const moved = structuredClone(before); moved.pages.home.find(x => x.type === 'hero').settings.imagePos = { x: 50, y: 0 };
+  const b = renderParts(normalizeStore(moved), { page: 'home' }, opts);
+  const patch = diffParts(a, b);
+  assert.deepEqual(Object.keys(patch.sections), [hero.id]);
+  assert.match(composePage(b, opts), /data-fr="image"/);
+  const f = patch.frames[hero.id];
+  assert.equal(f.set.length, 1);
+  assert.equal(f.set[0][1].style, 'object-position:50% 0%');
+  assert.equal('src' in f.set[0][1], false, 'same photo URL: src is not touched');
+  // a text change in the same section is a normal section patch (no frames)
+  moved.pages.home.find(x => x.type === 'hero').settings.heading = 'Changed';
+  assert.equal(diffParts(b, renderParts(normalizeStore(moved), { page: 'home' }, opts)).frames, undefined);
+});

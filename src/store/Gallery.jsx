@@ -6,7 +6,7 @@ import { renderPage } from './render.js';
 import { genUrl } from './images.js';
 
 // Template gallery: category filter, live (scaled, lazily mounted) home-page thumbnails that scroll on hover,
-// "Use template". onPick(templateId); onCancel shown only when a store is already open.
+// "Use template". onPick(templateId); onCancel shown only when a store is already open; initialCategory preselects a filter.
 
 function Thumb({ id, name }) {
   const ref = useRef(null);
@@ -21,8 +21,8 @@ function Thumb({ id, name }) {
   return <div className="stTplThumb" ref={ref} aria-hidden="true">{visible && <iframe title={name + ' preview'} srcDoc={html} tabIndex={-1} loading="lazy" sandbox="allow-same-origin" />}</div>;
 }
 
-export default function Gallery({ onPick, onCancel, currentId, cancelLabel = 'Back to builder' }) {
-  const [cat, setCat] = useState('All');
+export default function Gallery({ onPick, onCancel, currentId, cancelLabel = 'Back to builder', initialCategory }) {
+  const [cat, setCat] = useState(() => TEMPLATE_CATEGORIES.includes(initialCategory) ? initialCategory : 'All');
   const [copied, setCopied] = useState('');
   const copy = async t => {
     const url = templatePreviewUrl(t.id);

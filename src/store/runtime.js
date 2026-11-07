@@ -92,7 +92,7 @@ export function storeRuntime(K, D, win, doc, CK) {
   }
   function imgTag(p) {
     if (!p.image) return '<span class="noimg"></span>';
-    return '<img src="' + esc(abs(p.image)) + '" alt=""' + (p.fallback ? ' onerror="this.onerror=null;this.src=\'' + esc(abs(p.fallback)) + '\'"' : '') + '>';
+    return '<img src="' + esc(abs(p.image)) + '" alt=""' + (p.imageStyle ? ' style="' + esc(p.imageStyle) + '"' : '') + (p.fallback ? ' onerror="this.onerror=null;this.src=\'' + esc(abs(p.fallback)) + '\'"' : '') + '>';
   }
 
   // ---------- cart rendering ----------

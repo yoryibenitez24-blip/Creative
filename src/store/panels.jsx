@@ -2,9 +2,12 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Plus, Trash2, Copy, Eye, EyeOff, GripVertical, ChevronUp, ChevronDown, Search, FileUp, FileDown, Camera, Upload, X, ArrowLeft, ArrowRight, Lock } from 'lucide-react';
 import { SECTIONS, SECTION_GROUPS, addableSections, PRODUCT_BLOCKS } from './sections.js';
 import { FONT_STACKS, CURRENCIES, CHECKOUT_MODES, REQUIRED, PAGE_LABELS, newSection, newProduct, uid, slugify, categories, productsToCsv, importProductsCsv, CSV_COLUMNS, variantPrice, collectionProducts } from './model.js';
-import { Field, TextInput, TextArea, Select, Toggle, Segmented, ColorField, LinkPicker, ImageField, SchemaField, NumField, ValueSlider } from './fields.jsx';
+import { Field, TextInput, TextArea, Select, Toggle, Segmented, ColorField, LinkPicker, ImageField, SchemaField, NumField, ValueSlider, FrameControl } from './fields.jsx';
+import { FRAME_DEFAULT, frameOf, framePatch, productFrames, moveProductImage, removeProductImage } from './frame.js';
 import { formatMoney } from './render.js';
 
+/** Inline style mirroring the storefront framing on small editor thumbnails. */
+const frameCss = f => f ? { objectPosition: `${f.x}% ${f.y}%`, objectFit: f.fit, ...(f.fit === 'cover' && f.zoom > 100 ? { scale: String(f.zoom / 100), transformOrigin: `${f.x}% ${f.y}%` } : {}) } : undefined;
 const move = (arr, from, to) => { const a = [...arr]; const [x] = a.splice(from, 1); a.splice(to, 0, x); return a; };
 const sectionName = (sec) => SECTIONS[sec.type]?.label || sec.type;
 
@@ -77,6 +80,10 @@ export function SectionInspector({ store, page, selectedId, edit, env }) {
     const t = global ? d.layout[sec.type] : d.pages[page].find(x => x.id === sec.id);
     t.settings[k] = v;
   }, def.label, coalesce ? sec.id + k : undefined);
+  const patch = (obj, co) => edit(d => {
+    const t = global ? d.layout[sec.type] : d.pages[page].find(x => x.id === sec.id);
+    Object.assign(t.settings, obj);
+  }, def.label, co ? sec.id + co : undefined);
   return <Inspector title={def.label} note={REQUIRED[page] === sec.type ? 'Required on this page — it can be moved but not removed.' : global ? 'Shared by every page.' : null}>
     {sec.type === 'header' && <>
       <Segmented label="Header style" value={store.theme.headerStyle} options={[['split', 'Split'], ['left', 'Left'], ['centered', 'Centered'], ['minimal', 'Minimal'], ['pill', 'Pill'], ['search', 'Search']]} onChange={v => edit(d => { d.theme.headerStyle = v; }, 'Header style')} />
@@ -84,8 +91,8 @@ export function SectionInspector({ store, page, selectedId, edit, env }) {
       <p className="stHint">Menu links are edited under Design → Navigation.</p>
     </>}
     {def.fields.filter(f => !f.show || f.show(sec.settings)).map(f => f.type === 'blocks' ? <BlocksField key={f.key} blocks={sec.settings.blocks || []} env={env}
-      onChange={(fn, label, key) => edit(d => { const t = global ? d.layout[sec.type] : d.pages[page].find(x => x.id === sec.id); fn(t.settings.blocks); }, label, key)} /> : <SchemaField key={f.key} field={f} value={sec.settings[f.key]} env={env}
-      onChange={v => set(f.key, v, ['text', 'textarea'].includes(f.type))} />)}
+      onChange={(fn, label, key) => edit(d => { const t = global ? d.layout[sec.type] : d.pages[page].find(x => x.id === sec.id); fn(t.settings.blocks); }, label, key)} /> : <SchemaField key={f.key} field={f} value={sec.settings[f.key]} env={env} owner={sec.settings} onPatch={patch}
+      onChange={(v, co) => set(f.key, v, co || ['text', 'textarea'].includes(f.type))} />)}
     {sec.type === 'footer' && <p className="stHint">Footer links are edited under Design → Navigation; social links and contact details in Settings.</p>}
   </Inspector>;
 }
@@ -255,7 +262,7 @@ export function ProductsPanel({ store, selectedId, onSelect, edit, env, notify }
 // ---------------------------------------------------------------- Product editor (right)
 export function ProductEditor({ store, productId, edit, env }) {
   const p = store.products.find(x => x.id === productId);
-  const [dragI, setDragI] = useState(null), [dropOver, setDropOver] = useState(false);
+  const [dragI, setDragI] = useState(null), [dropOver, setDropOver] = useState(false), [frameI, setFrameI] = useState(0);
   const fileRef = useRef(null);
   if (!p) return <div className="stEmpty"><p>Select a product to edit it, or add a new one.</p></div>;
   const up = (fn, label, key) => edit(d => fn(d.products.find(x => x.id === p.id), d), label, key ? p.id + key : undefined);
@@ -264,7 +271,7 @@ export function ProductEditor({ store, productId, edit, env }) {
     for (const f of [...files].filter(f => f.type.startsWith('image/'))) refs.push(await env.upload(f));
     if (refs.length) up(x => { x.images.push(...refs); }, 'Add images');
   };
-  const cur = store.currency;
+  const cur = store.currency, frames = productFrames(p), fi = Math.min(frameI, Math.max(0, p.images.length - 1));
   return <div className="stInspector" role="group" aria-label="Product settings">
     <div className="insTitle"><span>Product</span><small>{p.status === 'draft' ? 'Draft — hidden from the store' : 'Active'}</small></div>
     <div className="stFields">
@@ -290,12 +297,13 @@ export function ProductEditor({ store, productId, edit, env }) {
         onDrop={e => { if (e.dataTransfer.files.length) { e.preventDefault(); setDropOver(false); addFiles(e.dataTransfer.files); } }}>
         <ul className="stImgGrid" aria-label="Product images">
           {p.images.map((r, i) => <li key={r + i} draggable onDragStart={() => setDragI(i)} onDragOver={e => { if (dragI != null) e.preventDefault(); }}
-            onDrop={e => { if (dragI != null) { e.preventDefault(); e.stopPropagation(); up(x => { x.images = move(x.images, dragI, i); }, 'Reorder images'); setDragI(null); } }}>
-            <img src={env.imageUrl(r)} alt={`Image ${i + 1}`} />{i === 0 && <span className="stMainTag">Main</span>}
+            onDrop={e => { if (dragI != null) { e.preventDefault(); e.stopPropagation(); up(x => moveProductImage(x, dragI, i), 'Reorder images'); setDragI(null); } }}
+            className={i === fi ? 'sel' : ''}>
+            <button type="button" className="stImgPick" aria-label={`Adjust position of image ${i + 1}`} aria-pressed={i === fi} onClick={() => setFrameI(i)}><img src={env.imageUrl(r)} alt={`Image ${i + 1}`} style={frameCss(frames[i])} /></button>{i === 0 && <span className="stMainTag">Main</span>}
             <span className="stImgBtns">
-              <button type="button" aria-label={`Move image ${i + 1} left`} disabled={!i} onClick={() => up(x => { x.images = move(x.images, i, i - 1); }, 'Reorder images')}><ArrowLeft size={12} /></button>
-              <button type="button" aria-label={`Move image ${i + 1} right`} disabled={i === p.images.length - 1} onClick={() => up(x => { x.images = move(x.images, i, i + 1); }, 'Reorder images')}><ArrowRight size={12} /></button>
-              <button type="button" aria-label={`Remove image ${i + 1}`} onClick={() => up(x => { x.images.splice(i, 1); }, 'Remove image')}><X size={12} /></button>
+              <button type="button" aria-label={`Move image ${i + 1} left`} disabled={!i} onClick={() => up(x => moveProductImage(x, i, i - 1), 'Reorder images')}><ArrowLeft size={12} /></button>
+              <button type="button" aria-label={`Move image ${i + 1} right`} disabled={i === p.images.length - 1} onClick={() => up(x => moveProductImage(x, i, i + 1), 'Reorder images')}><ArrowRight size={12} /></button>
+              <button type="button" aria-label={`Remove image ${i + 1}`} onClick={() => up(x => removeProductImage(x, i), 'Remove image')}><X size={12} /></button>
             </span></li>)}
         </ul>
         <p className="stHint center">Drop images here or</p>
@@ -305,6 +313,9 @@ export function ProductEditor({ store, productId, edit, env }) {
         </div>
         <input ref={fileRef} type="file" accept="image/*" multiple hidden aria-label="Product image files" onChange={e => { const f = [...e.target.files]; e.target.value = ''; addFiles(f); }} />
       </div>
+      {p.images[fi] && <FrameControl label={`Image ${fi + 1}`} heading={`Image ${fi + 1} position`} src={env.imageUrl(p.images[fi])} frame={frames[fi]}
+        onChange={(fr, co) => up(x => { const all = productFrames(x); all[fi] = fr; x.imageFrames = all; }, 'Image position', co ? 'frame' + fi + co : undefined)} />}
+      {p.images[fi] && <p className="stHint">Applies to this image everywhere it appears: product cards, the product page gallery and thumbnails.{p.images.length > 1 ? ' Click another photo above to adjust it.' : ''}</p>}
 
       <p className="stGroupTitle">Options</p>
       {p.options.map((o, k) => <div key={k} className="stOption">
@@ -387,7 +398,8 @@ export function CollectionEditor({ store, collectionId, edit, env }) {
     <div className="stFields">
       <TextInput label="Collection title" value={c.title} onChange={v => up(x => { x.title = v; }, 'Collection title', 'title')} />
       <TextArea label="Collection description" value={c.description} onChange={v => up(x => { x.description = v; }, 'Collection description', 'desc')} />
-      <ImageField label="Collection image" value={c.image} imageUrl={env.imageUrl} onUpload={env.upload} onOpenPhotoStudio={env.onOpenPhotoStudio} onChange={v => up(x => { x.image = v; }, 'Collection image')} />
+      <ImageField label="Collection image" value={c.image} imageUrl={env.imageUrl} onUpload={env.upload} onOpenPhotoStudio={env.onOpenPhotoStudio} onChange={v => up(x => { x.image = v; Object.assign(x, framePatch('image', FRAME_DEFAULT)); }, 'Collection image')}
+        frame={frameOf(c)} onFrame={(fr, co) => up(x => { Object.assign(x, framePatch('image', fr)); }, 'Collection image position', co ? 'frame' + co : undefined)} />
       <Segmented label="Products in this collection" value={c.rule.type} options={[['manual', 'Hand-picked'], ['category', 'Category'], ['tag', 'Tag'], ['all', 'All']]} onChange={v => up(x => { x.rule.type = v; }, 'Collection rule')} />
       {c.rule.type === 'category' && <Select label="Category" value={c.rule.value} options={[['', 'Choose…'], ...categories(store).map(x => [x, x])]} onChange={v => up(x => { x.rule.value = v; }, 'Collection rule')} />}
       {c.rule.type === 'tag' && <TextInput label="Tag" value={c.rule.value} onChange={v => up(x => { x.rule.value = v; }, 'Collection rule', 'tag')} />}

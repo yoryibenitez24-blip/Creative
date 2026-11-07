@@ -13,6 +13,8 @@
 //   ed(key) → ' data-edit="key"' in the editor (inline text editing; '@field' = a field of the current product),
 //   blk(path) → ' data-block="list.index"' in the editor (canvas drag & drop of blocks), people (sample people photos) }
 
+import { frameOf } from './frame.js';
+
 const CONTENT = ['home', 'about', 'contact', 'collection', 'product', 'cart', 'checkout'];
 const linkF = (key, label) => ({ key, label, type: 'link' });
 const imgF = (key = 'image', label = 'Image') => ({ key, label, type: 'image' });
@@ -79,7 +81,7 @@ function productBlock(b, i, p, s, ctx, st) {
     case 'variants': return p.options.length ? `<div class="pb pb-variants"${at}>${p.options.map((o, k) => {
       const sw = b.style !== 'pills' && ctx.isSwatch(o.name), imgs = sw && b.style === 'images' && p.images.length >= o.values.length;
       return `<fieldset class="opt"><legend>${ctx.e(o.name)}: <span data-opt-value="${k}">${ctx.e(v0 ? v0.options[k] : '')}</span>${k === st.sizeIdx && st.guide ? ` <button type="button" class="link sg-link" data-modal-open="sg-${p.id}">${ctx.icon('ruler')}${ctx.e(st.guide.label || 'Size guide')}</button>` : ''}</legend>
-        <div class="pills${sw ? ' swatches' : ''}${imgs ? ' imgswatch' : ''}">${o.values.map((val, vi) => `<label class="pill"><input type="radio" name="opt${k}" value="${ctx.e(val)}"${imgs ? ` data-image="${vi}"` : ''}${v0 && v0.options[k] === val ? ' checked' : ''}><span>${imgs ? ctx.pic(p.images[vi], { size: 'thumb', alt: '', fallback: p.art }) : sw ? `<i style="background:${ctx.colorOf(val)}"></i>` : ''}${ctx.e(val)}</span></label>`).join('')}</div></fieldset>`;
+        <div class="pills${sw ? ' swatches' : ''}${imgs ? ' imgswatch' : ''}">${o.values.map((val, vi) => `<label class="pill"><input type="radio" name="opt${k}" value="${ctx.e(val)}"${imgs ? ` data-image="${vi}"` : ''}${v0 && v0.options[k] === val ? ' checked' : ''}><span>${imgs ? ctx.pic(p.images[vi], { size: 'thumb', alt: '', fallback: p.art, ...ctx.pframe(p, vi) }) : sw ? `<i style="background:${ctx.colorOf(val)}"></i>` : ''}${ctx.e(val)}</span></label>`).join('')}</div></fieldset>`;
     }).join('')}${v0 && v0.sku ? `<p class="pmeta"><span>SKU <span data-sku>${ctx.e(v0.sku)}</span></span></p>` : ''}</div>` : '';
     case 'sizeguide': return st.sizeIdx < 0 ? `<p class="pb"${at}><button type="button" class="link sg-link" data-modal-open="sg-${p.id}">${ctx.icon('ruler')}${ctx.e(b.label || 'Size guide')}</button></p>` : `<span class="pb-marker"${at} hidden></span>`;
     case 'buy': return ctx.checkoutEnabled ? `<div class="buy pb"${at}><div class="qty"><button type="button" data-qty-step="-1" aria-label="Decrease quantity">−</button><input type="number" name="qty" value="1" min="1" max="999" aria-label="Quantity" inputmode="numeric"><button type="button" data-qty-step="1" aria-label="Increase quantity">+</button></div>
@@ -183,20 +185,20 @@ export const SECTIONS = {
       const open = (extra = '') => `<section class="${cls}" id="${sec.id}" data-sid="${sec.id}" data-type="hero" style="${vars}"${extra}>`;
       const copy = (x, tag = 'h1', p = '') => `<div class="hero-copy">${x.eyebrow ? `<p class="eyebrow"${ctx.ed(p ? 'eyebrow' : 'eyebrow')}>${ctx.e(x.eyebrow)}</p>` : ''}<${tag} class="hero-title"${ctx.ed(p + 'heading')}>${ctx.e(x.heading || '')}</${tag}>${x.text ? `<div class="hero-text"${ctx.ed(p + 'text')}>${ctx.t(x.text)}</div>` : ''}${btns(ctx, x.buttonLabel, x.buttonLink || 'collection:all', x.button2Label, x.button2Link, p)}</div>`;
       if (s.layout === 'carousel' || s.layout === 'wordmark') {
-        const slides = s.slides && s.slides.length ? s.slides : [{ image: s.image, heading: s.heading, text: s.text, buttonLabel: s.buttonLabel, buttonLink: s.buttonLink }];
+        const slides = s.slides && s.slides.length ? s.slides : [{ image: s.image, imagePos: s.imagePos, imageFit: s.imageFit, imageZoom: s.imageZoom, heading: s.heading, text: s.text, buttonLabel: s.buttonLabel, buttonLink: s.buttonLink }];
         const fromSlides = !!(s.slides && s.slides.length), n = slides.length, wm = s.layout === 'wordmark';
         const index = wm && n > 1 ? `<ol class="vindex" role="group" aria-label="Choose slide">${slides.map((_, i) => `<li><button type="button" data-dot="${i}" aria-label="Slide ${i + 1}"${i ? '' : ' aria-current="true"'}>${String(i + 1).padStart(2, '0')}</button></li>`).join('')}</ol>` : '';
         return open(` aria-roledescription="carousel" aria-label="${ctx.e(s.heading || 'Highlights')}" data-carousel${s.autoplay > 0 && n > 1 ? ` data-autoplay="${s.autoplay * 1000}"` : ''}`) +
           (wm ? `<p class="wordmark-big" aria-hidden="true"${ctx.ed('wordmark')}>${ctx.e(s.wordmark || ctx.store.name)}</p>` : '') +
           `<div class="hero-track" data-carousel-track tabindex="0">${slides.map((sl, i) => `<div class="hero-slide" role="group" aria-roledescription="slide" aria-label="${i + 1} of ${n}"${fromSlides ? ctx.blk('slides.' + i) : ''}>
-            <div class="hero-media">${sl.image ? ctx.pic(sl.image, { size: 'hero', eager: i === 0 }) : ''}</div><div class="hero-shade"></div>
+            <div class="hero-media">${sl.image ? ctx.pic(sl.image, { size: 'hero', eager: i === 0, ...ctx.framed(sl, 'image', fromSlides ? 'slides.' + i : '') }) : ''}</div><div class="hero-shade"></div>
             <div class="wrap">${copy({ ...sl, eyebrow: i === 0 ? s.eyebrow : '', button2Label: i === 0 ? s.button2Label : '', button2Link: s.button2Link }, i ? 'h2' : 'h1', fromSlides ? 'slides.' + i + '.' : '')}</div></div>`).join('')}</div>
           ${index}${n > 1 ? `<div class="wrap hero-ctrl">${wm ? '' : `<div class="dots" role="group" aria-label="Choose slide">${slides.map((_, i) => `<button type="button" data-dot="${i}" aria-label="Slide ${i + 1}"${i ? '' : ' aria-current="true"'}></button>`).join('')}</div>`}
           <span class="counter" data-counter>01 / ${String(n).padStart(2, '0')}</span><div class="arrows"><button class="round" type="button" data-carousel-prev aria-label="Previous slide">${ctx.icon('left')}</button><button class="round" type="button" data-carousel-next aria-label="Next slide">${ctx.icon('right')}</button></div></div>` : ''}</section>`;
       }
-      if (s.layout === 'split') return open() + `<div class="wrap hero-split"><div class="hero-panel">${copy(s)}</div><div class="hero-media rounded">${s.image ? ctx.pic(s.image, { size: 'wide', eager: true }) : ''}</div></div></section>`;
-      if (s.layout === 'image') return open() + `<div class="hero-media">${s.image ? ctx.pic(s.image, { size: 'hero', eager: true }) : ''}</div><div class="hero-shade"></div><div class="wrap">${copy(s)}</div></section>`;
-      if (s.layout === 'gradient') return open() + `<div class="hero-orbs" aria-hidden="true"><i></i><i></i><i></i></div><div class="wrap hero-grad">${copy(s)}${s.image ? `<div class="hero-float">${ctx.pic(s.image, { size: 'wide', eager: true })}</div>` : ''}</div></section>`;
+      if (s.layout === 'split') return open() + `<div class="wrap hero-split"><div class="hero-panel">${copy(s)}</div><div class="hero-media rounded">${s.image ? ctx.pic(s.image, { size: 'wide', eager: true, ...ctx.framed(s) }) : ''}</div></div></section>`;
+      if (s.layout === 'image') return open() + `<div class="hero-media">${s.image ? ctx.pic(s.image, { size: 'hero', eager: true, ...ctx.framed(s) }) : ''}</div><div class="hero-shade"></div><div class="wrap">${copy(s)}</div></section>`;
+      if (s.layout === 'gradient') return open() + `<div class="hero-orbs" aria-hidden="true"><i></i><i></i><i></i></div><div class="wrap hero-grad">${copy(s)}${s.image ? `<div class="hero-float">${ctx.pic(s.image, { size: 'wide', eager: true, ...ctx.framed(s) })}</div>` : ''}</div></section>`;
       return open() + `<div class="wrap">${copy(s)}</div></section>`;
     },
   },
@@ -217,8 +219,8 @@ export const SECTIONS = {
     defaults: { text: 'Loved by 25,000+ customers', rating: 4.8, avatars: [], align: 'center' },
     fields: [txt('text', 'Text'), { key: 'rating', label: 'Rating shown (0 = hide)', type: 'number', min: 0, max: 5, step: 0.1 }, { key: 'avatars', label: 'Avatars', type: 'list', itemLabel: 'Avatar', item: [imgF()] }, { key: 'align', label: 'Alignment', type: 'select', options: [['left', 'Left'], ['center', 'Center']] }],
     render: (s, ctx, sec) => {
-      const av = (s.avatars || []).map(a => a.image).filter(Boolean);
-      return wrap(sec, `sproof al-${s.align}`, `<div class="sproof-in">${av.length ? `<span class="avstack lg">${av.slice(0, 5).map(r => ctx.pic(r, { size: 'avatar', alt: '' })).join('')}</span>` : ''}<div>${s.rating ? ctx.stars(s.rating, 0) : ''}<p${ctx.ed('text')}>${ctx.e(s.text)}</p></div></div>`);
+      const av = (s.avatars || []).map((a, i) => [a, i]).filter(([a]) => a && a.image);
+      return wrap(sec, `sproof al-${s.align}`, `<div class="sproof-in">${av.length ? `<span class="avstack lg">${av.slice(0, 5).map(([a, i]) => ctx.pic(a.image, { size: 'avatar', alt: '', ...ctx.framed(a, 'image', 'avatars.' + i) })).join('')}</span>` : ''}<div>${s.rating ? ctx.stars(s.rating, 0) : ''}<p${ctx.ed('text')}>${ctx.e(s.text)}</p></div></div>`);
     },
   },
 
@@ -253,7 +255,7 @@ export const SECTIONS = {
       const cols = ctx.orderedCollections(s.collections);
       return wrap(sec, 'clist', `${hasHead(s) ? head(s, ctx) : ''}<div class="grid cols-${s.columns} cc-${s.style}">${cols.map((c, i) => {
         const im = c.image || ctx.collectionImage(c), n = ctx.collectionProducts(c).length;
-        return `<a class="ccard" href="${ctx.collectionHref(c)}"${ctx.blk('collections.' + i)}>${im ? ctx.pic(im, { size: 'card', alt: '' }) : ''}<span class="ccard-label"><span><b>${ctx.e(c.title)}</b><small>${n} ${n === 1 ? 'product' : 'products'}</small></span><span class="round sm">${ctx.icon('arrow')}</span></span></a>`;
+        return `<a class="ccard" href="${ctx.collectionHref(c)}"${ctx.blk('collections.' + i)}>${im ? ctx.pic(im, { size: 'card', alt: '', ...(c.image ? { frame: frameOf(c), fr: 'c:' + c.id } : {}) }) : ''}<span class="ccard-label"><span><b>${ctx.e(c.title)}</b><small>${n} ${n === 1 ? 'product' : 'products'}</small></span><span class="round sm">${ctx.icon('arrow')}</span></span></a>`;
       }).join('')}</div>`);
     },
   },
@@ -263,7 +265,7 @@ export const SECTIONS = {
     defaults: { image: null, eyebrow: '', heading: 'Our story', text: 'Tell customers what makes your products special.', buttonLabel: '', buttonLink: 'page:about', imageSide: 'left', layout: 'split' },
     fields: [imgF(), EYEBROW, txt('heading', 'Heading'), area('text', 'Text'), txt('buttonLabel', 'Button label'), linkF('buttonLink', 'Button link'),
       { key: 'imageSide', label: 'Image side', type: 'select', options: [['left', 'Left'], ['right', 'Right']] }, { key: 'layout', label: 'Layout', type: 'select', options: [['split', 'Side by side'], ['overlap', 'Overlapping card'], ['full', 'Full-width photo']] }],
-    render: (s, ctx, sec) => wrap(sec, `imgtext it-${s.layout}`, `<div class="split ${s.imageSide === 'right' ? 'rev' : ''}"><div class="split-media">${s.image ? ctx.pic(s.image, { size: 'wide' }) : ''}</div>
+    render: (s, ctx, sec) => wrap(sec, `imgtext it-${s.layout}`, `<div class="split ${s.imageSide === 'right' ? 'rev' : ''}"><div class="split-media">${s.image ? ctx.pic(s.image, { size: 'wide', ...ctx.framed(s) }) : ''}</div>
       <div class="split-copy">${s.eyebrow ? `<p class="eyebrow"${ctx.ed('eyebrow')}>${ctx.e(s.eyebrow)}</p>` : ''}<h2 class="sec-title"${ctx.ed('heading')}>${ctx.e(s.heading)}</h2><div class="prose"${ctx.ed('text')}>${ctx.t(s.text)}</div>${s.buttonLabel ? `<div class="btns">${ctx.btn(s.buttonLabel, s.buttonLink, 'btn-lg', 'buttonLabel')}</div>` : ''}</div></div>`),
   },
 
@@ -272,7 +274,7 @@ export const SECTIONS = {
     defaults: { eyebrow: '', heading: 'Why people love us', items: [{ image: null, title: 'Made to last', text: 'Quality you can feel.', link: 'collection:all' }, { image: null, title: 'Free shipping', text: 'On every order over 50.', link: '' }, { image: null, title: 'Easy returns', text: '30 days, no questions.', link: '' }] },
     fields: [EYEBROW, txt('heading', 'Heading'), { key: 'items', label: 'Tiles', type: 'list', itemLabel: 'Tile', item: [imgF(), txt('title', 'Title'), area('text', 'Text'), linkF('link', 'Link')] }],
     render: (s, ctx, sec) => wrap(sec, 'bento', `${hasHead(s) ? head(s, ctx) : ''}<div class="bento-grid n${Math.min(5, (s.items || []).length)}">${(s.items || []).map((it, i) => {
-      const inner = `${it.image ? ctx.pic(it.image, { size: i === 0 ? 'wide' : 'card' }) : ''}<div class="bento-copy"><h3${ctx.ed(`items.${i}.title`)}>${ctx.e(it.title)}</h3>${it.text ? `<p${ctx.ed(`items.${i}.text`)}>${ctx.e(it.text)}</p>` : ''}</div>${it.link ? `<span class="round sm">${ctx.icon('arrow')}</span>` : ''}`;
+      const inner = `${it.image ? ctx.pic(it.image, { size: i === 0 ? 'wide' : 'card', ...ctx.framed(it, 'image', 'items.' + i) }) : ''}<div class="bento-copy"><h3${ctx.ed(`items.${i}.title`)}>${ctx.e(it.title)}</h3>${it.text ? `<p${ctx.ed(`items.${i}.text`)}>${ctx.e(it.text)}</p>` : ''}</div>${it.link ? `<span class="round sm">${ctx.icon('arrow')}</span>` : ''}`;
       const cls = `tile${it.image ? ' has-img' : ''} t${i}`;
       return it.link ? `<a class="${cls}" href="${ctx.link(it.link)}"${ctx.blk('items.' + i)}>${inner}</a>` : `<div class="${cls}"${ctx.blk('items.' + i)}>${inner}</div>`;
     }).join('')}</div>`),
@@ -291,7 +293,7 @@ export const SECTIONS = {
     defaults: { eyebrow: 'Reviews', heading: 'What customers say', items: [{ quote: 'Exactly as described and beautifully packed.', name: 'Sam R.', role: 'Verified buyer', avatar: null }, { quote: 'Fast delivery and great quality. Ordering again!', name: 'Priya K.', role: 'Verified buyer', avatar: null }, { quote: 'My new favourite shop.', name: 'Leo M.', role: 'Verified buyer', avatar: null }] },
     fields: [EYEBROW, txt('heading', 'Heading'), { key: 'items', label: 'Testimonials', type: 'list', itemLabel: 'Testimonial', item: [area('quote', 'Quote'), txt('name', 'Name'), txt('role', 'Role'), imgF('avatar', 'Photo')] }],
     render: (s, ctx, sec) => wrap(sec, 'testimonials', `${head(s, ctx, 'center')}<div class="grid cols-3">${(s.items || []).map((it, i) => `<figure class="quote"${ctx.blk('items.' + i)}><div class="stars" role="img" aria-label="5 out of 5 stars">${ctx.icon('star-fill').repeat(5)}</div><blockquote${ctx.ed(`items.${i}.quote`)}>${ctx.e(it.quote)}</blockquote>
-      <figcaption>${it.avatar ? ctx.pic(it.avatar, { size: 'avatar', cls: 'avatar', alt: '' }) : `<span class="avatar initials" aria-hidden="true">${ctx.e(initials(it.name))}</span>`}<span><strong${ctx.ed(`items.${i}.name`)}>${ctx.e(it.name)}</strong>${it.role ? `<small${ctx.ed(`items.${i}.role`)}>${ctx.e(it.role)}</small>` : ''}</span></figcaption></figure>`).join('')}</div>`),
+      <figcaption>${it.avatar ? ctx.pic(it.avatar, { size: 'avatar', cls: 'avatar', alt: '', ...ctx.framed(it, 'avatar', 'items.' + i) }) : `<span class="avatar initials" aria-hidden="true">${ctx.e(initials(it.name))}</span>`}<span><strong${ctx.ed(`items.${i}.name`)}>${ctx.e(it.name)}</strong>${it.role ? `<small${ctx.ed(`items.${i}.role`)}>${ctx.e(it.role)}</small>` : ''}</span></figcaption></figure>`).join('')}</div>`),
   },
 
   logos: {
@@ -314,7 +316,7 @@ export const SECTIONS = {
     fields: [EYEBROW, txt('heading', 'Heading'), area('text', 'Text'), txt('buttonLabel', 'Button label'), imgF('image', 'Background photo'), txt('action', 'Form action URL (blank = email to the store)')],
     render: (s, ctx, sec) => {
       const action = s.action && /^https?:\/\//.test(s.action) ? `action="${ctx.e(s.action)}" method="post"` : `data-mailto-form="${ctx.e(ctx.store.contact.email || ctx.store.checkout.email)}" data-subject="Newsletter sign-up"`;
-      return wrap(sec, `newsletter${s.image ? ' nl-photo' : ''}`, `<div class="nl-card">${s.image ? `<div class="nl-media">${ctx.pic(s.image, { size: 'hero' })}</div>` : ''}<div class="nl-body">${head(s, ctx, 'center')}
+      return wrap(sec, `newsletter${s.image ? ' nl-photo' : ''}`, `<div class="nl-card">${s.image ? `<div class="nl-media">${ctx.pic(s.image, { size: 'hero', ...ctx.framed(s) })}</div>` : ''}<div class="nl-body">${head(s, ctx, 'center')}
         <form class="nl-form" ${action}><label class="sr" for="nl-${sec.id}">Email address</label><input id="nl-${sec.id}" type="email" name="email" required placeholder="you@example.com" autocomplete="email"><button class="btn" type="submit"${ctx.ed('buttonLabel')}>${ctx.e(s.buttonLabel || 'Subscribe')}</button></form></div></div>`);
     },
   },
@@ -331,7 +333,7 @@ export const SECTIONS = {
     defaults: { eyebrow: '', heading: 'Free shipping this week', text: 'On every order, no minimum.', buttonLabel: 'Shop now', buttonLink: 'collection:all', image: null, style: 'solid' },
     fields: [EYEBROW, txt('heading', 'Heading'), area('text', 'Text'), txt('buttonLabel', 'Button label'), linkF('buttonLink', 'Button link'),
       { key: 'style', label: 'Style', type: 'select', options: [['solid', 'Accent colour'], ['image', 'Background photo'], ['outline', 'Outline']] }, { ...imgF(), show: s => s.style === 'image' }],
-    render: (s, ctx, sec) => wrap(sec, `banner b-${s.style}`, `<div class="banner-in">${s.style === 'image' && s.image ? `<div class="banner-media">${ctx.pic(s.image, { size: 'hero' })}</div>` : ''}<div class="banner-copy">${s.eyebrow ? `<p class="eyebrow"${ctx.ed('eyebrow')}>${ctx.e(s.eyebrow)}</p>` : ''}<h2 class="sec-title"${ctx.ed('heading')}>${ctx.e(s.heading)}</h2>${s.text ? `<div class="sec-sub"${ctx.ed('text')}>${ctx.t(s.text)}</div>` : ''}${s.buttonLabel ? ctx.btn(s.buttonLabel, s.buttonLink, 'btn-lg btn-inv', 'buttonLabel') : ''}</div></div>`),
+    render: (s, ctx, sec) => wrap(sec, `banner b-${s.style}`, `<div class="banner-in">${s.style === 'image' && s.image ? `<div class="banner-media">${ctx.pic(s.image, { size: 'hero', ...ctx.framed(s) })}</div>` : ''}<div class="banner-copy">${s.eyebrow ? `<p class="eyebrow"${ctx.ed('eyebrow')}>${ctx.e(s.eyebrow)}</p>` : ''}<h2 class="sec-title"${ctx.ed('heading')}>${ctx.e(s.heading)}</h2>${s.text ? `<div class="sec-sub"${ctx.ed('text')}>${ctx.t(s.text)}</div>` : ''}${s.buttonLabel ? ctx.btn(s.buttonLabel, s.buttonLink, 'btn-lg btn-inv', 'buttonLabel') : ''}</div></div>`),
   },
 
   countdown: {
@@ -341,7 +343,7 @@ export const SECTIONS = {
     render: (s, ctx, sec) => {
       const end = s.endsAt || new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 16);
       const unit = (k, l) => `<div><span data-cd="${k}">00</span><small>${l}</small></div>`;
-      return wrap(sec, `countdown${s.image ? ' cd-photo' : ''}`, `<div class="cd-card"><div class="cd-copy">${head(s, ctx)}<div class="cd" data-countdown="${ctx.e(end)}" role="timer" aria-label="Time remaining">${unit('d', 'Days')}${unit('h', 'Hours')}${unit('m', 'Min')}${unit('s', 'Sec')}</div>${s.buttonLabel ? `<div class="btns">${ctx.btn(s.buttonLabel, s.buttonLink, 'btn-lg', 'buttonLabel')}</div>` : ''}</div>${s.image ? `<div class="cd-media">${ctx.pic(s.image, { size: 'wide' })}</div>` : ''}</div>`);
+      return wrap(sec, `countdown${s.image ? ' cd-photo' : ''}`, `<div class="cd-card"><div class="cd-copy">${head(s, ctx)}<div class="cd" data-countdown="${ctx.e(end)}" role="timer" aria-label="Time remaining">${unit('d', 'Days')}${unit('h', 'Hours')}${unit('m', 'Min')}${unit('s', 'Sec')}</div>${s.buttonLabel ? `<div class="btns">${ctx.btn(s.buttonLabel, s.buttonLink, 'btn-lg', 'buttonLabel')}</div>` : ''}</div>${s.image ? `<div class="cd-media">${ctx.pic(s.image, { size: 'wide', ...ctx.framed(s) })}</div>` : ''}</div>`);
     },
   },
 
@@ -366,7 +368,7 @@ export const SECTIONS = {
     label: 'Gallery', group: 'Media', pages: CONTENT, blocks: ['images'],
     defaults: { heading: 'Gallery', columns: 3, images: [] },
     fields: [txt('heading', 'Heading'), COLS([2, 3, 4]), { key: 'images', label: 'Images', type: 'list', itemLabel: 'Image', item: [imgF(), txt('caption', 'Caption')] }],
-    render: (s, ctx, sec) => wrap(sec, 'gallery', `${s.heading ? `<div class="sec-head"><h2 class="sec-title"${ctx.ed('heading')}>${ctx.e(s.heading)}</h2></div>` : ''}<div class="grid cols-${s.columns}">${(s.images || []).map((im, n) => im.image ? `<figure class="g${n % 5}"${ctx.blk('images.' + n)}>${ctx.pic(im.image, { size: 'card', alt: im.caption || '' })}${im.caption ? `<figcaption${ctx.ed(`images.${n}.caption`)}>${ctx.e(im.caption)}</figcaption>` : ''}</figure>` : '').join('')}</div>`),
+    render: (s, ctx, sec) => wrap(sec, 'gallery', `${s.heading ? `<div class="sec-head"><h2 class="sec-title"${ctx.ed('heading')}>${ctx.e(s.heading)}</h2></div>` : ''}<div class="grid cols-${s.columns}">${(s.images || []).map((im, n) => im.image ? `<figure class="g${n % 5}"${ctx.blk('images.' + n)}>${ctx.pic(im.image, { size: 'card', alt: im.caption || '', ...ctx.framed(im, 'image', 'images.' + n) })}${im.caption ? `<figcaption${ctx.ed(`images.${n}.caption`)}>${ctx.e(im.caption)}</figcaption>` : ''}</figure>` : '').join('')}</div>`),
   },
 
   'insta-grid': {
@@ -377,7 +379,7 @@ export const SECTIONS = {
       const url = ctx.store.social.instagram;
       const own = (s.images || []).filter(i => i.image).length > 0;
       const list = own ? (s.images || []).map(i => i.image) : [...new Set(ctx.products('all', '', 12).map(p => p.images[0]).filter(Boolean))];
-      const cell = (r, i) => r ? `<div class="insta-cell"${own ? ctx.blk('images.' + i) : ''}>${ctx.pic(r, { size: 'square', alt: '' })}<span aria-hidden="true">${ctx.icon('camera')}</span></div>` : '';
+      const cell = (r, i) => r ? `<div class="insta-cell"${own ? ctx.blk('images.' + i) : ''}>${ctx.pic(r, { size: 'square', alt: '', ...(own ? ctx.framed(s.images[i], 'image', 'images.' + i) : {}) })}<span aria-hidden="true">${ctx.icon('camera')}</span></div>` : '';
       return wrap(sec, 'insta', `<div class="sec-head center">${s.heading ? `<h2 class="sec-title"${ctx.ed('heading')}>${ctx.e(s.heading)}</h2>` : ''}${s.handle ? (url ? `<a class="handle" href="${ctx.e(url)}" target="_blank" rel="noopener">${ctx.e(s.handle)}</a>` : `<p class="handle">${ctx.e(s.handle)}</p>`) : ''}</div><div class="insta-grid">${list.slice(0, 6).map(cell).join('')}</div>`);
     },
   },
@@ -388,7 +390,7 @@ export const SECTIONS = {
     fields: [EYEBROW, txt('heading', 'Heading'), area('text', 'Text'), { key: 'images', label: 'Photos', type: 'list', itemLabel: 'Photo', item: [imgF(), txt('handle', 'Handle'), linkF('link', 'Shop the look link')] }],
     render: (s, ctx, sec) => {
       const ims = (s.images || []).filter(i => i.image);
-      return ims.length ? wrap(sec, 'ugc', `${head(s, ctx, 'center')}<div class="ugc-grid">${(s.images || []).map((im, i) => im.image ? `<figure class="ugc-cell u${i % 4}"${ctx.blk('images.' + i)}>${ctx.pic(im.image, { size: 'card', alt: '' })}${im.handle || im.link ? `<figcaption>${im.handle ? `<span${ctx.ed(`images.${i}.handle`)}>${ctx.e(im.handle)}</span>` : ''}${im.link ? `<a href="${ctx.link(im.link)}">Shop the look${ctx.icon('arrow')}</a>` : ''}</figcaption>` : ''}</figure>` : '').join('')}</div>`) : '';
+      return ims.length ? wrap(sec, 'ugc', `${head(s, ctx, 'center')}<div class="ugc-grid">${(s.images || []).map((im, i) => im.image ? `<figure class="ugc-cell u${i % 4}"${ctx.blk('images.' + i)}>${ctx.pic(im.image, { size: 'card', alt: '', ...ctx.framed(im, 'image', 'images.' + i) })}${im.handle || im.link ? `<figcaption>${im.handle ? `<span${ctx.ed(`images.${i}.handle`)}>${ctx.e(im.handle)}</span>` : ''}${im.link ? `<a href="${ctx.link(im.link)}">Shop the look${ctx.icon('arrow')}</a>` : ''}</figcaption>` : ''}</figure>` : '').join('')}</div>`) : '';
     },
   },
 
@@ -396,14 +398,14 @@ export const SECTIONS = {
     label: 'Locations & hours', group: 'Content', pages: CONTENT, blocks: ['items'],
     defaults: { heading: 'Visit us', items: [{ name: 'Main store', address: '12 Market Street', hours: 'Mon–Sat 9:00–18:00', phone: '' }], image: null },
     fields: [txt('heading', 'Heading'), imgF('image', 'Photo'), { key: 'items', label: 'Locations', type: 'list', itemLabel: 'Location', item: [txt('name', 'Name'), area('address', 'Address'), area('hours', 'Hours'), txt('phone', 'Phone')] }],
-    render: (s, ctx, sec) => wrap(sec, `locations${s.image ? ' loc-photo' : ''}`, `<div class="loc-wrap">${s.image ? `<div class="loc-media">${ctx.pic(s.image, { size: 'wide' })}</div>` : ''}<div class="loc-body">${s.heading ? `<h2 class="sec-title"${ctx.ed('heading')}>${ctx.e(s.heading)}</h2>` : ''}${(s.items || []).map((l, i) => `<div class="loc"${ctx.blk('items.' + i)}><h3${ctx.ed(`items.${i}.name`)}>${ctx.e(l.name)}</h3><p>${ctx.icon('pin')}<span>${ctx.e(l.address).replace(/\n/g, '<br>')}</span></p>${l.hours ? `<p>${ctx.icon('clock')}<span>${ctx.e(l.hours).replace(/\n/g, '<br>')}</span></p>` : ''}${l.phone ? `<p>${ctx.icon('phone')}<a href="tel:${ctx.e(l.phone.replace(/[^\d+]/g, ''))}">${ctx.e(l.phone)}</a></p>` : ''}</div>`).join('')}</div></div>`),
+    render: (s, ctx, sec) => wrap(sec, `locations${s.image ? ' loc-photo' : ''}`, `<div class="loc-wrap">${s.image ? `<div class="loc-media">${ctx.pic(s.image, { size: 'wide', ...ctx.framed(s) })}</div>` : ''}<div class="loc-body">${s.heading ? `<h2 class="sec-title"${ctx.ed('heading')}>${ctx.e(s.heading)}</h2>` : ''}${(s.items || []).map((l, i) => `<div class="loc"${ctx.blk('items.' + i)}><h3${ctx.ed(`items.${i}.name`)}>${ctx.e(l.name)}</h3><p>${ctx.icon('pin')}<span>${ctx.e(l.address).replace(/\n/g, '<br>')}</span></p>${l.hours ? `<p>${ctx.icon('clock')}<span>${ctx.e(l.hours).replace(/\n/g, '<br>')}</span></p>` : ''}${l.phone ? `<p>${ctx.icon('phone')}<a href="tel:${ctx.e(l.phone.replace(/[^\d+]/g, ''))}">${ctx.e(l.phone)}</a></p>` : ''}</div>`).join('')}</div></div>`),
   },
 
   'page-title': {
     label: 'Page title', group: 'Intro', pages: CONTENT,
     defaults: { eyebrow: '', heading: 'Page title', text: '', image: null },
     fields: [EYEBROW, txt('heading', 'Heading'), area('text', 'Text'), imgF('image', 'Banner photo')],
-    render: (s, ctx, sec) => wrap(sec, `ptitle${s.image ? ' pt-photo' : ''}`, `${s.image ? `<div class="pt-media">${ctx.pic(s.image, { size: 'hero', eager: true })}</div>` : ''}<div class="pt-copy">${s.eyebrow ? `<p class="eyebrow"${ctx.ed('eyebrow')}>${ctx.e(s.eyebrow)}</p>` : ''}<h1 class="sec-title"${ctx.ed('heading')}>${ctx.e(s.heading)}</h1>${s.text ? `<div class="sec-sub"${ctx.ed('text')}>${ctx.t(s.text)}</div>` : ''}</div>`),
+    render: (s, ctx, sec) => wrap(sec, `ptitle${s.image ? ' pt-photo' : ''}`, `${s.image ? `<div class="pt-media">${ctx.pic(s.image, { size: 'hero', eager: true, ...ctx.framed(s) })}</div>` : ''}<div class="pt-copy">${s.eyebrow ? `<p class="eyebrow"${ctx.ed('eyebrow')}>${ctx.e(s.eyebrow)}</p>` : ''}<h1 class="sec-title"${ctx.ed('heading')}>${ctx.e(s.heading)}</h1>${s.text ? `<div class="sec-sub"${ctx.ed('text')}>${ctx.t(s.text)}</div>` : ''}</div>`),
   },
 
   'contact-form': {
@@ -456,16 +458,16 @@ export const SECTIONS = {
       const st = { v0, ok, price, cmp, rating, guide, sizeIdx };
       const layout = s.layout || 'classic', imgs = p.images;
       const zoom = s.zoom && (layout === 'classic' || layout === 'compact');
-      const media = imgs.map((r, i) => `<div class="pslide" data-slide="${i}"${layout !== 'stack' && layout !== 'editorial' && i ? ' hidden' : ''}>${ctx.pic(r, { size: 'large', alt: i ? '' : p.title, eager: !i, fallback: p.art })}</div>`).join('')
+      const media = imgs.map((r, i) => `<div class="pslide" data-slide="${i}"${layout !== 'stack' && layout !== 'editorial' && i ? ' hidden' : ''}>${ctx.pic(r, { size: 'large', alt: i ? '' : p.title, eager: !i, fallback: p.art, ...ctx.pframe(p, i) })}</div>`).join('')
         + (p.video ? `<div class="pslide video" data-slide="${imgs.length}"${layout !== 'stack' && layout !== 'editorial' ? ' hidden' : ''}><video src="${ctx.e(ctx.img(p.video, 'large'))}" controls playsinline preload="none" aria-label="${ctx.e(p.title)} video"></video></div>` : '');
-      const thumbs = (imgs.length > 1 || p.video) && (layout === 'classic' || layout === 'compact') ? `<div class="thumbs">${imgs.map((r, i) => `<button type="button" class="thumb" data-thumb="${i}" aria-label="Show image ${i + 1}"${i ? '' : ' aria-current="true"'}>${ctx.pic(r, { size: 'thumb', alt: '', fallback: p.art })}</button>`).join('')}${p.video ? `<button type="button" class="thumb vthumb" data-thumb="${imgs.length}" aria-label="Play video">${imgs[0] ? ctx.pic(imgs[0], { size: 'thumb', alt: '', fallback: p.art }) : ''}<span>${ctx.icon('play')}</span></button>` : ''}</div>` : '';
+      const thumbs = (imgs.length > 1 || p.video) && (layout === 'classic' || layout === 'compact') ? `<div class="thumbs">${imgs.map((r, i) => `<button type="button" class="thumb" data-thumb="${i}" aria-label="Show image ${i + 1}"${i ? '' : ' aria-current="true"'}>${ctx.pic(r, { size: 'thumb', alt: '', fallback: p.art, ...ctx.pframe(p, i) })}</button>`).join('')}${p.video ? `<button type="button" class="thumb vthumb" data-thumb="${imgs.length}" aria-label="Play video">${imgs[0] ? ctx.pic(imgs[0], { size: 'thumb', alt: '', fallback: p.art }) : ''}<span>${ctx.icon('play')}</span></button>` : ''}</div>` : '';
       const badge = cmp ? `<span class="badge sale">−${Math.round((1 - price / cmp) * 100)}%</span>` : p.tags.includes('new') ? '<span class="badge">New</span>' : '';
       const gallery = `<div class="pgallery pg-${layout}" data-gallery>${thumbs}<div class="pmain-img${zoom ? ' zoomable' : ''}"${zoom ? ' data-zoom' : ''}>${media || (p.art ? `<div class="pslide" data-slide="0">${ctx.pic(p.art, { size: 'large', alt: p.title })}</div>` : '')}${badge}</div></div>`;
       const html = blocks.map((b, i) => b.on && PRODUCT_BLOCKS[b.type] ? productBlock(b, i, p, s, ctx, st) : (ctx.editor ? `<span class="pb-marker"${ctx.blk('blocks.' + i)} hidden></span>` : ''));
       const guideTable = guide ? String(guide.table || '').split('\n').map(r => r.split('|').map(c => c.trim())).filter(r => r.some(Boolean)) : [];
       const modal = guide ? `<div class="modal" id="sg-${p.id}" data-modal hidden><div class="drawer-scrim" data-modal-close></div><div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="sgt-${p.id}"><div class="drawer-head"><h2 id="sgt-${p.id}">${ctx.e(guide.label || 'Size guide')}</h2><button type="button" class="hicon" data-modal-close aria-label="Close size guide">${ctx.icon('close')}</button></div>
         <table class="sgtable">${guideTable.map((r, i) => `<tr>${r.map(c => i ? `<td>${ctx.e(c)}</td>` : `<th scope="col">${ctx.e(c)}</th>`).join('')}</tr>`).join('')}</table></div></div>` : '';
-      const sticky = s.stickyBar && ctx.checkoutEnabled ? `<div class="sticky-atc" data-sticky-atc hidden aria-hidden="true"><div class="wrap sticky-in">${imgs[0] ? ctx.pic(imgs[0], { size: 'thumb', alt: '', fallback: p.art }) : ''}<div class="sticky-info"><b>${ctx.e(p.title)}</b><span data-price>${ctx.money(price)}</span></div><button type="button" class="btn" data-sticky-add${ok ? '' : ' disabled'}>${ctx.e((blocks.find(b => b.type === 'buy') || {}).buttonLabel || 'Add to cart')}</button></div></div>` : '';
+      const sticky = s.stickyBar && ctx.checkoutEnabled ? `<div class="sticky-atc" data-sticky-atc hidden aria-hidden="true"><div class="wrap sticky-in">${imgs[0] ? ctx.pic(imgs[0], { size: 'thumb', alt: '', fallback: p.art, ...ctx.pframe(p, 0) }) : ''}<div class="sticky-info"><b>${ctx.e(p.title)}</b><span data-price>${ctx.money(price)}</span></div><button type="button" class="btn" data-sticky-add${ok ? '' : ' disabled'}>${ctx.e((blocks.find(b => b.type === 'buy') || {}).buttonLabel || 'Add to cart')}</button></div></div>` : '';
       return `<section class="sec pmain pl-${layout}" id="${sec.id}" data-sid="${sec.id}" data-type="product-main" data-product="${p.id}"><div class="wrap">
         <div class="product">${gallery}<div class="pinfo"><form class="pform" data-product-form="${p.id}">${html.join('')}</form></div></div></div>${modal}${sticky}</section>`;
     },
@@ -483,7 +485,7 @@ export const SECTIONS = {
       const items = [p, ...picks], price = x => { const v = x.variants.find(v => v.stock == null || v.stock > 0) || x.variants[0]; return v.price ?? x.price; };
       const total = items.reduce((a, x) => a + price(x), 0);
       return wrap(sec, 'bundle', `<div class="sec-head"><h2 class="sec-title"${ctx.ed('heading')}>${ctx.e(s.heading)}</h2></div><div class="bundle-in" data-bundle>
-        <div class="bundle-items">${items.map((x, i) => `${i ? '<span class="bplus" aria-hidden="true">+</span>' : ''}<label class="bitem"><input type="checkbox" checked data-bundle-item="${x.id}" data-price="${price(x)}" aria-label="Include ${ctx.e(x.title)}"><span class="bimg">${x.images[0] ? ctx.pic(x.images[0], { size: 'square', alt: '', fallback: x.art }) : ''}</span><span class="btitle">${i ? '' : '<small>This item</small>'}${ctx.e(x.title)}</span><b>${ctx.money(price(x))}</b></label>`).join('')}</div>
+        <div class="bundle-items">${items.map((x, i) => `${i ? '<span class="bplus" aria-hidden="true">+</span>' : ''}<label class="bitem"><input type="checkbox" checked data-bundle-item="${x.id}" data-price="${price(x)}" aria-label="Include ${ctx.e(x.title)}"><span class="bimg">${x.images[0] ? ctx.pic(x.images[0], { size: 'square', alt: '', fallback: x.art, ...ctx.pframe(x, 0) }) : ''}</span><span class="btitle">${i ? '' : '<small>This item</small>'}${ctx.e(x.title)}</span><b>${ctx.money(price(x))}</b></label>`).join('')}</div>
         <div class="bundle-sum"><p>Total for <span data-bundle-count>${items.length}</span> items</p><p class="btotal" data-bundle-total>${ctx.money(total)}</p><button type="button" class="btn btn-lg btn-wide" data-bundle-add${ctx.ed('buttonLabel')}>${ctx.e(s.buttonLabel || 'Add all to cart')}</button></div></div>`);
     },
   },

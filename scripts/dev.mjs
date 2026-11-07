@@ -39,10 +39,12 @@ const server = http.createServer(async (req, res) => {
   const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^([/\\])+/, '') || 'index.html';
   if (path === '__reload') { res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' }); res.write('\n'); clients.add(res); req.on('close', () => clients.delete(res)); return; }
   const fromDev = /^(app|psd-worker|ops-worker|ai-worker)\.js(\.map)?$/.test(path);
+  // app routes (/design, /commerce/<store>/orders, …) have no file extension: serve index.html so deep links reload
+  const file = !extname(path) ? 'index.html' : path;
   try {
-    let body = await readFile(join(fromDev ? out : dist, path));
-    if (path === 'index.html') body = body.toString().replace('</body>', snippet + '</body>');
-    res.writeHead(200, { 'content-type': types[extname(path)] || 'application/octet-stream', 'cache-control': 'no-store' });
+    let body = await readFile(join(fromDev ? out : dist, file));
+    if (file === 'index.html') body = body.toString().replace('</body>', snippet + '</body>');
+    res.writeHead(200, { 'content-type': types[extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' });
     res.end(body);
   } catch { res.writeHead(404); res.end('Not found'); }
 });

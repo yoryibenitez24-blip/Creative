@@ -6,6 +6,15 @@ import { useAdmin, Page, Card, Badge, Btn, Text, Num, Select, Check, Area, Tags,
 import { normalizeProduct, generateVariants, newProduct, productsToCsv, importProductsCsv, collectionProducts, categories, slugify, uid, normalizeStore as normalizeStoreSafe } from '../model.js';
 import { productMeta, variantMeta, WEIGHT_UNITS, cid, syncPriceCollections } from './model.js';
 import { adjustStock, productStock, stockRows } from './inventory.js';
+import { ALIGN_PRESETS, productFrames, productFrame, moveProductImage, removeProductImage, normFrame } from '../frame.js';
+
+/** Compact 3×3 image alignment grid (sets the image's focal point; finer control lives in the store builder). */
+function AlignGrid({ label, frame, onChange }) {
+  return <div className="caAlign" role="group" aria-label={label + ' alignment'} title="Image position in product cards and the gallery">
+    {ALIGN_PRESETS.map(([k, l, x, y]) => { const on = frame.x === x && frame.y === y; return <button key={k} type="button" className={on ? 'on' : ''} aria-pressed={on} title={l}
+      aria-label={`Align ${label.toLowerCase()} ${l.toLowerCase()}`} onClick={() => onChange(normFrame({ ...frame, x, y }))}><i /></button>; })}
+  </div>;
+}
 
 const back = (go, to, label) => <button type="button" className="caIconBtn caBack" aria-label={label} onClick={() => go(to)}><ArrowLeft size={17} /></button>;
 const stockText = p => { const n = productStock(p); return n == null ? 'Not tracked' : `${n} in stock${p.variants.length > 1 ? ` for ${p.variants.length} variants` : ''}`; };
@@ -133,8 +142,9 @@ export function ProductDetail({ id }) {
         <Card title="Media" actions={<>{onOpenPhotoStudio && <Btn icon={Camera} onClick={onOpenPhotoStudio}>Photo studio</Btn>}<Btn icon={ImagePlus} onClick={() => fileRef.current?.click()}>Upload images</Btn></>}>
           <input ref={fileRef} type="file" accept="image/*" multiple hidden aria-label="Upload product images" onChange={e => { const f = [...e.target.files]; e.target.value = ''; addFiles(f); }} />
           {p.images.length ? <ul className="caMedia">{p.images.map((ref, i) => <li key={ref + i}><Thumb src={ref} size={i === 0 ? 150 : 96} alt={`Image ${i + 1} of ${p.title}`} />
-            <div className="caMediaBtns">{i > 0 && <button type="button" className="caIconBtn sm" aria-label={`Make image ${i + 1} the main image`} onClick={() => set(s => { const [x] = s.p.images.splice(i, 1); s.p.images.unshift(x); })}><Star size={13} /></button>}
-              <button type="button" className="caIconBtn sm" aria-label={`Remove image ${i + 1}`} onClick={() => set(s => { s.p.images.splice(i, 1); })}><Trash2 size={13} /></button></div></li>)}</ul>
+            <div className="caMediaBtns">{i > 0 && <button type="button" className="caIconBtn sm" aria-label={`Make image ${i + 1} the main image`} onClick={() => set(s => { moveProductImage(s.p, i, 0); })}><Star size={13} /></button>}
+              <button type="button" className="caIconBtn sm" aria-label={`Remove image ${i + 1}`} onClick={() => set(s => { removeProductImage(s.p, i); })}><Trash2 size={13} /></button></div>
+            <AlignGrid label={`Image ${i + 1}`} frame={productFrame(p, i)} onChange={fr => set(s => { const all = productFrames(s.p); all[i] = fr; s.p.imageFrames = all; })} /></li>)}</ul>
             : <div className="caDrop" onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); addFiles([...e.dataTransfer.files].filter(f => f.type.startsWith('image/'))); }}><ImagePlus size={22} aria-hidden="true" /><span>Drop images here or use Upload images</span></div>}
           <div className="caInline"><input className="caInput" aria-label="Image URL" placeholder="https://… image URL" value={url} onChange={e => setUrl(e.target.value)} /><Btn onClick={() => { if (/^https:\/\//.test(url.trim())) { set(s => { s.p.images.push(url.trim()); }); setUrl(''); } else notify('Enter an https:// image URL'); }} disabled={!url.trim()}>Add URL</Btn></div>
         </Card>

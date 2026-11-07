@@ -38,7 +38,7 @@ createRoot(document.getElementById('root')).render(<App />);
 `);
 await build({ entryPoints: [join(work, 'harness.jsx')], bundle: true, minify: true, outfile: join(work, 'harness.js'), loader: { '.jsx': 'jsx' }, nodePaths: [join(repo, 'node_modules')], logLevel: 'error' });
 await writeFile(join(work, 'harness.html'), `<!doctype html><html><head><meta charset="utf-8"><title>Commerce harness</title>
-<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/css/modern.css"><link rel="stylesheet" href="/css/store.css"><link rel="stylesheet" href="/css/admin.css"><link rel="stylesheet" href="/css/commerce-intro.css"></head>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/css/modern.css"><link rel="stylesheet" href="/css/store.css"><link rel="stylesheet" href="/css/admin.css"><link rel="stylesheet" href="/css/commerce-intro.css"><link rel="stylesheet" href="/css/stores.css"></head>
 <body><div id="root"></div><script src="/harness.js"></script></body></html>`);
 
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
