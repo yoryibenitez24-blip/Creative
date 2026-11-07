@@ -767,7 +767,7 @@ body.drawer-open{overflow:hidden}
 .eh-media{position:relative}
 .eh-fig{position:relative;margin:0;overflow:hidden;background:var(--surface);border-radius:var(--r-lg)}.eh-fig img{width:100%;height:100%;object-fit:cover}
 .eh-fig figcaption{position:absolute;left:14px;bottom:14px;background:var(--eh-bg,var(--bg));color:var(--eh-fg,var(--text));font:600 11px/1 var(--font-b);letter-spacing:.14em;text-transform:uppercase;padding:9px 12px;border-radius:999px}
-.eh-split .eh-a{aspect-ratio:4/5}
+.eh-split .eh-a{aspect-ratio:4/5}.eh-split .eh-a figcaption{left:auto;right:14px}
 .eh-split .eh-b{position:absolute;width:40%;aspect-ratio:3/4;left:-16%;bottom:-7%;border:6px solid var(--eh-bg,var(--bg));transform:rotate(-5deg);box-shadow:var(--shadow)}
 .eh-split .sticker{right:-26px;top:-30px}
 .eh-sh-arch .eh-a{border-radius:999px 999px var(--r-lg) var(--r-lg)}.eh-sh-blob .eh-a{border-radius:58% 42% 51% 49% / 46% 54% 46% 54%;animation:zblob 14s ease-in-out infinite alternate}.eh-sh-blob .eh-b,.eh-sh-arch .eh-b{border-radius:50%;aspect-ratio:1}
@@ -788,7 +788,7 @@ body.drawer-open{overflow:hidden}
 .rail-track{position:relative;list-style:none;margin:0;padding:0 22px 12px;display:grid;grid-auto-flow:column;grid-auto-columns:clamp(210px,21vw,290px);gap:clamp(18px,2.6vw,44px);overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}.rail-track::-webkit-scrollbar{display:none}
 .rail-item{scroll-snap-align:start}
 .rail-hang{display:block;text-decoration:none;transform-origin:50% 6px;transition:transform .7s cubic-bezier(.3,1.7,.4,1)}.rail-hang:hover,.rail-hang:focus-visible{transform:rotate(-3deg)}
-.rail-hanger{display:block;width:46%;margin:0 auto -3px;fill:none;stroke:var(--text);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;position:relative;z-index:1}
+.rail-hanger{display:block;width:46%;margin:0 auto -11px;fill:none;stroke:var(--text);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;position:relative;z-index:1}
 .rail-img{position:relative;display:block;aspect-ratio:3/4;border-radius:var(--r);overflow:hidden;background:var(--surface);box-shadow:0 22px 40px -26px rgba(0,0,0,.45)}.rail-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .rail-cap{display:flex;gap:12px;margin:18px 0 0;font-size:14.5px;line-height:1.4}.rail-no{font:700 12px/1.6 var(--font-b);letter-spacing:.08em;opacity:.55}
 .rail-cap a{font-weight:600;text-decoration:none}.rail-cap a:hover{text-decoration:underline}.rail-cap small{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:11.5px}.rail-cap b{display:block;font-weight:500;margin-top:3px;font-variant-numeric:tabular-nums}
