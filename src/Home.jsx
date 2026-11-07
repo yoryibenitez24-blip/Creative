@@ -12,7 +12,7 @@ export const SECTIONS = [
   { id: 'photo', name: 'Photography', icon: Camera, blurb: 'Import, rate and develop photos. Masking, presets, crop and geometry.' },
   { id: 'design', name: 'Design', icon: PenTool, blurb: 'Layers, brushes, type, effects and filters for posters, social posts and artwork.' },
   { id: 'web', name: 'Web & UI', icon: LayoutTemplate, blurb: 'Design websites and apps with frames, auto layout, components and prototypes.' },
-  { id: 'ecom', name: 'E-commerce', icon: ShoppingBag, blurb: 'Cut out products, white backgrounds, marketplace sizes and sale banners.' },
+  { id: 'ecom', name: 'E-commerce', icon: ShoppingBag, blurb: 'Build an online store from a template: add products, customise, export a ready-to-host shop.' },
 ];
 
 // Design size templates (px). Kept within the editor's 8000 px limit.

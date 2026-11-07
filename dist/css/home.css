@@ -51,3 +51,4 @@
 .sectionSoon p { padding: 40px; color: #9b9ba5; }
 .dvwTop .sectionBar { margin-left: 0; }
 .homeHint { color: #85858f; font-size: 12px; margin-top: 10px; }
+.photoStudioLayer { position: fixed; inset: 0; z-index: 80; }
