@@ -4,7 +4,7 @@
 // cloud, a credit card that slides in, a parcel that drops onto the street and a few sparkles. Then a circular wipe
 // reveals the admin (CommerceApp adds .caEnter for a moment so its cards rise in).
 // Pure SVG + CSS (dist/css/commerce-intro.css, "caIntro*" / "ci*"); every stroke uses pathLength=1 so one keyframe
-// draws them all. Click, Enter, Space or Esc skips it. With prefers-reduced-motion the finished drawing is shown still
+// draws them all. Click, Enter, Space or Esc skips it. It always animates (also with "reduce motion" on)
 // and fades out.
 import React, { useEffect, useRef } from 'react';
 
@@ -19,7 +19,7 @@ export function shouldPlayIntro() {
   return true;
 }
 export function markIntroSeen() { seenThisPage = true; try { sessionStorage.setItem(KEY, '1'); } catch { /* ignore */ } }
-const reduced = () => { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch { return false; } };
+
 
 // A stroked shape that draws itself `t` ms after the start. `occ` fills it with the background so it hides lines behind it.
 function L({ as: Tag = 'path', t = 0, occ, thin, className = '', ...p }) {
@@ -38,7 +38,9 @@ function hatch(x0, y0, x1, y1, step, t) {
 
 export default function Intro({ onDone, storeName }) {
   const done = useRef(false);
-  const calm = useRef(reduced()).current;
+  // Always animated: it is short (~2 s), decorative and skippable. (Systems with "reduce motion" on — e.g. Windows with
+  // animation effects off — used to get a still drawing, which read as a broken animation.)
+  const calm = false;
   const finish = () => { if (done.current) return; done.current = true; markIntroSeen(); onDone(); };
   useEffect(() => {
     const timer = setTimeout(finish, calm ? 900 : INTRO_MS);
