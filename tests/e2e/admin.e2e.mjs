@@ -311,7 +311,7 @@ try {
     await page.getByRole('navigation', { name: 'Commerce' }).getByRole('button', { name: 'Settings' }).click();
     await main.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: 'Taxes and duties' }).click();
     assert.equal(await main.getByLabel('Tax rate 1 percent').inputValue(), '8.25');
-    await nav('Dashboard');
+    await nav('Home');
     await main.getByRole('group', { name: 'Orders', exact: true }).getByText('1', { exact: true }).waitFor();
     // the setup guide ticks itself off: a saved product with a sample photo, and the store builder was opened
     assert.equal(await page.getByRole('progressbar', { name: 'Setup progress' }).getAttribute('aria-valuenow'), '2');
@@ -335,7 +335,7 @@ try {
     await nav('Orders'); await main.getByRole('button', { name: 'Create order' }).first().click(); await page.screenshot({ path: join(process.env.ADMIN_SHOTS, 'new-order.jpg'), type: 'jpeg', quality: 70 });
     await page.getByRole('navigation', { name: 'Commerce' }).getByRole('button', { name: 'Settings' }).click();
     for (const t of ['General', 'Payments', 'Shipping and delivery', 'Notifications', 'Policies', 'Domains']) { await main.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: t }).click(); await page.screenshot({ path: join(process.env.ADMIN_SHOTS, 'set-' + t.split(' ')[0] + '.jpg'), type: 'jpeg', quality: 70 }); }
-    await page.setViewportSize({ width: 820, height: 1100 }); await nav('Dashboard').catch(() => {}); await page.screenshot({ path: join(process.env.ADMIN_SHOTS, 'tablet.jpg'), type: 'jpeg', quality: 70 });
+    await page.setViewportSize({ width: 820, height: 1100 }); await nav('Home').catch(() => {}); await page.screenshot({ path: join(process.env.ADMIN_SHOTS, 'tablet.jpg'), type: 'jpeg', quality: 70 });
   }
   console.log('All admin e2e steps passed');
 } finally {
