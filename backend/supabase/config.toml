@@ -1,0 +1,29 @@
+# Supabase CLI project config for the Zertake storefront backend (merged with the CLI defaults).
+# `supabase link --project-ref <ref>` connects this folder to your hosted project.
+project_id = "zertake-store"
+
+# Every function checks what it needs itself (signature, owner token, rate limits), so the gateway's JWT check is off:
+# Stripe and the storefront (sendBeacon, magic-link redirects) cannot send a Supabase JWT, and new
+# `sb_publishable_…` keys are not JWTs either. Owner-only functions verify the user's access token in code.
+[functions.create-checkout-session]
+verify_jwt = false
+[functions.stripe-webhook]
+verify_jwt = false
+[functions.stripe-connect-onboard]
+verify_jwt = false
+[functions.stripe-connect-status]
+verify_jwt = false
+[functions.customer-portal]
+verify_jwt = false
+[functions.track]
+verify_jwt = false
+[functions.send-email]
+verify_jwt = false
+[functions.sync-catalog]
+verify_jwt = false
+[functions.order-status]
+verify_jwt = false
+[functions.booking-slots]
+verify_jwt = false
+[functions.download]
+verify_jwt = false

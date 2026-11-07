@@ -1,0 +1,7 @@
+Type-check the Edge Functions without Deno (uses the exact package versions the functions import):
+
+  cd backend/typecheck
+  npm install --no-save --no-package-lock stripe@23.1.0 @supabase/supabase-js@2.119.0 typescript@5.9
+  npx tsc -p tsconfig.json
+
+With the Supabase CLI / Deno installed you can instead run:  deno check backend/supabase/functions/*/index.ts

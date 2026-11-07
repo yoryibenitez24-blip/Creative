@@ -7,7 +7,7 @@
 //   await exportStoreZip(store, opts) → Uint8Array (store-only ZIP, src/ecom/zip.js)
 //   previewShellHtml(store, imageUrl, { commerce? }) → one self-contained HTML page that shows every page of the store in an
 //       iframe and follows its internal links (used by "Preview in new tab"; imageUrl must return absolute URLs)
-//   deployInstructions(store) → plain text
+//   deployInstructions(store, commerce?) → plain text (mentions Stripe Checkout + the backend when they are configured)
 //
 // All links are relative, so the site works opened from the file system and on any static host.
 
@@ -16,6 +16,7 @@ import { artSvg, isGen, parseGen } from './art.js';
 import { imageRefs, slugify } from './model.js';
 import { renderPage, sitePages, storeCss, storeScript, esc } from './render.js';
 import { PHOTO_CREDITS_NOTE } from './photos.js';
+import { payConfig } from './commerce.js';
 
 const enc = new TextEncoder();
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/svg+xml': 'svg', 'image/avif': 'avif' };
@@ -57,7 +58,7 @@ export async function buildSiteFiles(store, { loadAsset, commerce } = {}) {
   out.push({ name: 'assets/styles.css', data: enc.encode(storeCss(store)) });
   out.push({ name: 'assets/store.js', data: enc.encode(storeScript(store, imageUrl, { commerce })) });
   out.push(...files);
-  out.push({ name: 'README.txt', data: enc.encode(deployInstructions(store)) });
+  out.push({ name: 'README.txt', data: enc.encode(deployInstructions(store, commerce)) });
   return out;
 }
 
@@ -67,7 +68,8 @@ export async function exportStoreZip(store, opts = {}) {
   return createZip(files.map(f => ({ name: folder + f.name, data: f.data })));
 }
 
-export function deployInstructions(store) {
+export function deployInstructions(store, commerce = null) {
+  const pay = payConfig(commerce);
   const mode = { whatsapp: `WhatsApp: orders open a WhatsApp chat with ${store.checkout.phone ? '+' + store.checkout.phone.replace(/\D/g, '') : '(set your WhatsApp number in Settings → Checkout)'} containing the cart.`, email: `Email: orders open the shopper's mail app addressed to ${store.checkout.email || '(set an order email in Settings → Checkout)'}.`, paymentLinks: 'Payment links: each product sends the shopper to the payment link you pasted for it (Stripe Payment Links, PayPal.me, Gumroad, …). Products without a link ask the shopper to contact you.', none: 'Catalog only: the store shows products but takes no orders.' }[store.checkout.mode];
   return `${store.name} — static store exported from Zertake Studio
 
@@ -91,7 +93,13 @@ HOW ORDERS WORK
   ${mode}
   This website never collects card details. Real payments need your own payment links or payment provider;
   confirm stock, shipping and payment with each customer before sending goods.
-
+${pay && pay.stripe ? `
+ONLINE PAYMENTS (Stripe ${pay.stripe.mode === 'live' ? 'LIVE' : 'TEST'} mode)
+  The checkout button sends the cart to your backend (${pay.stripe.endpoint.replace(/\/create-checkout-session$/, '')})
+  and the shopper pays on Stripe's hosted checkout page; ${store.checkout.mode === 'whatsapp' || store.checkout.mode === 'email' ? 'the ' + store.checkout.mode + ' order is the fallback when the backend is unreachable' : 'nothing else changes'}.
+  Card payments need the site on an https:// address (any host above gives you one). Before going live, sync the
+  catalog from the admin and follow docs/BACKEND.md (Supabase project, secrets, Stripe webhook).
+` : ''}
 IMAGES
   Your uploaded images are included in images/. Sample template photos are loaded from images.unsplash.com,
   so they need an internet connection (offline, simple illustrations are shown instead).
