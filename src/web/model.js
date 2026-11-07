@@ -85,7 +85,7 @@ const TYPE_DEFAULTS = {
 
 /** Create a node object with defaults (does not insert it). */
 export function makeNode(type, props = {}) {
-  const n = { id: props.id || newId(), type, parent: null, x: 0, y: 0, w: 100, h: 100, ...clone(BASE), ...clone(TYPE_DEFAULTS[type] || {}), ...props };
+  const n = { type, parent: null, x: 0, y: 0, w: 100, h: 100, ...clone(BASE), ...clone(TYPE_DEFAULTS[type] || {}), ...props, id: props.id || newId() };
   if (type === 'line') n.h = 0;
   if (type === 'text' && !props.name) n.name = String(n.text).slice(0, 40) || 'Text';
   return n;

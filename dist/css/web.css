@@ -154,3 +154,4 @@
 @keyframes wbOutLeft { from { transform: none; } to { transform: translateX(-100%); } }
 @keyframes wbInLeft { from { transform: translateX(-100%); } to { transform: none; } }
 @keyframes wbOutRight { from { transform: none; } to { transform: translateX(100%); } }
+.wbRoot .insRow { grid-template-columns: 62px 1fr; }

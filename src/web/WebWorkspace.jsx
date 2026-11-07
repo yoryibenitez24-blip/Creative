@@ -12,7 +12,11 @@ import { createWebDoc, WEB_TEMPLATES, insertTemplate } from './templates.js';
 import { cssForNode, exportFrameHtml, exportSvg, nodeStyle } from './codegen.js';
 import { renderNodeToCanvas, canvasToBlob, canvasMeasure } from './raster.js';
 import { NodeView, Present } from './render.jsx';
-import { LayersPanel, AssetsPanel, DesignPanel, PrototypePanel, InspectPanel } from './panels.jsx';
+import { LayersPanel as LayersPanelRaw, AssetsPanel as AssetsPanelRaw, DesignPanel as DesignPanelRaw, PrototypePanel as PrototypePanelRaw, InspectPanel as InspectPanelRaw } from './panels.jsx';
+
+// Panels only re-render when their inputs change (not on pan / zoom / transient drags).
+const LayersPanel = React.memo(LayersPanelRaw), AssetsPanel = React.memo(AssetsPanelRaw), DesignPanel = React.memo(DesignPanelRaw);
+const PrototypePanel = React.memo(PrototypePanelRaw), InspectPanel = React.memo(InspectPanelRaw);
 
 export { createWebDoc, WEB_TEMPLATES };
 
@@ -90,6 +94,7 @@ export default function WebWorkspace({ doc: docProp, onChange, onExit }) {
   const [live, setLive] = useState(null);
   const doc = live || headRef.current;
   const docRef = useRef(doc); docRef.current = doc;
+  const panelDoc = headRef.current; // side panels show the committed doc (cheap while dragging)
   const hist = useRef({ past: [], future: [] });
 
   const [sel, setSelState] = useState([]);
@@ -327,7 +332,7 @@ export default function WebWorkspace({ doc: docProp, onChange, onExit }) {
       const s = snapBox({ ...g.box, x: g.box.x + dx, y: g.box.y + dy }, g.targets, 6 / z);
       if (!e.ctrlKey && !e.metaKey) { dx += s.dx; dy += s.dy; }
       const nodes = { ...head.nodes };
-      for (const id of g.ids) { const o = g.orig[id]; const [lx, ly] = applyVec(o.inv, dx, dy); nodes[id] = { ...nodes[id], x: o.x + lx, y: o.y + ly }; }
+      for (const id of g.ids) { const o = g.orig[id]; const [lx, ly] = applyVec(o.inv, dx, dy); nodes[id] = { ...nodes[id], x: Math.round((o.x + lx) * 100) / 100, y: Math.round((o.y + ly) * 100) / 100 }; }
       setLive(finalize(head, { ...head, nodes }, measure));
       setOverlay({ guides: e.ctrlKey || e.metaKey ? [] : s.guides, marquee: null });
       return;
@@ -357,7 +362,8 @@ export default function WebWorkspace({ doc: docProp, onChange, onExit }) {
       if (n0.type === 'line') { y0 = 0; y1 = 0; }
       const nx = Math.min(x0, x1), ny = Math.min(y0, y1), nw = Math.max(n0.type === 'line' ? 1 : 1, Math.abs(x1 - x0)), nh = n0.type === 'line' ? 0 : Math.max(1, Math.abs(y1 - y0));
       const pc = apply(g.L, nx + nw / 2, ny + nh / 2);
-      const box = { x: pc[0] - nw / 2, y: pc[1] - nh / 2, w: nw, h: nh };
+      const rd = v => g.axisAligned ? Math.round(v) : Math.round(v * 100) / 100;
+      const box = { x: rd(pc[0] - nw / 2), y: rd(pc[1] - nh / 2), w: rd(nw), h: n0.type === 'line' ? 0 : Math.max(1, rd(nh)) };
       setLive(finalize(head, resizeNode(head, g.id, box, measure), measure));
       setOverlay({ guides: guides.map(gg => clipGuide(gg, head, g.id, box)), marquee: null });
       return;
@@ -791,7 +797,7 @@ export default function WebWorkspace({ doc: docProp, onChange, onExit }) {
     <div className="wbBody">
       <aside className="wbLeft">
         <div className="wbTabs" role="tablist">{[['layers', 'Layers'], ['assets', 'Assets']].map(([k, l]) => <button key={k} role="tab" aria-selected={leftTab === k} className={leftTab === k ? 'on' : ''} onClick={() => setLeftTab(k)}>{l}</button>)}</div>
-        <div className="wbScroll">{leftTab === 'layers' ? <LayersPanel doc={doc} sel={sel} act={act} hover={hover} setHover={setHover} /> : <AssetsPanel doc={doc} sel={sel} act={act} />}</div>
+        <div className="wbScroll">{leftTab === 'layers' ? <LayersPanel doc={panelDoc} sel={sel} act={act} hover={hover} setHover={setHover} /> : <AssetsPanel doc={panelDoc} sel={sel} act={act} />}</div>
       </aside>
       <main className={'wbCanvas' + (rulers ? ' withRulers' : '')} ref={canvasRef} style={{ cursor, background: doc.canvasBg }} aria-label="Design canvas"
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onDoubleClick={onDoubleClick}
@@ -839,9 +845,9 @@ export default function WebWorkspace({ doc: docProp, onChange, onExit }) {
       <aside className="wbRight">
         <div className="wbTabs" role="tablist">{[['design', 'Design'], ['prototype', 'Prototype'], ['inspect', 'Inspect']].map(([k, l]) => <button key={k} role="tab" aria-selected={rightTab === k} className={rightTab === k ? 'on' : ''} onClick={() => setRightTab(k)}>{l}</button>)}</div>
         <div className="wbScroll inspector">
-          {rightTab === 'design' && <DesignPanel doc={doc} sel={sel} act={act} tool={tool} exportScale={exportScale} setExportScale={setExportScale} />}
-          {rightTab === 'prototype' && <PrototypePanel doc={doc} sel={sel} act={act} />}
-          {rightTab === 'inspect' && <InspectPanel doc={doc} sel={sel} act={act} />}
+          {rightTab === 'design' && <DesignPanel doc={panelDoc} sel={sel} act={act} tool={tool} exportScale={exportScale} setExportScale={setExportScale} />}
+          {rightTab === 'prototype' && <PrototypePanel doc={panelDoc} sel={sel} act={act} />}
+          {rightTab === 'inspect' && <InspectPanel doc={panelDoc} sel={sel} act={act} />}
         </div>
       </aside>
     </div>

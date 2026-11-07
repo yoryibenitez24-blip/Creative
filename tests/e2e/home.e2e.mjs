@@ -46,6 +46,20 @@ await step('the E-commerce section opens the product studio and Exit returns hom
   await page.locator('.ecom').getByRole('button', { name: /^Exit/ }).first().click();
   await page.getByRole('main', { name: 'Zertake home' }).waitFor();
 });
+await step('the Web & UI section opens the interface designer; it persists across a reload', async () => {
+  await page.getByRole('main', { name: 'Zertake home' }).getByRole('button', { name: 'Open Web & UI' }).click();
+  await page.getByRole('button', { name: 'Exit Web workspace' }).waitFor({ timeout: 15000 });
+  await page.screenshot({ path: join(evidence, 'web-ui.png') });
+  await page.reload(); await page.getByRole('button', { name: 'Exit Web workspace' }).waitFor({ timeout: 15000 });
+  await page.getByRole('button', { name: 'Exit Web workspace' }).click(); await page.getByRole('main', { name: 'Zertake home' }).waitFor();
+});
+await step('a web template (Landing page) opens in Web & UI', async () => {
+  page.once('dialog', d => d.accept());
+  await page.getByRole('button', { name: 'New web design: Landing page' }).click();
+  await page.getByRole('button', { name: 'Exit Web workspace' }).waitFor();
+  await page.waitForTimeout(500); await page.screenshot({ path: join(evidence, 'web-landing.png') });
+  await page.getByRole('button', { name: 'Exit Web workspace' }).click();
+});
 await step('no uncaught page errors', async () => assert.deepEqual(errors, []));
 await browser.close(); server.close();
 const failed = results.filter(r => !r.ok).length; console.log(`\n${results.length - failed} passed, ${failed} failed`); process.exit(failed ? 1 : 0);

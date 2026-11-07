@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { WEB_TEMPLATES } from './web/templates.js';
 import { Camera, PenTool, LayoutTemplate, ShoppingBag, ArrowRight, Plus, FolderOpen } from 'lucide-react';
 
 // Start screen and section switcher. Four sections share one app, one asset store and one workspace:
@@ -35,7 +36,7 @@ export function SectionBar({ section, onSection }) {
   </nav>;
 }
 
-export default function Home({ onSection, onNewDesign, onOpenFile, documents = [], onOpenDocument }) {
+export default function Home({ onSection, onNewDesign, onOpenFile, documents = [], onOpenDocument, onNewWeb, hasWeb }) {
   const [w, setW] = useState(1920), [h, setH] = useState(1080);
   const groups = [...new Set(DESIGN_TEMPLATES.map(t => t.group))];
   const recent = documents.slice(-6).reverse();
@@ -60,6 +61,12 @@ export default function Home({ onSection, onNewDesign, onOpenFile, documents = [
           <button type="button" onClick={onOpenFile}><FolderOpen size={14} />Open file…</button>
         </form>
       </section>
+
+      {onNewWeb && <section className="homeSection"><h2>Start a website or app</h2><div className="tplRow">{WEB_TEMPLATES.map(t => {
+        const k = 46 / Math.max(t.w, t.h);
+        return <button key={t.id} className="tpl" aria-label={'New web design: ' + t.name} title={t.description} onClick={() => { if (!hasWeb || window.confirm('Replace the current Web & UI design with “' + t.name + '”?')) onNewWeb(t.id); }}>
+          <span className="tplShape"><span style={{ width: Math.max(6, t.w * k), height: Math.max(6, t.h * k) }} /></span><strong>{t.name}</strong><small>{t.w} × {t.h}</small></button>;
+      })}</div>{hasWeb && <p className="homeHint">Your current web design opens with <b>Web &amp; UI</b>; a template replaces it.</p>}</section>}
 
       {recent.length > 0 && <section className="homeSection"><h2>Recent designs</h2><div className="recentRow">{recent.map(d => <button key={d.id} className="recent" onClick={() => onOpenDocument(d.id)}>
         <span className="recentThumb" style={{ background: d.doc.bg && d.doc.bg !== 'transparent' ? d.doc.bg : '#2a2a2e', aspectRatio: d.doc.w + ' / ' + d.doc.h }} /><strong>{d.doc.name}</strong><small>{d.doc.w} × {d.doc.h} · {d.doc.layers.length} layers</small></button>)}</div></section>}
