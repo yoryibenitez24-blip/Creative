@@ -300,5 +300,11 @@ export function motionRuntime(win, doc) {
     var now = editing(); if (now === was) return; was = now;
     if (now) reset(); else { reset(); scan(doc); onScroll(); }
   }).observe(html, { attributes: true, attributeFilter: ['class'] });
+  // cross-document View Transitions: opt in only on a real top-level site (not the builder's srcdoc iframe, blob: previews or
+  // file://), and swallow aborted transitions (navigating mid-transition rejects their promises)
+  var quiet = function (vt) { if (vt) ['ready', 'finished', 'updateCallbackDone'].forEach(function (k) { if (vt[k] && vt[k].catch) vt[k].catch(function () {}); }); };
+  win.addEventListener('pageswap', function (e) { quiet(e.viewTransition); }); win.addEventListener('pagereveal', function (e) { quiet(e.viewTransition); });
+  var top = false; try { top = win.top === win; } catch (e) { top = false; }
+  if (on() && top && /^https?:$/.test(win.location.protocol) && win.CSS && sup('view-transition-name', 'none')) { var vs = doc.createElement('style'); vs.textContent = '@view-transition{navigation:auto}'; doc.head.appendChild(vs); }
   win.__zm = { scan: scan, fly: fly, layer: layer, scramble: scramble, on: live };
 }

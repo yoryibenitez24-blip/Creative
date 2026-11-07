@@ -15,7 +15,7 @@ serve(['GET', 'POST'], async (req, cors) => {
   const acct = auth.store.stripe_account_id;
   if (!acct) return json({ connected: false, onboardingStatus: 'not_connected' }, 200, cors);
   const s = connectSummary(await stripe().accounts.retrieve(acct));
-  await admin().from('connected_accounts').upsert(connectedAccountRow(s, auth.store.id, auth.user.id), { onConflict: 'stripe_account_id' });
+  await admin().from('connected_accounts').upsert(connectedAccountRow(s, auth.store.id, auth.user?.id ?? null), { onConflict: 'stripe_account_id' });
   const onboardingStatus = s.onboardingStatus === 'complete' ? 'connected' : s.onboardingStatus === 'restricted' || s.onboardingStatus === 'rejected' ? 'restricted' : 'pending';
   return json({ connected: true, ...s, onboardingStatus, status: s.onboardingStatus }, 200, cors);
 });

@@ -47,8 +47,8 @@ serve(['POST'], async (req, cors) => {
     checkout_config: body.config || {}, payments: body.payments || {}, email: body.email || {}, catalog_synced_at: new Date().toISOString(),
     ...(['express', 'standard', 'custom', 'none'].includes(String(body.payments?.connectType)) && !auth.store?.stripe_account_id ? { connect_type: body.payments!.connectType as StoreRow['connect_type'] } : {}),
   };
-  if (auth.store) { const { error } = await db.from('stores').update(fields).eq('id', storeId); if (error) throw error; }
-  else await ensureStore(storeId, auth.user.id, fields);
+  if (auth.store) { const { error } = await db.from('stores').update({ ...fields, ...(auth.store.owner_id ? {} : { owner_id: auth.user!.id }) }).eq('id', storeId); if (error) throw error; } // claims an unclaimed store
+  else await ensureStore(storeId, auth.user!.id, fields);
   for (let i = 0; i < rows.length; i += 500) {
     const { error } = await db.from('products').upsert(rows.slice(i, i + 500), { onConflict: 'store_id,id' });
     if (error) throw error;

@@ -599,13 +599,13 @@ test('motion: rendered hooks, body level, CSS and runtime (no hidden content wit
   assert.match(html, new RegExp(`data-sid="${fp.id}"[^>]*data-anim="fade-up"`), 'subtle default: fade up');
   // reveals are set up by the engine, never by a stylesheet rule
   const css = storeCss(s);
-  assert.doesNotMatch(css, /\[data-reveal\]\{opacity:0/); assert.match(css, /@view-transition\{navigation:auto\}/); assert.match(css, /prefers-reduced-motion:reduce\)\{@view-transition\{navigation:none\}\}/);
+  assert.doesNotMatch(css, /\[data-reveal\]\{opacity:0/); assert.doesNotMatch(css, /@view-transition\{/, 'View Transitions are opted into at runtime, top-level http(s) pages only');
   const js = storeScript(s, imageUrl);
-  assert.match(js, /window\.__zm|win\.__zm = \{/); assert.match(js, /js-motion/); assert.match(js, /prefers-reduced-motion: reduce/);
+  assert.match(js, /win\.__zm = \{/); assert.match(js, /js-motion/); assert.match(js, /@view-transition\{navigation:auto\}/); assert.match(js, /pagereveal/); assert.match(js, /prefers-reduced-motion: reduce/);
   // off: no hooks, no view transitions
   const off = structuredClone(s); off.theme.motion = 'off';
   html = renderPage(off, { page: 'home' }, { mode: 'export', imageUrl });
-  assert.doesNotMatch(html, /data-anim=|data-fx=/); assert.match(html, /motion-off/); assert.doesNotMatch(storeCss(off), /@view-transition\{navigation:auto/);
+  assert.doesNotMatch(html, /data-anim=|data-fx=/); assert.match(html, /motion-off/); assert.doesNotMatch(storeCss(off), /view-transition/);
   // editor preview keeps the hooks (Edit mode shows final states at runtime) and inline editing attributes
   const pv = renderPage(s, { page: 'home' }, { mode: 'preview', imageUrl, editor: true });
   assert.match(pv, /data-anim="blur-in"/); assert.match(pv, /data-edit="heading"/);

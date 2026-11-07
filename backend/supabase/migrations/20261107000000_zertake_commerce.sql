@@ -28,7 +28,7 @@ end $$;
 -- ---------------------------------------------------------------------------------------------------------------
 create table public.stores (
   id               text primary key check (char_length(id) between 1 and 80),
-  owner_id         uuid not null references auth.users (id) on delete cascade,
+  owner_id         uuid references auth.users (id) on delete cascade, -- null = unclaimed (created by anon onboarding, see ALLOW_ANON_ONBOARDING)
   name             text not null default '',
   currency         text not null default 'USD' check (currency ~ '^[A-Z]{3}$'),
   site_url         text not null default '',             -- published storefront URL (fallback for return URLs)

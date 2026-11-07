@@ -198,7 +198,7 @@ if (typeof window !== 'undefined' && window.document) window.setTimeout(function
  */
 export function payRuntime(K, CK, D, win, doc) {
   var cfg = D && D.commerce, pay = cfg && cfg.pay;
-  if (!pay || win.__ztPay) return;
+  if (!D || D.preview || win.__ztPay) return;
   win.__ztPay = true;
   var root = doc.documentElement.getAttribute('data-root') || '';
   var KEY = 'zstore-cart:' + D.id, CKEY = 'zstore-codes:' + D.id, AKEY = 'zstore-ship:' + D.id, OKEY = 'zstore-co:' + D.id, SKEY = 'zt-sid:' + D.id;
@@ -207,6 +207,26 @@ export function payRuntime(K, CK, D, win, doc) {
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   function get(area, k, d) { try { var v = JSON.parse(win[area].getItem(k) || 'null'); return v == null ? d : v; } catch (e) { return d; } }
   function set(area, k, v) { try { if (v == null) win[area].removeItem(k); else win[area].setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } }
+  var cartLines = function () { return K.lines(K.normalize(get('localStorage', KEY, []), D), D); };
+
+  // ---------- marketing tags (GA4 / Meta / TikTok from Settings › Integrations), only after consent ----------
+  function pixel(name, ls, extra) {
+    var t = K.totals(ls || []), value = extra && extra.value != null ? extra.value : K.fromCents(t.subtotalCents), cur = D.currency.code;
+    var fire = function () {
+      var items = (ls || []).map(function (l) { return { item_id: l.pid, item_name: l.product.title, item_variant: l.label, price: K.fromCents(l.unitCents), quantity: l.qty }; });
+      var meta = { add_to_cart: 'AddToCart', begin_checkout: 'InitiateCheckout', purchase: 'Purchase' }[name];
+      try { if (typeof win.gtag === 'function') win.gtag('event', name, Object.assign({ currency: cur, value: value, items: items }, extra && extra.transaction_id ? { transaction_id: extra.transaction_id } : {})); } catch (e) { /* tag error */ }
+      try { if (typeof win.fbq === 'function') win.fbq('track', meta, { currency: cur, value: value }); } catch (e) { /* tag error */ }
+      try { if (win.ttq && typeof win.ttq.track === 'function') win.ttq.track(name === 'purchase' ? 'CompletePayment' : name === 'begin_checkout' ? 'InitiateCheckout' : 'AddToCart', { currency: cur, value: value }); } catch (e) { /* tag error */ }
+    };
+    if (win.ztConsent && typeof win.ztConsent.run === 'function') win.ztConsent.run(fire); else fire();
+  }
+  (function () {
+    var qty = function (ls) { var n = 0; ls.forEach(function (l) { n += l.qty; }); return n; }, last = qty(cartLines());
+    win.setInterval(function () { var ls = cartLines(), n = qty(ls); if (n > last) pixel('add_to_cart', ls); last = n; }, 1500);
+    if (/(^|\/)checkout\.html$/.test(doc.documentElement.getAttribute('data-path') || win.location.pathname) && !/zt_checkout=success/.test(win.location.search)) { var ls0 = cartLines(); if (ls0.length) pixel('begin_checkout', ls0); }
+  })();
+  if (!pay) return;
   function rerender() { try { win.dispatchEvent(new win.StorageEvent('storage', { key: KEY })); } catch (e) { /* old browser */ } }
   function headers(json) {
     var h = json ? { 'Content-Type': 'application/json' } : {};
@@ -350,6 +370,8 @@ export function payRuntime(K, CK, D, win, doc) {
       }, function () { if (n < 6) win.setTimeout(function () { pollStatus(n + 1); }, 3000); });
   }
   if (ret.status === 'success') {
+    var paidLines = cartLines();
+    if (paidLines.length) pixel('purchase', paidLines, { transaction_id: ret.sessionId || ret.orderId });
     set('localStorage', KEY, []); set('localStorage', CKEY, null); set('sessionStorage', OKEY, null);
     rerender(); pollStatus(0);
   } else if (ret.status === 'cancel') {

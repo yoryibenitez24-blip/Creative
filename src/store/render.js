@@ -385,7 +385,9 @@ export function storeCss(store) {
     : t.cardStyle === 'bordered' ? '.pcard{border:1px solid var(--border);border-radius:var(--r-lg);padding:8px}.pcard-body{padding:14px 10px 8px}'
     : t.cardStyle === 'tagged' ? TAGGED_CSS : '';
   const motion = t.motion || 'subtle';
-  const vt = motion === 'off' ? '' : '@view-transition{navigation:auto}' + (motion === 'expressive' ? '::view-transition-old(root){animation:zvt-out .32s cubic-bezier(.4,0,1,1) both}::view-transition-new(root){animation:zvt-in .6s cubic-bezier(.16,1,.3,1) both}@keyframes zvt-out{to{opacity:0;translate:0 -14px}}@keyframes zvt-in{from{opacity:0;translate:0 22px}}' : '') + '@media (prefers-reduced-motion:reduce){@view-transition{navigation:none}}\n';
+  // page-to-page View Transitions: the opt-in rule is added at runtime by motion.js (top-level http(s) pages only, never in the
+  // builder's srcdoc preview, blob: previews or file://); here only the expressive keyframes
+  const vt = motion === 'off' ? '' : (motion === 'expressive' ? '::view-transition-old(root){animation:zvt-out .32s cubic-bezier(.4,0,1,1) both}::view-transition-new(root){animation:zvt-in .6s cubic-bezier(.16,1,.3,1) both}@keyframes zvt-out{to{opacity:0;translate:0 -14px}}@keyframes zvt-in{from{opacity:0;translate:0 22px}}' : '') + '\n';
   return vars + '\n' + vt + BASE_CSS + btn + card + MOTION_CSS + (motion === 'expressive' ? MOTION_X_CSS : '');
 }
 
