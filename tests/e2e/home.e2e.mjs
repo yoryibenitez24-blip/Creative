@@ -116,6 +116,20 @@ await step('the Starter plan blocks a 2nd store; switching to Growth allows it a
   await page.goto(base + '/#ecom'); await page.waitForFunction(() => location.pathname === '/commerce/dew-ritual' && !location.hash);
   await page.goto(base + '/#home'); await page.getByRole('main', { name: 'Zertake home' }).waitFor(); assert.equal(path(), '/');
 });
+await step('All stores: rename changes the handle; delete asks for confirmation and removes the store', async () => {
+  await page.goto(base + '/commerce/stores'); await page.getByRole('main', { name: 'All stores' }).waitFor();
+  await page.getByRole('button', { name: 'Rename Ironclad' }).click();
+  await page.getByLabel('New store name').fill('Iron Works'); await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByText('/commerce/iron-works').waitFor();
+  await page.getByRole('button', { name: 'Delete Dew Ritual' }).click();
+  await page.getByRole('dialog', { name: 'Delete Dew Ritual?' }).getByRole('button', { name: 'Delete store' }).click();
+  await page.waitForFunction(() => document.querySelectorAll('.zsStoreCard:not(.zsAdd)').length === 1);
+  await page.getByRole('button', { name: 'Back to Iron Works' }).click();
+  await page.waitForFunction(() => location.pathname === '/commerce/iron-works');
+  await page.waitForTimeout(700); // the workspace is saved 250 ms after the last change
+  await page.goto(base + '/commerce/dew-ritual'); await page.getByRole('heading', { name: 'No store at /dew-ritual' }).waitFor();
+  await page.goto(base + '/'); await page.getByRole('main', { name: 'Zertake home' }).waitFor();
+});
 await step('the Web & UI section opens the interface designer; it persists across a reload', async () => {
   await page.getByRole('main', { name: 'Zertake home' }).getByRole('button', { name: 'Open Web & UI' }).click();
   await page.getByRole('button', { name: 'Exit Web workspace' }).waitFor({ timeout: 15000 });

@@ -219,7 +219,7 @@ export function AllStores({ stores, activeStoreId, plan, onPlan, onOpen, onNew, 
   };
   return <div className="caRoot zsRoot zsAll" data-theme={theme}>
     <ShellTop sectionBar={sectionBar} theme={theme} onTheme={toggleTheme} onExit={onExit}>
-      {active && <button type="button" className="caBtn zsGhost zsBackBtn" onClick={onBack}><ArrowLeft size={14} aria-hidden="true" />Back to {active.store.name}</button>}
+      {active && <button type="button" className="caBtn zsGhost zsBackBtn" onClick={onBack}><ArrowLeft size={14} aria-hidden="true" /><span>Back to {active.store.name}</span></button>}
     </ShellTop>
     <main className="zsAllMain" aria-label="All stores">
       <div className="zsAllHead">

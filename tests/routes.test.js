@@ -136,3 +136,10 @@ test('store entries: create, find, rename, remove', () => {
   assert.deepEqual(s.stores.map(e => e.id), [a.id]); assert.equal(s.activeStoreId, a.id);
   s = removeStore(s, a.id); assert.equal(s.activeStoreId, null);
 });
+
+test('template preview links point at the app root from any route', async () => {
+  const { templatePreviewUrl } = await import('../src/store/templatePreview.js');
+  assert.equal(templatePreviewUrl('gym', { origin: 'https://x.dev', pathname: '/commerce/ironclad/orders' }), 'https://x.dev/?template=gym');
+  assert.equal(templatePreviewUrl('gym', { origin: 'https://x.dev', pathname: '/design' }), 'https://x.dev/?template=gym');
+  assert.equal(templatePreviewUrl('gym', { origin: 'https://x.dev', pathname: '/' }), 'https://x.dev/?template=gym');
+});

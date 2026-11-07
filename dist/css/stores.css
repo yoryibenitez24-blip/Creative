@@ -171,6 +171,7 @@
   .zsSetupForm { padding: 28px 24px; }
   .zsPlans { grid-template-columns: 1fr; }
   .zsTop .caSections { display: none; }
+  .zsTop { position: relative; }
 }
 @media (max-width: 560px) {
   .zsTop, .zsStepBar { padding: 12px 16px !important; }
@@ -178,4 +179,8 @@
   .zsStoreGrid { grid-template-columns: 1fr; }
   .zsMenu { width: min(340px, calc(100vw - 32px)); }
   .zsActions { flex-wrap: wrap; }
+  .zsBackBtn { padding: 0 14px !important; }
+  .zsBackBtn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .zsTopTools { gap: 8px; }
+  .zsAllHead h1 { font-size: 28px; }
 }
